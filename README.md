@@ -9,7 +9,7 @@
   
 <p align="center">
   
-[![Blue yorto](https://github.com/Blackie254.png?lenght=50width=50)](https://github.com/Blackie254)
+[![Blue yorto](https://avatars.githubusercontent.com/u/191035695?v=4lenght=50width=50)](https://github.com/Blackie254)
 </p>
 <p align="center">
   <a href="#"><img src="http://readme-typing-svg.herokuapp.com?color=d1fa02&center=true&vCenter=true&multiline=false&lines=𝐁LUEYORTO" alt="">
