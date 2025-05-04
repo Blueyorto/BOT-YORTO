@@ -1,4 +1,4 @@
-# YORTO 𝐁𝐎𝐓
+# BOT YORTO 
 <div align="center">
 <a href="https://git.io/typing-svg"><img src="https://readme-typing-svg.demolab.com?font=Black+Ops+One&size=50&pause=1000&color=1BAFBAFF&center=true&width=910&height=100&lines=HI+THIS+IS+YORTO-BOT;A+MULTI+DEVICE+WHATSAPP+BOT;SCRIPTED+BY+BLUEYORTO;STAR+AND+FORK+OUR+REPO" alt="Typing SVG" /></a>
   </p>
