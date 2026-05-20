@@ -1879,8 +1879,6 @@ break;
 //========================================================================================================================//
 case "bkplay":
 case "bkmp3": {
-  const axios = require("axios");
-
   if (!text) return m.reply("🔎 Provide a song name or YouTube link!");
 
   try {
@@ -1892,15 +1890,11 @@ case "bkmp3": {
 
     let videoUrl;
     let videoTitle;
-    let videoThumbnail;
 
-    // If YouTube URL, use it directly
     if (text.match(/(youtube\.com|youtu\.be)/i)) {
       videoUrl = text;
       videoTitle = "YouTube Audio";
-      videoThumbnail = null;
     } else {
-      // Search using official yts
       let search = await yts(text);
 
       if (!search.all.length) {
@@ -1912,7 +1906,6 @@ case "bkmp3": {
       let video = search.all[0];
       videoUrl = video.url;
       videoTitle = video.title;
-      videoThumbnail = video.thumbnail;
     }
 
     await client.sendMessage(m.chat, {
@@ -1921,17 +1914,17 @@ case "bkmp3": {
     });
 
     await client.sendMessage(m.chat, {
-      text: `✅ Downloading: *${videoTitle}*...`,
+      text: `⬇️ Downloading: *${videoTitle}*...`,
       edit: msg.key
     });
 
-    // Download via BK9 API
-    let bk9 = await axios.get(`https://api.bk9.dev/download/ytmp3?url=${encodeURIComponent(videoUrl)}`);
-    let bk9data = bk9.data?.BK9;
+    // Get download link from BK9
+    let bk9res = await axios.get(`https://api.bk9.dev/download/ytmp3?url=${encodeURIComponent(videoUrl)}`, { timeout: 30000 });
+    let bk9data = bk9res.data?.BK9;
 
     if (!bk9data || !bk9data.downloadUrl) {
       return client.sendMessage(m.chat, {
-        text: "❌ Failed to download audio. Try again.",
+        text: "❌ BK9 failed to get download link. Try again.",
         edit: msg.key
       });
     }
@@ -1942,16 +1935,33 @@ case "bkmp3": {
 
     let fileName = `${videoTitle}.mp3`.replace(/[^\w\s.-]/gi, "");
 
-    let audioBuffer = await getBuffer(bk9data.downloadUrl);
+    // Download buffer directly — getBuffer silently swallows errors so we do it manually
+    let audioRes = await axios.get(bk9data.downloadUrl, {
+      responseType: "arraybuffer",
+      timeout: 60000,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114 Safari/537.36",
+        "Referer": "https://www.youtube.com/"
+      }
+    });
 
-    // Send as audio (playable)
+    let audioBuffer = Buffer.from(audioRes.data);
+
+    if (!audioBuffer || audioBuffer.length < 1000) {
+      return client.sendMessage(m.chat, {
+        text: "❌ Downloaded file is empty. The link may have expired. Try again.",
+        edit: msg.key
+      });
+    }
+
+    // Send as playable audio
     await client.sendMessage(
       m.chat,
       { audio: audioBuffer, mimetype: "audio/mpeg", fileName },
       { quoted: m }
     );
 
-    // Send as document (downloadable)
+    // Send as downloadable document
     await client.sendMessage(
       m.chat,
       { document: audioBuffer, mimetype: "audio/mpeg", fileName },
@@ -1964,12 +1974,11 @@ case "bkmp3": {
     });
 
   } catch (err) {
-    console.log("BK Play error:", err);
-    m.reply("❌ Something went wrong. Please try again.");
+    console.log("BK Play error:", err.message || err);
+    m.reply("❌ Something went wrong: " + (err.message || "unknown error"));
   }
 }
 break;
-
 //========================================================================================================================//
 //========================================================================================================================//    
 case "checknum":
@@ -3248,44 +3257,50 @@ ${count > 1 ? `Image ${sent + 1} of ${photos.length}` : ''}`
 //========================================================================================================================//                  
 //========================================================================================================================//
 //========================================================================================================================//                  
-              case "foreigners": {
-        if (!m.isGroup) return reply(group);          
-        if (!isAdmin) return reply(admin);
-        if (!isBotAdmin) return reply(botAdmin);
-                      
-                let _0x2f8982 = participants.filter(_0x3c9d8b => !_0x3c9d8b.admin).map(_0x1db3fb => _0x1db3fb.id).filter(_0x475052 => !_0x475052.startsWith(mycode) && _0x475052 != jidNormalizedUser(client.user.id));
-    if (!args || !args[0]) {
-      if (_0x2f8982.length == 0) {
-        return m.reply("No foreigners detected.");
-      }
-      let _0x2d7d67 = `𝗙𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿𝘀 𝗮𝗿𝗲 𝗺𝗲𝗺𝗯𝗲𝗿𝘀 𝘄𝗵𝗼𝘀𝗲 𝗰𝗼𝘂𝗻𝘁𝗿𝘆 𝗰𝗼𝗱𝗲 𝗶𝘀 𝗻𝗼𝘁 ${mycode}. 𝗧𝗵𝗲 𝗳𝗼𝗹𝗹𝗼𝘄𝗶𝗻𝗴  ${_0x2f8982.length} 𝗳𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿𝘀 𝘄𝗲𝗿𝗲 𝗱𝗲𝘁𝗲𝗰𝘁𝗲𝗱:- \n`;
-      for (let _0x28761c of _0x2f8982) {
-        _0x2d7d67 += `𓅂 @${_0x28761c.split("@")[0]}\n`;
-      }
-      _0x2d7d67 += `\n𝗧𝗼 𝗿𝗲𝗺𝗼𝘃𝗲 𝘁𝗵𝗲𝗺 𝘀𝗲𝗻𝗱 foreigners -x`;
+        //========================================================================================================================//
+//========================================================================================================================//
+//========================================================================================================================//
+case "foreigners": {
+  if (!m.isGroup) return reply(group);
+  if (!isAdmin) return reply(admin);
+  if (!isBotAdmin) return reply(botAdmin);
+
+  let foreigners = groupMetadata.participants
+    .filter(p => !p.admin)
+    .map(p => p.id)
+    .filter(id => id && !id.startsWith(mycode) && id !== jidNormalizedUser(client.user.id));
+
+  if (!args || !args[0]) {
+    if (foreigners.length === 0) {
+      return m.reply("No foreigners detected.");
+    }
+
+    let msg = `𝗙𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿𝘀 𝗮𝗿𝗲 𝗺𝗲𝗺𝗯𝗲𝗿𝘀 𝘄𝗵𝗼𝘀𝗲 𝗰𝗼𝘂𝗻𝘁𝗿𝘆 𝗰𝗼𝗱𝗲 𝗶𝘀 𝗻𝗼𝘁 ${mycode}. 𝗧𝗵𝗲 𝗳𝗼𝗹𝗹𝗼𝘄𝗶𝗻𝗴 ${foreigners.length} 𝗳𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿𝘀 𝘄𝗲𝗿𝗲 𝗱𝗲𝘁𝗲𝗰𝘁𝗲𝗱:- \n`;
+
+    for (let id of foreigners) {
+      msg += `𓅂 @${id.split("@")[0]}\n`;
+    }
+
+    msg += `\n𝗧𝗼 𝗿𝗲𝗺𝗼𝘃𝗲 𝘁𝗵𝗲𝗺 𝘀𝗲𝗻𝗱 foreigners -x`;
+
+    client.sendMessage(m.chat, { text: msg, mentions: foreigners }, { quoted: m });
+
+  } else if (args[0] === "-x") {
+    setTimeout(() => {
       client.sendMessage(m.chat, {
-        text: _0x2d7d67,
-        mentions: _0x2f8982
-      }, {
-        quoted: m
-      });
-    } else if (args[0] == "-x") {
+        text: `𝐁𝐋𝐀𝐂𝐊-𝐌𝐃 𝘄𝗶𝗹𝗹 𝗻𝗼𝘄 𝗿𝗲𝗺𝗼𝘃𝗲 𝗮𝗹𝗹 ${foreigners.length} 𝗙𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿𝘀 𝗳𝗿𝗼𝗺 𝘁𝗵𝗶𝘀 𝗴𝗿𝗼𝘂𝗽 𝗰𝗵𝗮𝘁 𝗶𝗻 𝘁𝗵𝗲 𝗻𝗲𝘅𝘁 𝘀𝗲𝗰𝗼𝗻𝗱.\n\n𝗚𝗼𝗼𝗱 𝗯𝘆𝗲 𝗙𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿𝘀. 𝗧𝗵𝗶𝘀 𝗽𝗿𝗼𝗰𝗲𝘀𝘀 𝗰𝗮𝗻𝗻𝗼𝘁 𝗯𝗲 𝘁𝗲𝗿𝗺𝗶𝗻𝗮𝘁𝗲𝗱⚠️`
+      }, { quoted: m });
+
       setTimeout(() => {
-        client.sendMessage(m.chat, {
-          text: `𝐁𝐋𝐀𝐂𝐊-𝐌𝐃 𝐁𝐎𝐓 𝘄𝗶𝗹𝗹 𝗻𝗼𝘄 𝗿𝗲𝗺𝗼𝘃𝗲 𝗮𝗹𝗹 ${_0x2f8982.length} 𝗙𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿𝘀 𝗳𝗿𝗼𝗺 𝘁𝗵𝗶𝘀 𝗴𝗿𝗼𝘂𝗽 𝗰𝗵𝗮𝘁 𝗶𝗻 𝘁𝗵𝗲 𝗻𝗲𝘅𝘁 𝘀𝗲𝗰𝗼𝗻𝗱.\n\n𝗚𝗼𝗼𝗱 𝗯𝘆𝗲 𝗙𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿𝘀. 𝗧𝗵𝗶𝘀 𝗽𝗿𝗼𝗰𝗲𝘀𝘀 𝗰𝗮𝗻𝗻𝗼𝘁 𝗯𝗲 𝘁𝗲𝗿𝗺𝗶𝗻𝗮𝘁𝗲𝗱⚠️`
-        }, {
-          quoted: m
-        });
+        client.groupParticipantsUpdate(m.chat, foreigners, "remove");
         setTimeout(() => {
-          client.groupParticipantsUpdate(m.chat, _0x2f8982, "remove");
-          setTimeout(() => {
-            m.reply("𝗔𝗻𝘆 𝗿𝗲𝗺𝗮𝗶𝗻𝗶𝗻𝗴 𝗙𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿 ?🌚.");
-          }, 1000);
+          m.reply("𝗔𝗻𝘆 𝗿𝗲𝗺𝗮𝗶𝗻𝗶𝗻𝗴 𝗙𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿 ?🌚.");
         }, 1000);
       }, 1000);
-    }
+    }, 1000);
   }
-        break;
+}
+break;      
 
 //========================================================================================================================//
  case 'dalle':
