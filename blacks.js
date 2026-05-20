@@ -1467,6 +1467,55 @@ break;
   }
 }
 break;
+//========================================================================================================================//
+//========================================================================================================================//
+case "play3":
+case "playa": {
+
+  if (!text) return m.reply("🎵 Usage: ." + command + " <song name>\nExample: ." + command + " Blinding Lights");
+
+  try {
+    // Search YouTube for best match
+    const search = await yts(text);
+    const video = search.videos[0];
+    if (!video) return m.reply("❌ No results found for: " + text);
+
+    await m.reply("⏳ _Downloading_ *" + video.title + "*\n⏱️ " + video.timestamp + " | 🎤 " + video.author.name);
+
+    // xwolf 320kbps audio API
+    const xwolfUrl = `https://apis.xwolf.space/download/yta?url=${encodeURIComponent(video.url)}`;
+    const res = await axios.get(xwolfUrl, { timeout: 40000 });
+    const data = res.data;
+
+    if (!data.success || !data.downloadUrl) {
+      return m.reply("❌ Download failed. Try again or use a different song name.");
+    }
+
+    const safeTitle = (data.title || video.title).replace(/[\/\\:*?"<>|]/g, '').trim();
+    const fileName = safeTitle + '.mp3';
+
+    // Send as playable audio
+    await client.sendMessage(m.chat, {
+      audio: { url: data.downloadUrl },
+      mimetype: 'audio/mpeg',
+      fileName
+    }, { quoted: m });
+
+    // Send as downloadable document
+    await client.sendMessage(m.chat, {
+      document: { url: data.downloadUrl },
+      mimetype: 'audio/mpeg',
+      caption: `🎵 *${safeTitle}*\n🎧 Quality: ${data.quality || "320kbps"}\n_Downloaded by BLACK-MD_`,
+      fileName
+    }, { quoted: m });
+
+  } catch (err) {
+    console.error("[PLAY3] error:", err.message || err);
+    m.reply("❌ An error occurred. Try again.");
+  }
+}
+break;
+
 //========================================================================================================================// 
 case "spotify": {
   if (!text) {
