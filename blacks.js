@@ -1942,17 +1942,19 @@ case "bkmp3": {
 
     let fileName = `${videoTitle}.mp3`.replace(/[^\w\s.-]/gi, "");
 
+    let audioBuffer = await getBuffer(bk9data.downloadUrl);
+
     // Send as audio (playable)
     await client.sendMessage(
       m.chat,
-      { audio: { url: bk9data.downloadUrl }, mimetype: "audio/mpeg", fileName },
+      { audio: audioBuffer, mimetype: "audio/mpeg", fileName },
       { quoted: m }
     );
 
     // Send as document (downloadable)
     await client.sendMessage(
       m.chat,
-      { document: { url: bk9data.downloadUrl }, mimetype: "audio/mpeg", fileName },
+      { document: audioBuffer, mimetype: "audio/mpeg", fileName },
       { quoted: m }
     );
 
