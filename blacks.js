@@ -1877,7 +1877,109 @@ break;
                           
 //========================================================================================================================//
 //========================================================================================================================//
-                       
+case "bkplay":
+case "bkmp3": {
+  const axios = require("axios");
+
+  if (!text) return m.reply("🔎 Provide a song name or YouTube link!");
+
+  try {
+    await client.sendMessage(m.chat, { react: { text: "🎧", key: m.key } });
+
+    let msg = await client.sendMessage(m.chat, {
+      text: `🔍 Searching *${text}*...`
+    }, { quoted: m });
+
+    let videoUrl;
+    let videoTitle;
+    let videoThumbnail;
+
+    // If YouTube URL, use it directly
+    if (text.match(/(youtube\.com|youtu\.be)/i)) {
+      videoUrl = text;
+      videoTitle = "YouTube Audio";
+      videoThumbnail = null;
+    } else {
+      // Search by name
+      let search = await yts(text);
+      let videos = search.data?.result;
+
+      if (!Array.isArray(videos) || videos.length === 0) {
+        return client.sendMessage(m.chat, {
+          text: "❌ No results found."
+        }, { quoted: msg });
+      }
+
+      let first = videos[0];
+      videoUrl = first.url;
+      videoTitle = first.title;
+      videoThumbnail = first.thumbnail;
+    }
+
+    await client.sendMessage(m.chat, {
+      text: `😍 Found: *${videoTitle}*`,
+      edit: msg.key
+    });
+
+    await client.sendMessage(m.chat, {
+      text: `✅ Downloading: *${videoTitle}*...`,
+      edit: msg.key
+    });
+
+    // Download via BK9 API
+    let bk9 = await axios.get(`https://api.bk9.dev/download/ytmp3?url=${encodeURIComponent(videoUrl)}`);
+    let bk9data = bk9.data?.BK9;
+
+    if (!bk9data || !bk9data.downloadUrl) {
+      return client.sendMessage(m.chat, {
+        text: "❌ Failed to download audio. Try again.",
+        edit: msg.key
+      });
+    }
+
+    // Use title from BK9 if search was skipped
+    if (!videoTitle || videoTitle === "YouTube Audio") {
+      videoTitle = bk9data.title || "Audio";
+    }
+    if (!videoThumbnail) {
+      videoThumbnail = bk9data.image || null;
+    }
+
+    let fileName = `${videoTitle}.mp3`.replace(/[^\w\s.-]/gi, "");
+
+    // Send as audio (playable)
+    await client.sendMessage(
+      m.chat,
+      {
+        audio: { url: bk9data.downloadUrl },
+        mimetype: "audio/mpeg",
+        fileName
+      },
+      { quoted: m }
+    );
+
+    // Send as document (downloadable)
+    await client.sendMessage(
+      m.chat,
+      {
+        document: { url: bk9data.downloadUrl },
+        mimetype: "audio/mpeg",
+        fileName
+      },
+      { quoted: m }
+    );
+
+    await client.sendMessage(m.chat, {
+      text: `✅ Done! *${videoTitle}*\n⏱ Duration: ${Math.floor(bk9data.duration / 60)}:${String(bk9data.duration % 60).padStart(2, '0')}\n🎵 Quality: ${bk9data.quality}`,
+      edit: msg.key
+    });
+
+  } catch (err) {
+    console.log("BK Play error:", err);
+    m.reply("❌ Something went wrong. Please try again.");
+  }
+}
+break;               
 //========================================================================================================================//
 //========================================================================================================================//    
 case "checknum":
