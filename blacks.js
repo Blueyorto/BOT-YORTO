@@ -1471,18 +1471,15 @@ break;
 //========================================================================================================================//
 case "play3":
 case "playa": {
-
-  if (!text) return m.reply("🎵 Usage: ." + command + " <song name>\nExample: ." + command + " Blinding Lights");
+  if (!text) return m.reply("Provide a song name Eg:- play Blinding Lights");
 
   try {
-    // Search YouTube for best match
     const search = await yts(text);
     const video = search.videos[0];
     if (!video) return m.reply("❌ No results found for: " + text);
 
     await m.reply("⏳ _Downloading_ *" + video.title + "*\n⏱️ " + video.timestamp + " | 🎤 " + video.author.name);
 
-    // xwolf 320kbps audio API
     const xwolfUrl = `https://apis.xwolf.space/download/yta?url=${encodeURIComponent(video.url)}`;
     const res = await axios.get(xwolfUrl, { timeout: 40000 });
     const data = res.data;
@@ -1494,18 +1491,16 @@ case "playa": {
     const safeTitle = (data.title || video.title).replace(/[\/\\:*?"<>|]/g, '').trim();
     const fileName = safeTitle + '.mp3';
 
-    // Send as playable audio
     await client.sendMessage(m.chat, {
       audio: { url: data.downloadUrl },
       mimetype: 'audio/mpeg',
       fileName
     }, { quoted: m });
 
-    // Send as downloadable document
     await client.sendMessage(m.chat, {
       document: { url: data.downloadUrl },
       mimetype: 'audio/mpeg',
-      caption: `🎵 *${safeTitle}*\n🎧 Quality: ${data.quality || "320kbps"}\n_Downloaded by BLACK-MD_`,
+      caption: '*DOWNLOADED BY BLACK-MD*',
       fileName
     }, { quoted: m });
 
