@@ -1900,20 +1900,19 @@ case "bkmp3": {
       videoTitle = "YouTube Audio";
       videoThumbnail = null;
     } else {
-      // Search by name
+      // Search using official yts
       let search = await yts(text);
-      let videos = search.data?.result;
 
-      if (!Array.isArray(videos) || videos.length === 0) {
+      if (!search.all.length) {
         return client.sendMessage(m.chat, {
           text: "❌ No results found."
         }, { quoted: msg });
       }
 
-      let first = videos[0];
-      videoUrl = first.url;
-      videoTitle = first.title;
-      videoThumbnail = first.thumbnail;
+      let video = search.all[0];
+      videoUrl = video.url;
+      videoTitle = video.title;
+      videoThumbnail = video.thumbnail;
     }
 
     await client.sendMessage(m.chat, {
@@ -1937,12 +1936,8 @@ case "bkmp3": {
       });
     }
 
-    // Use title from BK9 if search was skipped
     if (!videoTitle || videoTitle === "YouTube Audio") {
       videoTitle = bk9data.title || "Audio";
-    }
-    if (!videoThumbnail) {
-      videoThumbnail = bk9data.image || null;
     }
 
     let fileName = `${videoTitle}.mp3`.replace(/[^\w\s.-]/gi, "");
@@ -1950,22 +1945,14 @@ case "bkmp3": {
     // Send as audio (playable)
     await client.sendMessage(
       m.chat,
-      {
-        audio: { url: bk9data.downloadUrl },
-        mimetype: "audio/mpeg",
-        fileName
-      },
+      { audio: { url: bk9data.downloadUrl }, mimetype: "audio/mpeg", fileName },
       { quoted: m }
     );
 
     // Send as document (downloadable)
     await client.sendMessage(
       m.chat,
-      {
-        document: { url: bk9data.downloadUrl },
-        mimetype: "audio/mpeg",
-        fileName
-      },
+      { document: { url: bk9data.downloadUrl }, mimetype: "audio/mpeg", fileName },
       { quoted: m }
     );
 
@@ -1979,7 +1966,8 @@ case "bkmp3": {
     m.reply("❌ Something went wrong. Please try again.");
   }
 }
-break;               
+break;
+
 //========================================================================================================================//
 //========================================================================================================================//    
 case "checknum":
