@@ -14,7 +14,6 @@ const yts = require("yt-search");
 const { DateTime } = require('luxon');
 const uploadtoimgur = require('./lib/imgur');
 const advice = require("badadvice");
-const BASE_URL = 'https://noobs-api.top';
 const api = 'https://apiskeith.top';
 const {c, cpp, node, python, java} = require('compile-run');
 const acrcloud = require("acrcloud"); 
@@ -1096,7 +1095,7 @@ case 'quran': {
   break;
 //========================================================================================================================//
         //========================================================================================================================//
-        case "play":
+      /*  case "play":
         case "ytmp3":
         case "yta": {
   const axios = require("axios");
@@ -1206,7 +1205,7 @@ videoTitle = "YouTube Audio";
   }
 }
 break;            
-                          
+                         
 //========================================================================================================================//
 //========================================================================================================================//
 case "ytv":                        
@@ -1320,102 +1319,229 @@ await client.sendMessage(m.chat, {
     m.reply("❌ Error downloading video. API may be unstable.");
   }
 }
-break;
+break;  */
 //========================================================================================================================//
-//========================================================================================================================//                      
-  case "video2": {                    
- if (!text) {
-      return client.sendMessage(from, { text: 'Please provide a song name.' }, { quoted: m });
+case "play":
+case "yta":
+case "ytmp3": {
+  const axios = require("axios");
+
+  if (!text) return m.reply("🎧 Provide a song name or YouTube link!\nEg:- *play4 Blinding Lights*");
+
+  try {
+    await client.sendMessage(m.chat, { react: { text: "🎵", key: m.key } });
+
+    let msg = await client.sendMessage(m.chat, {
+      text: `🔍 Searching *${text}*...`
+    }, { quoted: m });
+
+    let videoUrl;
+    let videoTitle;
+    let videoThumbnail;
+
+    // If user gave a YouTube link directly
+    if (text.match(/(youtube\.com|youtu\.be)/i)) {
+      videoUrl = text;
+      videoTitle = "YouTube Audio";
+      videoThumbnail = null;
+    } else {
+      // Search YouTube for the song name
+      const search = await yts(text);
+      const video = search.videos[0];
+
+      if (!video) {
+        return client.sendMessage(m.chat, {
+          text: "❌ No results found for: *" + text + "*",
+          edit: msg.key
+        });
+      }
+
+      videoUrl = video.url;
+      videoTitle = video.title;
+      videoThumbnail = video.thumbnail;
     }
 
-try {
-     const search = await yts(text);
-     const video = search.videos[0];
+    await client.sendMessage(m.chat, {
+      text: `😍 Found: *${videoTitle}*\n⏳ Downloading...`,
+      edit: msg.key
+    });
 
-        if (!video) {
-          return client.sendMessage(from, {
-            text: 'No results found for your query.'
-          }, { quoted: m });
-        }
-        
-m.reply("_Please wait your download is in progress_");
-        
-        const safeTitle = video.title.replace(/[\\/:*?"<>|]/g, '');
-        const fileName = `${safeTitle}.mp4`;
-        const apiURL = `${BASE_URL}/dipto/ytDl4?link=${encodeURIComponent(video.videoId)}&format=mp4`;
+    // Download via gifted API
+    const apiRes = await axios.get(
+      `https://mcow.giftedtechnexus.workers.dev/api/yta?url=${encodeURIComponent(videoUrl)}`,
+      { timeout: 60000 }
+    );
+    const data = apiRes.data;
 
-        const response = await axios.get(apiURL);
-        const data = response.data;
-
-        if (!data.downloadLink) {
-          return client.sendMessage(from, {
-            text: 'Failed to retrieve the MP4 download link.'
-          }, { quoted: m });
-        } 
-        
-await client.sendMessage(from, {
-          video: { url: data.downloadLink },
-          mimetype: 'video/mp4',
-          fileName
-        }, { quoted: m });
-
-      } catch (err) {
-        console.error('[PLAY] Error:', err);
-        await client.sendMessage(from, {
-          text: 'An error occurred while processing your request.'
-        }, { quoted: m });
-}
-}
-break;
-                          
-//========================================================================================================================//
-//========================================================================================================================//                      
-                          case "play2": {                     
- if (!text) {
-      return client.sendMessage(from, { text: 'Please provide a song name.' }, { quoted: m });
+    if (!data.success || !data.result?.download_url) {
+      return client.sendMessage(m.chat, {
+        text: "❌ Download failed. Try a different song.",
+        edit: msg.key
+      });
     }
 
-try {
-     const search = await yts(text);
-     const video = search.videos[0];
+    const finalTitle = data.result.title || videoTitle;
+    const downloadUrl = data.result.download_url;
+    const fileName = finalTitle.replace(/[\/\\:*?"<>|]/g, "").trim() + ".mp3";
 
-        if (!video) {
-          return client.sendMessage(from, {
-            text: 'No results found for your query.'
-          }, { quoted: m });
-        }
-        
-m.reply("_Please wait your download is in progress_");
-        
-        const safeTitle = video.title.replace(/[\\/:*?"<>|]/g, '');
-        const fileName = `${safeTitle}.mp3`;
-        const apiURL = `${BASE_URL}/dipto/ytDl3?link=${encodeURIComponent(video.videoId)}&format=mp3`;
+    // Send as playable audio
+    await client.sendMessage(m.chat, {
+      audio: { url: downloadUrl },
+      mimetype: "audio/mpeg",
+      fileName
+    }, { quoted: m });
 
-        const response = await axios.get(apiURL);
-        const data = response.data;
+    // Send as downloadable document
+    await client.sendMessage(m.chat, {
+      document: { url: downloadUrl },
+      mimetype: "audio/mpeg",
+      caption: "*DOWNLOADED BY 𝐁𝐋𝐀𝐂𝐊-𝐌𝐃*",
+      fileName
+    }, { quoted: m });
 
-        if (!data.downloadLink) {
-          return client.sendMessage(from, {
-            text: 'Failed to retrieve the MP3 download link.'
-          }, { quoted: m });
-        } 
-        
-await client.sendMessage(from, {
-          document: { url: data.downloadLink },
-          mimetype: 'audio/mp4',
-          fileName
-        }, { quoted: m });
+    await client.sendMessage(m.chat, {
+      text: `✅ Succesfully Downloaded! *${finalTitle}*`,
+      edit: msg.key
+    });
 
-      } catch (err) {
-        console.error('[PLAY] Error:', err);
-        await client.sendMessage(from, {
-          text: 'An error occurred while processing your request.'
-        }, { quoted: m });
-}
+  } catch (err) {
+    console.error("[PLAY] error:", err.message || err);
+    await client.sendMessage(m.chat, {
+      text: "❌ An error occurred. Try again.",
+      edit: msg?.key
+    });
+  }
 }
 break;
-        //========================================================================================================================//
-                //========================================================================================================================//
+//========================================================================================================================//
+//========================================================================================================================//
+
+
+
+//========================================================================================================================//
+//========================================================================================================================//
+//========================================================================================================================//                      
+//========================================================================================================================//
+case "ytv":
+case "video":
+case "ytmp4": {
+  const axios = require("axios");
+
+  if (!text) return m.reply("🎬 Provide a video name or YouTube link!\nEg:- *ytv Blinding Lights*");
+
+  try {
+    await client.sendMessage(m.chat, { react: { text: "🎬", key: m.key } });
+
+    let msg = await client.sendMessage(m.chat, {
+      text: `🔍 Searching *${text}*...`
+    }, { quoted: m });
+
+    let videoUrl;
+    let videoTitle;
+    let videoThumbnail;
+
+    // If user gave a YouTube link directly
+    if (text.match(/(youtube\.com|youtu\.be)/i)) {
+      videoUrl = text;
+      videoTitle = "YouTube Video";
+      videoThumbnail = null;
+    } else {
+      // Search YouTube for the video name
+      const search = await yts(text);
+      const video = search.videos[0];
+
+      if (!video) {
+        return client.sendMessage(m.chat, {
+          text: "❌ No results found for: *" + text + "*",
+          edit: msg.key
+        });
+      }
+
+      videoUrl = video.url;
+      videoTitle = video.title;
+      videoThumbnail = video.thumbnail;
+    }
+
+    await client.sendMessage(m.chat, {
+      text: `😍 Found: *${videoTitle}*\n⏳ Downloading...`,
+      edit: msg.key
+    });
+
+    // Download via iamtkm API
+    const apiRes = await axios.get(
+      `https://iamtkm.vercel.app/downloaders/ytmp4?apikey=tkm&url=${encodeURIComponent(videoUrl)}`,
+      { timeout: 60000 }
+    );
+    const data = apiRes.data;
+
+    if (!data.status || !data.data?.url) {
+      return client.sendMessage(m.chat, {
+        text: "❌ Download failed. Try a different video.",
+        edit: msg.key
+      });
+    }
+
+    const finalTitle = data.data.title || videoTitle;
+    const downloadUrl = data.data.url;
+    const fileName = finalTitle.replace(/[\/\\:*?"<>|]/g, "").trim() + ".mp4";
+
+    await client.sendMessage(m.chat, {
+      text: `✅ Downloading: *${finalTitle}*`,
+      edit: msg.key
+    });
+
+    // Check size before buffering
+    const head = await axios.head(downloadUrl, { timeout: 15000 }).catch(() => null);
+    const size = head?.headers?.["content-length"];
+    if (size && parseInt(size) > 150 * 1024 * 1024) {
+      return client.sendMessage(m.chat, {
+        text: "❌ Video too large (>150MB). Try a shorter video.",
+        edit: msg.key
+      });
+    }
+
+    // Download as buffer
+    const dlRes = await axios.get(downloadUrl, {
+      responseType: "arraybuffer",
+      timeout: 120000
+    });
+    const buffer = Buffer.from(dlRes.data);
+
+    // Send as playable video
+    await client.sendMessage(m.chat, {
+      video: buffer,
+      mimetype: "video/mp4",
+      fileName,
+      caption: `🎬 *${finalTitle}*`
+    }, { quoted: m });
+
+    // Send as downloadable document
+    await client.sendMessage(m.chat, {
+      document: buffer,
+      mimetype: "video/mp4",
+      caption: "*DOWNLOADED BY 𝐁𝐋𝐀𝐂𝐊-𝐌𝐃*",
+      fileName
+    }, { quoted: m });
+
+    await client.sendMessage(m.chat, {
+      text: `✅ Successfully downloaded! *${finalTitle}*`,
+      edit: msg.key
+    });
+
+  } catch (err) {
+    console.error("[YTV2] error:", err.message || err);
+    await client.sendMessage(m.chat, {
+      text: "❌ An error occurred. Try again.",
+      edit: msg?.key
+    });
+  }
+}
+break;
+//========================================================================================================================//                      
+//========================================================================================================================//
+//========================================================================================================================//                         
+//========================================================================================================================//
+//========================================================================================================================//
        case "music": {
   const yts = require("yt-search");
   const fetch = require("node-fetch");
@@ -1467,6 +1593,50 @@ break;
   }
 }
 break;
+//========================================================================================================================//
+//========================================================================================================================//
+case "play2":
+case "playa": {
+  if (!text) return m.reply("Provide a song name Eg:- play Blinding Lights");
+
+  try {
+    const search = await yts(text);
+    const video = search.videos[0];
+    if (!video) return m.reply("❌ No results found for: " + text);
+
+    await m.reply("⏳ _Downloading_ *" + video.title + "*\n⏱️ " + video.timestamp + " | 🎤 " + video.author.name);
+
+    const xwolfUrl = `https://apis.xwolf.space/download/yta?url=${encodeURIComponent(video.url)}`;
+    const res = await axios.get(xwolfUrl, { timeout: 40000 });
+    const data = res.data;
+
+    if (!data.success || !data.downloadUrl) {
+      return m.reply("❌ Download failed. Try again or use a different song name.");
+    }
+
+    const safeTitle = (data.title || video.title).replace(/[\/\\:*?"<>|]/g, '').trim();
+    const fileName = safeTitle + '.mp3';
+
+    await client.sendMessage(m.chat, {
+      audio: { url: data.downloadUrl },
+      mimetype: 'audio/mpeg',
+      fileName
+    }, { quoted: m });
+
+    await client.sendMessage(m.chat, {
+      document: { url: data.downloadUrl },
+      mimetype: 'audio/mpeg',
+      caption: '*DOWNLOADED BY BLACK-MD*',
+      fileName
+    }, { quoted: m });
+
+  } catch (err) {
+    console.error("[PLAY3] error:", err.message || err);
+    m.reply("❌ An error occurred. Try again.");
+  }
+}
+break;
+
 //========================================================================================================================// 
 case "spotify": {
   if (!text) {
@@ -1514,10 +1684,10 @@ case "spotify": {
     let downloadUrl = null;
     try {
       const r1 = await axios.get(
-        `${BASE_URL}/dipto/ytDl3?link=${encodeURIComponent(video.videoId)}&format=mp3`,
+        `${api}/download/audio?url=${encodeURIComponent(video.videoId)}&format=mp3`,
         { timeout: 30000 }
       );
-      if (r1.data?.downloadLink) downloadUrl = r1.data.downloadLink;
+      if (r1.data?.result) downloadUrl = r1.data.result;
     } catch (_) {}
     // Fallback
     if (!downloadUrl) {
@@ -1832,7 +2002,108 @@ break;
                           
 //========================================================================================================================//
 //========================================================================================================================//
-                       
+case "bkplay":
+case "bkmp3": {
+  if (!text) return m.reply("🔎 Provide a song name or YouTube link!");
+
+  try {
+    await client.sendMessage(m.chat, { react: { text: "🎧", key: m.key } });
+
+    let msg = await client.sendMessage(m.chat, {
+      text: `🔍 Searching *${text}*...`
+    }, { quoted: m });
+
+    let videoUrl;
+    let videoTitle;
+
+    if (text.match(/(youtube\.com|youtu\.be)/i)) {
+      videoUrl = text;
+      videoTitle = "YouTube Audio";
+    } else {
+      let search = await yts(text);
+
+      if (!search.all.length) {
+        return client.sendMessage(m.chat, {
+          text: "❌ No results found."
+        }, { quoted: msg });
+      }
+
+      let video = search.all[0];
+      videoUrl = video.url;
+      videoTitle = video.title;
+    }
+
+    await client.sendMessage(m.chat, {
+      text: `😍 Found: *${videoTitle}*`,
+      edit: msg.key
+    });
+
+    await client.sendMessage(m.chat, {
+      text: `⬇️ Downloading: *${videoTitle}*...`,
+      edit: msg.key
+    });
+
+    // Get download link from BK9
+    let bk9res = await axios.get(`https://api.bk9.dev/download/ytmp3?url=${encodeURIComponent(videoUrl)}`, { timeout: 30000 });
+    let bk9data = bk9res.data?.BK9;
+
+    if (!bk9data || !bk9data.downloadUrl) {
+      return client.sendMessage(m.chat, {
+        text: "❌ BK9 failed to get download link. Try again.",
+        edit: msg.key
+      });
+    }
+
+    if (!videoTitle || videoTitle === "YouTube Audio") {
+      videoTitle = bk9data.title || "Audio";
+    }
+
+    let fileName = `${videoTitle}.mp3`.replace(/[^\w\s.-]/gi, "");
+
+    // Download buffer directly — getBuffer silently swallows errors so we do it manually
+    let audioRes = await axios.get(bk9data.downloadUrl, {
+      responseType: "arraybuffer",
+      timeout: 60000,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114 Safari/537.36",
+        "Referer": "https://www.youtube.com/"
+      }
+    });
+
+    let audioBuffer = Buffer.from(audioRes.data);
+
+    if (!audioBuffer || audioBuffer.length < 1000) {
+      return client.sendMessage(m.chat, {
+        text: "❌ Downloaded file is empty. The link may have expired. Try again.",
+        edit: msg.key
+      });
+    }
+
+    // Send as playable audio
+    await client.sendMessage(
+      m.chat,
+      { audio: audioBuffer, mimetype: "audio/mpeg", fileName },
+      { quoted: m }
+    );
+
+    // Send as downloadable document
+    await client.sendMessage(
+      m.chat,
+      { document: audioBuffer, mimetype: "audio/mpeg", fileName },
+      { quoted: m }
+    );
+
+    await client.sendMessage(m.chat, {
+      text: `✅ Done! *${videoTitle}*\n⏱ Duration: ${Math.floor(bk9data.duration / 60)}:${String(bk9data.duration % 60).padStart(2, '0')}\n🎵 Quality: ${bk9data.quality}`,
+      edit: msg.key
+    });
+
+  } catch (err) {
+    console.log("BK Play error:", err.message || err);
+    m.reply("❌ Something went wrong: " + (err.message || "unknown error"));
+  }
+}
+break;
 //========================================================================================================================//
 //========================================================================================================================//    
 case "checknum":
@@ -3111,44 +3382,50 @@ ${count > 1 ? `Image ${sent + 1} of ${photos.length}` : ''}`
 //========================================================================================================================//                  
 //========================================================================================================================//
 //========================================================================================================================//                  
-              case "foreigners": {
-        if (!m.isGroup) return reply(group);          
-        if (!isAdmin) return reply(admin);
-        if (!isBotAdmin) return reply(botAdmin);
-                      
-                let _0x2f8982 = participants.filter(_0x3c9d8b => !_0x3c9d8b.admin).map(_0x1db3fb => _0x1db3fb.id).filter(_0x475052 => !_0x475052.startsWith(mycode) && _0x475052 != jidNormalizedUser(client.user.id));
-    if (!args || !args[0]) {
-      if (_0x2f8982.length == 0) {
-        return m.reply("No foreigners detected.");
-      }
-      let _0x2d7d67 = `𝗙𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿𝘀 𝗮𝗿𝗲 𝗺𝗲𝗺𝗯𝗲𝗿𝘀 𝘄𝗵𝗼𝘀𝗲 𝗰𝗼𝘂𝗻𝘁𝗿𝘆 𝗰𝗼𝗱𝗲 𝗶𝘀 𝗻𝗼𝘁 ${mycode}. 𝗧𝗵𝗲 𝗳𝗼𝗹𝗹𝗼𝘄𝗶𝗻𝗴  ${_0x2f8982.length} 𝗳𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿𝘀 𝘄𝗲𝗿𝗲 𝗱𝗲𝘁𝗲𝗰𝘁𝗲𝗱:- \n`;
-      for (let _0x28761c of _0x2f8982) {
-        _0x2d7d67 += `𓅂 @${_0x28761c.split("@")[0]}\n`;
-      }
-      _0x2d7d67 += `\n𝗧𝗼 𝗿𝗲𝗺𝗼𝘃𝗲 𝘁𝗵𝗲𝗺 𝘀𝗲𝗻𝗱 foreigners -x`;
+        //========================================================================================================================//
+//========================================================================================================================//
+//========================================================================================================================//
+case "foreigners": {
+  if (!m.isGroup) return reply(group);
+  if (!isAdmin) return reply(admin);
+  if (!isBotAdmin) return reply(botAdmin);
+
+  let foreigners = groupMetadata.participants
+    .filter(p => !p.admin)
+    .map(p => p.id)
+    .filter(id => id && !id.startsWith(mycode) && id !== jidNormalizedUser(client.user.id));
+
+  if (!args || !args[0]) {
+    if (foreigners.length === 0) {
+      return m.reply("No foreigners detected.");
+    }
+
+    let msg = `𝗙𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿𝘀 𝗮𝗿𝗲 𝗺𝗲𝗺𝗯𝗲𝗿𝘀 𝘄𝗵𝗼𝘀𝗲 𝗰𝗼𝘂𝗻𝘁𝗿𝘆 𝗰𝗼𝗱𝗲 𝗶𝘀 𝗻𝗼𝘁 ${mycode}. 𝗧𝗵𝗲 𝗳𝗼𝗹𝗹𝗼𝘄𝗶𝗻𝗴 ${foreigners.length} 𝗳𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿𝘀 𝘄𝗲𝗿𝗲 𝗱𝗲𝘁𝗲𝗰𝘁𝗲𝗱:- \n`;
+
+    for (let id of foreigners) {
+      msg += `𓅂 @${id.split("@")[0]}\n`;
+    }
+
+    msg += `\n𝗧𝗼 𝗿𝗲𝗺𝗼𝘃𝗲 𝘁𝗵𝗲𝗺 𝘀𝗲𝗻𝗱 foreigners -x`;
+
+    client.sendMessage(m.chat, { text: msg, mentions: foreigners }, { quoted: m });
+
+  } else if (args[0] === "-x") {
+    setTimeout(() => {
       client.sendMessage(m.chat, {
-        text: _0x2d7d67,
-        mentions: _0x2f8982
-      }, {
-        quoted: m
-      });
-    } else if (args[0] == "-x") {
+        text: `𝐁𝐋𝐀𝐂𝐊-𝐌𝐃 𝘄𝗶𝗹𝗹 𝗻𝗼𝘄 𝗿𝗲𝗺𝗼𝘃𝗲 𝗮𝗹𝗹 ${foreigners.length} 𝗙𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿𝘀 𝗳𝗿𝗼𝗺 𝘁𝗵𝗶𝘀 𝗴𝗿𝗼𝘂𝗽 𝗰𝗵𝗮𝘁 𝗶𝗻 𝘁𝗵𝗲 𝗻𝗲𝘅𝘁 𝘀𝗲𝗰𝗼𝗻𝗱.\n\n𝗚𝗼𝗼𝗱 𝗯𝘆𝗲 𝗙𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿𝘀. 𝗧𝗵𝗶𝘀 𝗽𝗿𝗼𝗰𝗲𝘀𝘀 𝗰𝗮𝗻𝗻𝗼𝘁 𝗯𝗲 𝘁𝗲𝗿𝗺𝗶𝗻𝗮𝘁𝗲𝗱⚠️`
+      }, { quoted: m });
+
       setTimeout(() => {
-        client.sendMessage(m.chat, {
-          text: `𝐁𝐋𝐀𝐂𝐊-𝐌𝐃 𝐁𝐎𝐓 𝘄𝗶𝗹𝗹 𝗻𝗼𝘄 𝗿𝗲𝗺𝗼𝘃𝗲 𝗮𝗹𝗹 ${_0x2f8982.length} 𝗙𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿𝘀 𝗳𝗿𝗼𝗺 𝘁𝗵𝗶𝘀 𝗴𝗿𝗼𝘂𝗽 𝗰𝗵𝗮𝘁 𝗶𝗻 𝘁𝗵𝗲 𝗻𝗲𝘅𝘁 𝘀𝗲𝗰𝗼𝗻𝗱.\n\n𝗚𝗼𝗼𝗱 𝗯𝘆𝗲 𝗙𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿𝘀. 𝗧𝗵𝗶𝘀 𝗽𝗿𝗼𝗰𝗲𝘀𝘀 𝗰𝗮𝗻𝗻𝗼𝘁 𝗯𝗲 𝘁𝗲𝗿𝗺𝗶𝗻𝗮𝘁𝗲𝗱⚠️`
-        }, {
-          quoted: m
-        });
+        client.groupParticipantsUpdate(m.chat, foreigners, "remove");
         setTimeout(() => {
-          client.groupParticipantsUpdate(m.chat, _0x2f8982, "remove");
-          setTimeout(() => {
-            m.reply("𝗔𝗻𝘆 𝗿𝗲𝗺𝗮𝗶𝗻𝗶𝗻𝗴 𝗙𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿 ?🌚.");
-          }, 1000);
+          m.reply("𝗔𝗻𝘆 𝗿𝗲𝗺𝗮𝗶𝗻𝗶𝗻𝗴 𝗙𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿 ?🌚.");
         }, 1000);
       }, 1000);
-    }
+    }, 1000);
   }
-        break;
+}
+break;      
 
 //========================================================================================================================//
  case 'dalle':
