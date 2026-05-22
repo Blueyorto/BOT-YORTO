@@ -14,7 +14,6 @@ const yts = require("yt-search");
 const { DateTime } = require('luxon');
 const uploadtoimgur = require('./lib/imgur');
 const advice = require("badadvice");
-const BASE_URL = 'https://noobs-api.top';
 const api = 'https://apiskeith.top';
 const {c, cpp, node, python, java} = require('compile-run');
 const acrcloud = require("acrcloud"); 
@@ -1416,12 +1415,19 @@ case "ytmp3": {
 break;
 //========================================================================================================================//
 //========================================================================================================================//
+
+
+
+//========================================================================================================================//
+//========================================================================================================================//
+//========================================================================================================================//                      
+//========================================================================================================================//
 case "ytv":
 case "video":
 case "ytmp4": {
   const axios = require("axios");
 
-  if (!text) return m.reply("🎬 Provide a video name or YouTube link!\nEg:- *video Blinding Lights*");
+  if (!text) return m.reply("🎬 Provide a video name or YouTube link!\nEg:- *ytv Blinding Lights*");
 
   try {
     await client.sendMessage(m.chat, { react: { text: "🎬", key: m.key } });
@@ -1457,39 +1463,34 @@ case "ytmp4": {
     }
 
     await client.sendMessage(m.chat, {
-      text: `😍 Found: *${videoTitle}*\n⏳ Fetching download link...`,
+      text: `😍 Found: *${videoTitle}*\n⏳ Downloading...`,
       edit: msg.key
     });
 
-    // Fetch video info from xcasper API
+    // Download via iamtkm API
     const apiRes = await axios.get(
-      `https://apis.xcasper.space/api/downloader/ytmp4?url=${encodeURIComponent(videoUrl)}`,
+      `https://iamtkm.vercel.app/downloaders/ytmp4?apikey=tkm&url=${encodeURIComponent(videoUrl)}`,
       { timeout: 60000 }
     );
     const data = apiRes.data;
 
-    if (!data.success || !data.data?.downloads?.length) {
+    if (!data.status || !data.data?.url) {
       return client.sendMessage(m.chat, {
-        text: "❌ Failed to get video. Try a different title.",
+        text: "❌ Download failed. Try a different video.",
         edit: msg.key
       });
     }
 
-    // Pick best quality that HAS audio (so it plays properly in WhatsApp)
-    const withAudio = data.data.downloads.filter(d => d.hasAudio && d.extension === "mp4");
-    const chosen = withAudio[0] || data.data.downloads[0];
-
     const finalTitle = data.data.title || videoTitle;
-    const downloadUrl = chosen.url;
-    const quality = chosen.quality || "mp4";
+    const downloadUrl = data.data.url;
     const fileName = finalTitle.replace(/[\/\\:*?"<>|]/g, "").trim() + ".mp4";
 
     await client.sendMessage(m.chat, {
-      text: `✅ Downloading: *${finalTitle}* | ${quality}`,
+      text: `✅ Downloading: *${finalTitle}*`,
       edit: msg.key
     });
 
-    // Check file size before downloading buffer
+    // Check size before buffering
     const head = await axios.head(downloadUrl, { timeout: 15000 }).catch(() => null);
     const size = head?.headers?.["content-length"];
     if (size && parseInt(size) > 150 * 1024 * 1024) {
@@ -1506,7 +1507,7 @@ case "ytmp4": {
     });
     const buffer = Buffer.from(dlRes.data);
 
-    // Send as video
+    // Send as playable video
     await client.sendMessage(m.chat, {
       video: buffer,
       mimetype: "video/mp4",
@@ -1528,7 +1529,7 @@ case "ytmp4": {
     });
 
   } catch (err) {
-    console.error("[YTV] error:", err.message || err);
+    console.error("[YTV2] error:", err.message || err);
     await client.sendMessage(m.chat, {
       text: "❌ An error occurred. Try again.",
       edit: msg?.key
@@ -1536,11 +1537,7 @@ case "ytmp4": {
   }
 }
 break;
-//========================================================================================================================//
-//========================================================================================================================//
 //========================================================================================================================//                      
-  
-                          
 //========================================================================================================================//
 //========================================================================================================================//                         
 //========================================================================================================================//
@@ -1687,10 +1684,10 @@ case "spotify": {
     let downloadUrl = null;
     try {
       const r1 = await axios.get(
-        `${BASE_URL}/dipto/ytDl3?link=${encodeURIComponent(video.videoId)}&format=mp3`,
+        `${api}/download/audio?url=${encodeURIComponent(video.videoId)}&format=mp3`,
         { timeout: 30000 }
       );
-      if (r1.data?.downloadLink) downloadUrl = r1.data.downloadLink;
+      if (r1.data?.result) downloadUrl = r1.data.result;
     } catch (_) {}
     // Fallback
     if (!downloadUrl) {
