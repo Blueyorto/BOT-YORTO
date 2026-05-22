@@ -1321,12 +1321,12 @@ await client.sendMessage(m.chat, {
 }
 break;  */
 //========================================================================================================================//
-case "play":
-case "yta":
-case "ytmp3": {
+case "play2":
+case "yta2":
+case "ytmp32": {
   const axios = require("axios");
 
-  if (!text) return m.reply("🎧 Provide a song name or YouTube link!\nEg:- *play4 Blinding Lights*");
+  if (!text) return m.reply("🎧 Provide a song name or YouTube link!\nEg:- *play Blinding Lights*");
 
   try {
     await client.sendMessage(m.chat, { react: { text: "🎵", key: m.key } });
@@ -1415,7 +1415,100 @@ case "ytmp3": {
 break;
 //========================================================================================================================//
 //========================================================================================================================//
+//========================================================================================================================//
+case "play":
+case "ytv":
+case "ytmp3": {
+  const axios = require("axios");
 
+  if (!text) return m.reply("🎧 Provide a song name or YouTube link!\nEg:- *play Blinding Lights*");
+
+  try {
+    await client.sendMessage(m.chat, { react: { text: "🎵", key: m.key } });
+
+    let msg = await client.sendMessage(m.chat, {
+      text: `🔍 Searching *${text}*...`
+    }, { quoted: m });
+
+    let videoUrl;
+    let videoTitle;
+    let videoThumbnail;
+
+    // If user gave a YouTube link directly
+    if (text.match(/(youtube\.com|youtu\.be)/i)) {
+      videoUrl = text;
+      videoTitle = "YouTube Audio";
+      videoThumbnail = null;
+    } else {
+      // Search YouTube for the song name
+      const search = await yts(text);
+      const video = search.videos[0];
+
+      if (!video) {
+        return client.sendMessage(m.chat, {
+          text: "❌ No results found for: *" + text + "*",
+          edit: msg.key
+        });
+      }
+
+      videoUrl = video.url;
+      videoTitle = video.title;
+      videoThumbnail = video.thumbnail;
+    }
+
+    await client.sendMessage(m.chat, {
+      text: `😍 Found: *${videoTitle}*\n⏳ Downloading...`,
+      edit: msg.key
+    });
+
+    // Download via iamtkm MP3 API
+    const apiRes = await axios.get(
+      `https://iamtkm.vercel.app/downloaders/ytmp3?apikey=tkm&url=${encodeURIComponent(videoUrl)}`,
+      { timeout: 60000 }
+    );
+    const data = apiRes.data;
+
+    if (!data.status || !data.data?.url) {
+      return client.sendMessage(m.chat, {
+        text: "❌ Download failed. Try a different song.",
+        edit: msg.key
+      });
+    }
+
+    const finalTitle = data.data.title || videoTitle;
+    const downloadUrl = data.data.url;
+    const fileName = finalTitle.replace(/[\/\\:*?"<>|]/g, "").trim() + ".mp3";
+
+    // Send as playable audio
+    await client.sendMessage(m.chat, {
+      audio: { url: downloadUrl },
+      mimetype: "audio/mpeg",
+      fileName
+    }, { quoted: m });
+
+    // Send as downloadable document
+    await client.sendMessage(m.chat, {
+      document: { url: downloadUrl },
+      mimetype: "audio/mpeg",
+      caption: "*DOWNLOADED BY 𝐁𝐋𝐀𝐂𝐊-𝐌𝐃*",
+      fileName
+    }, { quoted: m });
+
+    await client.sendMessage(m.chat, {
+      text: `✅ Succesfully Downloaded! *${finalTitle}*`,
+      edit: msg.key
+    });
+
+  } catch (err) {
+    console.error("[PLAY5] error:", err.message || err);
+    await client.sendMessage(m.chat, {
+      text: "❌ An error occurred. Try again.",
+      edit: msg?.key
+    });
+  }
+}
+break;
+//========================================================================================================================//
 
 
 //========================================================================================================================//
@@ -1595,7 +1688,7 @@ break;
 break;
 //========================================================================================================================//
 //========================================================================================================================//
-case "play2":
+case "playd":
 case "playa": {
   if (!text) return m.reply("Provide a song name Eg:- play Blinding Lights");
 
