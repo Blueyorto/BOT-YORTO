@@ -1479,16 +1479,23 @@ case "ytmp3": {
     const downloadUrl = data.data.url;
     const fileName = finalTitle.replace(/[\/\\:*?"<>|]/g, "").trim() + ".mp3";
 
+    // Download as buffer
+    const dlRes = await axios.get(downloadUrl, {
+      responseType: "arraybuffer",
+      timeout: 120000
+    });
+    const buffer = Buffer.from(dlRes.data);
+
     // Send as playable audio
     await client.sendMessage(m.chat, {
-      audio: { url: downloadUrl },
+      audio: buffer,
       mimetype: "audio/mpeg",
       fileName
     }, { quoted: m });
 
     // Send as downloadable document
     await client.sendMessage(m.chat, {
-      document: { url: downloadUrl },
+      document: buffer,
       mimetype: "audio/mpeg",
       caption: "*DOWNLOADED BY 𝐁𝐋𝐀𝐂𝐊-𝐌𝐃*",
       fileName
