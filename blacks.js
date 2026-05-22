@@ -1096,7 +1096,7 @@ case 'quran': {
   break;
 //========================================================================================================================//
         //========================================================================================================================//
-        case "play":
+      /*  case "play":
         case "ytmp3":
         case "yta": {
   const axios = require("axios");
@@ -1206,7 +1206,7 @@ videoTitle = "YouTube Audio";
   }
 }
 break;            
-                          
+                         
 //========================================================================================================================//
 //========================================================================================================================//
 case "ytv":                        
@@ -1320,7 +1320,109 @@ await client.sendMessage(m.chat, {
     m.reply("❌ Error downloading video. API may be unstable.");
   }
 }
+break;  */
+//========================================================================================================================//
+case "play":
+case "yta":
+case "ytmp3": {
+  const axios = require("axios");
+
+  if (!text) return m.reply("🎧 Provide a song name or YouTube link!\nEg:- *play4 Blinding Lights*");
+
+  try {
+    await client.sendMessage(m.chat, { react: { text: "🎵", key: m.key } });
+
+    let msg = await client.sendMessage(m.chat, {
+      text: `🔍 Searching *${text}*...`
+    }, { quoted: m });
+
+    let videoUrl;
+    let videoTitle;
+    let videoThumbnail;
+
+    // If user gave a YouTube link directly
+    if (text.match(/(youtube\.com|youtu\.be)/i)) {
+      videoUrl = text;
+      videoTitle = "YouTube Audio";
+      videoThumbnail = null;
+    } else {
+      // Search YouTube for the song name
+      const search = await yts(text);
+      const video = search.videos[0];
+
+      if (!video) {
+        return client.sendMessage(m.chat, {
+          text: "❌ No results found for: *" + text + "*",
+          edit: msg.key
+        });
+      }
+
+      videoUrl = video.url;
+      videoTitle = video.title;
+      videoThumbnail = video.thumbnail;
+    }
+
+    await client.sendMessage(m.chat, {
+      text: `😍 Found: *${videoTitle}*\n⏳ Downloading...`,
+      edit: msg.key
+    });
+
+    // Download via mcow API
+    const apiRes = await axios.get(
+      `https://mcow.giftedtechnexus.workers.dev/api/yta?url=${encodeURIComponent(videoUrl)}`,
+      { timeout: 60000 }
+    );
+    const data = apiRes.data;
+
+    if (!data.success || !data.result?.download_url) {
+      return client.sendMessage(m.chat, {
+        text: "❌ Download failed. Try a different song.",
+        edit: msg.key
+      });
+    }
+
+    const finalTitle = data.result.title || videoTitle;
+    const downloadUrl = data.result.download_url;
+    const fileName = finalTitle.replace(/[\/\\:*?"<>|]/g, "").trim() + ".mp3";
+
+    // Send thumbnail if available
+    if (data.result.thumbnail || videoThumbnail) {
+      await client.sendMessage(m.chat, {
+        image: { url: data.result.thumbnail || videoThumbnail },
+        caption: `🎵 *${finalTitle}*\n\n_Powered by BLACK-MD_`
+      }, { quoted: m });
+    }
+
+    // Send as playable audio
+    await client.sendMessage(m.chat, {
+      audio: { url: downloadUrl },
+      mimetype: "audio/mpeg",
+      fileName
+    }, { quoted: m });
+
+    // Send as downloadable document
+    await client.sendMessage(m.chat, {
+      document: { url: downloadUrl },
+      mimetype: "audio/mpeg",
+      caption: "*DOWNLOADED BY 𝐁𝐋𝐀𝐂𝐊-𝐌𝐃*",
+      fileName
+    }, { quoted: m });
+
+    await client.sendMessage(m.chat, {
+      text: `✅ Done! *${finalTitle}*`,
+      edit: msg.key
+    });
+
+  } catch (err) {
+    console.error("[PLAY] error:", err.message || err);
+    await client.sendMessage(m.chat, {
+      text: "❌ An error occurred. Try again.",
+      edit: msg?.key
+    });
+  }
+}
 break;
+//========================================================================================================================//
 //========================================================================================================================//
 //========================================================================================================================//                      
   case "video2": {                    
