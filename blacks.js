@@ -1116,17 +1116,20 @@ case 'quran': {
 
     // 🔍 If YouTube URL
     if (text.match(/(youtube\.com|youtu\.be)/i)) {
-      videoUrl = text;
+  videoUrl = text;
 
-      const videoId = videoUrl.match(
-        /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i
-      )?.[1];
+  const videoId = videoUrl.match(
+    /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i
+  )?.[1];
 
-      if (!videoId) return m.reply("❌ Invalid YouTube link.");
-                
-videoTitle = "YouTube Audio";
+  if (!videoId) return m.reply("❌ Invalid YouTube link.");
 
-    } else {
+  // Fetch real title using yts
+  const info = await yts({ videoId });
+  videoTitle = info?.title || "YouTube Audio";
+  videoThumbnail = info?.thumbnail || null;
+
+} else {
       let search = await axios.get(`${api}/search/yts?query=${encodeURIComponent(text)}`);
       let videos = search.data?.result;
 
@@ -1226,17 +1229,20 @@ case "video2": {
 
     // 🔍 Check if input is YouTube link
     if (text.match(/(youtube\.com|youtu\.be)/i)) {
-      videoUrl = text;
+  videoUrl = text;
 
-      const videoId = videoUrl.match(
-        /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i
-      )?.[1];
+  const videoId = videoUrl.match(
+    /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i
+  )?.[1];
 
-      if (!videoId) return m.reply("❌ Invalid YouTube link.");
+  if (!videoId) return m.reply("❌ Invalid YouTube link.");
 
-      videoTitle = "YouTube Video";
+  // Fetch real title using yts
+  const info = await yts({ videoId });
+  videoTitle = info?.title || "YouTube Video";
+  videoThumbnail = info?.thumbnail || null;
 
-    } else {
+} else {
       // 🔎 Search for video
       let search = await axios.get(`${api}/search/yts?query=${encodeURIComponent(text)}`);
       let videos = search.data?.result;
@@ -1592,9 +1598,7 @@ break;
 //========================================================================================================================//
 //========================================================================================================================// 
 //========================================================================================================================//
-//========================================================================================================================//
-//========================================================================================================================// 
-case "spotify": {
+          case "spotify": {
   if (!text) {
     return m.reply(
       "*🎵 Spotify Downloader*\n\n" +
@@ -1606,8 +1610,16 @@ case "spotify": {
   }
 
   try {
+    await client.sendMessage(m.chat, { react: { text: "🎵", key: m.key } });
+
+    let msg = await client.sendMessage(m.chat, {
+      text: `🔍 Searching *${text}*...`
+    }, { quoted: m });
+
     let query = text.trim();
     let displayTitle = query;
+
+    // If Spotify link, extract real title
     if (/open\.spotify\.com\/track\//i.test(query)) {
       try {
         const oembedRes = await axios.get(
@@ -1621,31 +1633,40 @@ case "spotify": {
       } catch (_) {}
     }
 
-    await m.reply(`🔎 _Searching for:_ *${displayTitle}*`);
-
     const results = await yts(query);
     const video = results.videos[0];
-    if (!video) return m.reply("❌ No results found for: *" + displayTitle + "*");
+    if (!video) {
+      return client.sendMessage(m.chat, {
+        text: "❌ No results found for: *" + displayTitle + "*",
+        edit: msg.key
+      });
+    }
 
     const safeTitle = (displayTitle || video.title).replace(/[\/\\:*?"<>|]/g, '').trim();
     const fileName = safeTitle + '.mp3';
     const videoUrl = `https://www.youtube.com/watch?v=${video.videoId}`;
 
-    await m.reply(
-      `⬇️ _Downloading:_ *${video.title}*\n` +
-      `⏱️ _Duration:_ ${video.timestamp}\n` +
-      `🎤 _Channel:_ ${video.author.name}`
-    );
-    // Try primary API
+    await client.sendMessage(m.chat, {
+      text: `😍 Found: *${video.title}*\n⏱️ ${video.timestamp} | 🎤 ${video.author.name}`,
+      edit: msg.key
+    });
+
+    await client.sendMessage(m.chat, {
+      text: `⬇️ Downloading: *${video.title}*...`,
+      edit: msg.key
+    });
+
+    // Primary API
     let downloadUrl = null;
     try {
       const r1 = await axios.get(
-        `${api}/download/audio?url=${encodeURIComponent(video.videoId)}&format=mp3`,
+        `${api}/download/audio?url=${encodeURIComponent(videoUrl)}`,
         { timeout: 30000 }
       );
-      if (r1.data?.result) downloadUrl = r1.data.result;
+      if (r1.data?.status && r1.data?.result) downloadUrl = r1.data.result;
     } catch (_) {}
-    // Fallback
+
+    // Fallback1
     if (!downloadUrl) {
       try {
         const r2 = await axios.get(
@@ -1656,21 +1677,43 @@ case "spotify": {
       } catch (_) {}
     }
 
+    // Fallback2
     if (!downloadUrl) {
-      return m.reply("❌ Could not get a download link. Both APIs failed. Try again later.");
+      try {
+        const apiRes = await axios.get(
+          `https://mcow.giftedtechnexus.workers.dev/api/yta?url=${encodeURIComponent(videoUrl)}`,
+          { timeout: 60000 }
+        );
+        if (apiRes.data?.success && apiRes.data?.result?.download_url) {
+          downloadUrl = apiRes.data.result.download_url;
+        }
+      } catch (_) {}
     }
 
+    if (!downloadUrl) {
+      return client.sendMessage(m.chat, {
+        text: "❌ Could not get a download link. All APIs failed. Try again later.",
+        edit: msg.key
+      });
+    }
+    // Send as  audio
     await client.sendMessage(m.chat, {
       audio: { url: downloadUrl },
       mimetype: 'audio/mpeg',
       fileName
     }, { quoted: m });
 
+    // Send as document
     await client.sendMessage(m.chat, {
       document: { url: downloadUrl },
       mimetype: 'audio/mpeg',
       fileName
     }, { quoted: m });
+
+    await client.sendMessage(m.chat, {
+      text: `✅ Succesfully Downloaded! *${safeTitle}*`,
+      edit: msg.key
+    });
 
   } catch (err) {
     console.error('[SPOTIFY] error:', err.message || err);
@@ -1678,7 +1721,8 @@ case "spotify": {
   }
 }
 break
-
+//========================================================================================================================//
+//========================================================================================================================// 
 //========================================================================================================================//          
 case "togroupstatus":
 case "groupstatus":
