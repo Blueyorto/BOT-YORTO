@@ -1642,15 +1642,16 @@ case "spotify": {
       `⏱️ _Duration:_ ${video.timestamp}\n` +
       `🎤 _Channel:_ ${video.author.name}`
     );
-    // Try primary API
-    let downloadUrl = null;
-    try {
-      const r1 = await axios.get(
-        `${api}/download/audio?url=${encodeURIComponent(video.videoId)}`,
-        { timeout: 30000 }
-      );
-      if (r1.data?.result) downloadUrl = r1.data.result;
-    } catch (_) {}
+    // Primary API
+ let downloadUrl = null;
+try {
+  const r1 = await axios.get(
+    `${api}/download/audio?url=${encodeURIComponent(videoUrl)}`,
+    { timeout: 30000 }
+  );
+  if (r1.data?.status && r1.data?.result) downloadUrl = r1.data.result;
+} catch (_) {}
+    
     // Fallback1
     if (!downloadUrl) {
       try {
@@ -1667,7 +1668,7 @@ if (!downloadUrl) {
       `https://mcow.giftedtechnexus.workers.dev/api/yta?url=${encodeURIComponent(videoUrl)}`,
       { timeout: 60000 }
     );
-    if (data.success || data.result?.download_url) downloadUrl = data.result.download_url;
+    if (apiRes.success || apiRes.result?.download_url) downloadUrl = apiRes.result.download_url;
   } catch (_) {}
 }
  }
