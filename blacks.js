@@ -1116,17 +1116,20 @@ case 'quran': {
 
     // 🔍 If YouTube URL
     if (text.match(/(youtube\.com|youtu\.be)/i)) {
-      videoUrl = text;
+  videoUrl = text;
 
-      const videoId = videoUrl.match(
-        /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i
-      )?.[1];
+  const videoId = videoUrl.match(
+    /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i
+  )?.[1];
 
-      if (!videoId) return m.reply("❌ Invalid YouTube link.");
-                
-videoTitle = "YouTube Audio";
+  if (!videoId) return m.reply("❌ Invalid YouTube link.");
 
-    } else {
+  // Fetch real title using yts
+  const info = await yts({ videoId });
+  videoTitle = info?.title || "YouTube Audio";
+  videoThumbnail = info?.thumbnail || null;
+
+} else {
       let search = await axios.get(`${api}/search/yts?query=${encodeURIComponent(text)}`);
       let videos = search.data?.result;
 
@@ -1226,17 +1229,20 @@ case "video2": {
 
     // 🔍 Check if input is YouTube link
     if (text.match(/(youtube\.com|youtu\.be)/i)) {
-      videoUrl = text;
+  videoUrl = text;
 
-      const videoId = videoUrl.match(
-        /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i
-      )?.[1];
+  const videoId = videoUrl.match(
+    /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i
+  )?.[1];
 
-      if (!videoId) return m.reply("❌ Invalid YouTube link.");
+  if (!videoId) return m.reply("❌ Invalid YouTube link.");
 
-      videoTitle = "YouTube Video";
+  // Fetch real title using yts
+  const info = await yts({ videoId });
+  videoTitle = info?.title || "YouTube Video";
+  videoThumbnail = info?.thumbnail || null;
 
-    } else {
+} else {
       // 🔎 Search for video
       let search = await axios.get(`${api}/search/yts?query=${encodeURIComponent(text)}`);
       let videos = search.data?.result;
@@ -1640,12 +1646,12 @@ case "spotify": {
     let downloadUrl = null;
     try {
       const r1 = await axios.get(
-        `${api}/download/audio?url=${encodeURIComponent(video.videoId)}&format=mp3`,
+        `${api}/download/audio?url=${encodeURIComponent(video.videoId)}`,
         { timeout: 30000 }
       );
       if (r1.data?.result) downloadUrl = r1.data.result;
     } catch (_) {}
-    // Fallback
+    // Fallback1
     if (!downloadUrl) {
       try {
         const r2 = await axios.get(
@@ -1654,7 +1660,17 @@ case "spotify": {
         );
         if (r2.data?.success && r2.data?.url) downloadUrl = r2.data.url;
       } catch (_) {}
-    }
+      //fallback2
+      if (!downloadUrl) {
+        try {
+          const apiRes = await axios.get(
+      `https://iamtkm.vercel.app/downloaders/ytmp3?apikey=tkm&url=${encodeURIComponent(videoUrl)}`,
+      { timeout: 30000 }
+    );
+          if (apiRes.success || apiRes.result?.download_url) downloadUrl = apiRes.result.download_url;
+    } catch (_) {}
+     
+   }
 
     if (!downloadUrl) {
       return m.reply("❌ Could not get a download link. Both APIs failed. Try again later.");
