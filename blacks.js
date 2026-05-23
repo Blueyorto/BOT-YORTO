@@ -1598,9 +1598,7 @@ break;
 //========================================================================================================================//
 //========================================================================================================================// 
 //========================================================================================================================//
-//========================================================================================================================//
-//========================================================================================================================// 
-case "spotify": {
+          case "spotify": {
   if (!text) {
     return m.reply(
       "*🎵 Spotify Downloader*\n\n" +
@@ -1612,8 +1610,16 @@ case "spotify": {
   }
 
   try {
+    await client.sendMessage(m.chat, { react: { text: "🎵", key: m.key } });
+
+    let msg = await client.sendMessage(m.chat, {
+      text: `🔍 Searching *${text}*...`
+    }, { quoted: m });
+
     let query = text.trim();
     let displayTitle = query;
+
+    // If Spotify link, extract real title
     if (/open\.spotify\.com\/track\//i.test(query)) {
       try {
         const oembedRes = await axios.get(
@@ -1627,31 +1633,39 @@ case "spotify": {
       } catch (_) {}
     }
 
-    await m.reply(`🔎 _Searching for:_ *${displayTitle}*`);
-
     const results = await yts(query);
     const video = results.videos[0];
-    if (!video) return m.reply("❌ No results found for: *" + displayTitle + "*");
+    if (!video) {
+      return client.sendMessage(m.chat, {
+        text: "❌ No results found for: *" + displayTitle + "*",
+        edit: msg.key
+      });
+    }
 
     const safeTitle = (displayTitle || video.title).replace(/[\/\\:*?"<>|]/g, '').trim();
     const fileName = safeTitle + '.mp3';
     const videoUrl = `https://www.youtube.com/watch?v=${video.videoId}`;
 
-    await m.reply(
-      `⬇️ _Downloading:_ *${video.title}*\n` +
-      `⏱️ _Duration:_ ${video.timestamp}\n` +
-      `🎤 _Channel:_ ${video.author.name}`
-    );
+    await client.sendMessage(m.chat, {
+      text: `😍 Found: *${video.title}*\n⏱️ ${video.timestamp} | 🎤 ${video.author.name}`,
+      edit: msg.key
+    });
+
+    await client.sendMessage(m.chat, {
+      text: `⬇️ Downloading: *${video.title}*...`,
+      edit: msg.key
+    });
+
     // Primary API
- let downloadUrl = null;
-try {
-  const r1 = await axios.get(
-    `${api}/download/audio?url=${encodeURIComponent(videoUrl)}`,
-    { timeout: 30000 }
-  );
-  if (r1.data?.status && r1.data?.result) downloadUrl = r1.data.result;
-} catch (_) {}
-    
+    let downloadUrl = null;
+    try {
+      const r1 = await axios.get(
+        `${api}/download/audio?url=${encodeURIComponent(videoUrl)}`,
+        { timeout: 30000 }
+      );
+      if (r1.data?.status && r1.data?.result) downloadUrl = r1.data.result;
+    } catch (_) {}
+
     // Fallback1
     if (!downloadUrl) {
       try {
@@ -1661,32 +1675,45 @@ try {
         );
         if (r2.data?.success && r2.data?.url) downloadUrl = r2.data.url;
       } catch (_) {}
-      //fallback2
-if (!downloadUrl) {
-  try {
-    const apiRes = await axios.get(
-      `https://mcow.giftedtechnexus.workers.dev/api/yta?url=${encodeURIComponent(videoUrl)}`,
-      { timeout: 60000 }
-    );
-    if (apiRes.success || apiRes.result?.download_url) downloadUrl = apiRes.result.download_url;
-  } catch (_) {}
-}
- }
-    if (!downloadUrl) {
-      return m.reply("❌ Could not get a download link. Both APIs failed. Try again later.");
     }
 
+    // Fallback2
+    if (!downloadUrl) {
+      try {
+        const apiRes = await axios.get(
+          `https://mcow.giftedtechnexus.workers.dev/api/yta?url=${encodeURIComponent(videoUrl)}`,
+          { timeout: 60000 }
+        );
+        if (apiRes.data?.success && apiRes.data?.result?.download_url) {
+          downloadUrl = apiRes.data.result.download_url;
+        }
+      } catch (_) {}
+    }
+
+    if (!downloadUrl) {
+      return client.sendMessage(m.chat, {
+        text: "❌ Could not get a download link. All APIs failed. Try again later.",
+        edit: msg.key
+      });
+    }
+    // Send as  audio
     await client.sendMessage(m.chat, {
       audio: { url: downloadUrl },
       mimetype: 'audio/mpeg',
       fileName
     }, { quoted: m });
 
+    // Send as document
     await client.sendMessage(m.chat, {
       document: { url: downloadUrl },
       mimetype: 'audio/mpeg',
       fileName
     }, { quoted: m });
+
+    await client.sendMessage(m.chat, {
+      text: `✅ Succesfully Downloaded! *${safeTitle}*`,
+      edit: msg.key
+    });
 
   } catch (err) {
     console.error('[SPOTIFY] error:', err.message || err);
@@ -1694,7 +1721,8 @@ if (!downloadUrl) {
   }
 }
 break
-
+//========================================================================================================================//
+//========================================================================================================================// 
 //========================================================================================================================//          
 case "togroupstatus":
 case "groupstatus":
