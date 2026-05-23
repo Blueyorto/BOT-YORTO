@@ -1664,13 +1664,13 @@ case "spotify": {
 if (!downloadUrl) {
   try {
     const apiRes = await axios.get(
-      `https://iamtkm.vercel.app/downloaders/ytmp3?apikey=tkm&url=${encodeURIComponent(videoUrl)}`,
-      { timeout: 30000 }
+      `https://mcow.giftedtechnexus.workers.dev/api/yta?url=${encodeURIComponent(videoUrl)}`,
+      { timeout: 60000 }
     );
-    if (apiRes.data?.status && apiRes.data?.data?.url) downloadUrl = apiRes.data.data.url;
+    if (data.success || data.result?.download_url) downloadUrl = data.result.download_url;
   } catch (_) {}
 }
-
+ }
     if (!downloadUrl) {
       return m.reply("❌ Could not get a download link. Both APIs failed. Try again later.");
     }
