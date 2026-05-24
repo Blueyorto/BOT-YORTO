@@ -5503,7 +5503,7 @@ case 'sc': case 'script': case 'repo': {
    🍴 Forks: ${r.forks_count}
    ★ Don't forget to Fork & Star our repo!\n
 👤 𝐃𝐞𝐯𝐞𝐥𝐨𝐩𝐞𝐫:
-   ↳ ${u.name || 'Blackie254'} ``https://github.com/Blackie254``\n
+   ↳ ${u.name || 'Blackie254'} => https://github.com/Blackie254\n
 🔶 𝐖𝐡𝐚𝐭𝐬𝐀𝐩𝐩 𝐏𝐚𝐢𝐫𝐢𝐧𝐠:
    ↳ https://blackmd-pairing.onrender.com
    ★ Save your Session-ID!\n
