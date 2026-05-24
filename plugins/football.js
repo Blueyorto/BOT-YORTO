@@ -7,8 +7,8 @@ module.exports = {
     const { command } = ctx;
 
     const standingsMap = {
-      epl: { path: 'epl/standings', title: '📊 *Premier League Standings*', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
-      premierleague: { path: 'epl/standings', title: '📊 *Premier League Standings*', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
+      epl: { path: 'epl/standings', title: '📊 *Premier League Standings*', flag: '🐐' },
+      premierleague: { path: 'epl/standings', title: '📊 *Premier League Standings*', flag: '😉' },
       laliga: { path: 'laliga/standings', title: '📊 *La Liga Standings*', flag: '🇪🇸' },
       bundesliga: { path: 'bundesliga/standings', title: '📊 *Bundesliga Standings*', flag: '🇩🇪' },
       ligue1: { path: 'ligue1/standings', title: '📊 *Ligue 1 Standings*', flag: '🇫🇷' },
