@@ -5484,8 +5484,8 @@ break;
                           
 case 'sc': case 'script': case 'repo': {
   try {
-    const repoRes = await axios.get('https://api.github.com/repos/McrayNick/black-super-bot', { timeout: 10000 });
-    const userRes = await axios.get('https://api.github.com/users/McrayNick', { timeout: 10000 });
+    const repoRes = await axios.get('https://api.github.com/repos/Blackie254/black-super-bot', { timeout: 10000 });
+    const userRes = await axios.get('https://api.github.com/users/Blackie254', { timeout: 10000 });
     const r = repoRes.data;
     const u = userRes.data;
 
@@ -5501,13 +5501,9 @@ case 'sc': case 'script': case 'repo': {
    ↳ ${r.html_url}
    ⭐ Stars: ${r.stargazers_count}
    🍴 Forks: ${r.forks_count}
-   👀 Watchers: ${r.watchers_count}
-   🐛 Issues: ${r.open_issues_count}
-   ★ Don't forget to Fork & Star!\n
+   ★ Don't forget to Fork & Star our repo!\n
 👤 𝐃𝐞𝐯𝐞𝐥𝐨𝐩𝐞𝐫:
-   ↳ ${u.name || 'McrayNick'} (@${u.login})
-   👥 Followers: ${u.followers}
-   📁 Repos: ${u.public_repos}\n
+   ↳ ${u.name || 'Blackie254'} (@${u.login})\n
 🔶 𝐖𝐡𝐚𝐭𝐬𝐀𝐩𝐩 𝐏𝐚𝐢𝐫𝐢𝐧𝐠:
    ↳ https://blackmd-pairing.onrender.com
    ★ Save your Session-ID!\n
@@ -5516,9 +5512,8 @@ case 'sc': case 'script': case 'repo': {
    ✓ Keep API keys secure
    ✓ Deploy properly\n
 ╔══≪ ✦ ≫═══════════════≪ ✦ ≫══╗
-  Made with ❤️ by Blacky Dev
-╚══≪ ✦ ≫═══════════════≪ ✦ ≫══╝\n
-𝗠𝗮𝗱𝗲 𝗼𝗻 𝗲𝗮𝗿𝘁𝗵 𝗯𝘆 𝗛𝘂𝗺𝗮𝗻𝘀🔥!`
+       𝗠𝗮𝗱𝗲 𝗼𝗻 𝗲𝗮𝗿𝘁𝗵 𝗯𝘆 𝗛𝘂𝗺𝗮𝗻𝘀🔥!
+╚══≪ ✦ ≫═══════════════≪ ✦ ≫══╝`
     }, { quoted: m });
 
   } catch (err) {
@@ -5536,8 +5531,8 @@ case 'sc': case 'script': case 'repo': {
    ✓ Complete all variables
    ✓ Keep API keys secure
    ✓ Deploy properly\n\n╔══≪ ✦ ≫═══════════════≪ ✦ ≫══╗
-  Made with ❤️ by Blacky Dev
-╚══≪ ✦ ≫═══════════════≪ ✦ ≫══╝\n\n𝗠𝗮𝗱𝗲 𝗼𝗻 𝗲𝗮𝗿𝘁𝗵 𝗯𝘆 𝗛𝘂𝗺𝗮𝗻𝘀🔥!`},{quoted : m });
+        𝗠𝗮𝗱𝗲 𝗼𝗻 𝗲𝗮𝗿𝘁𝗵 𝗯𝘆 𝗛𝘂𝗺𝗮𝗻𝘀🔥!
+╚══≪ ✦ ≫═══════════════≪ ✦ ≫══╝`},{quoted : m });
   }
   break;
        }
