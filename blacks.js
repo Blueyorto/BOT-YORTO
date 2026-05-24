@@ -5492,9 +5492,9 @@ case 'sc': case 'script': case 'repo': {
     client.sendMessage(m.chat, {
       image: { url: u.avatar_url },
       caption:
-` 𝙃𝙀𝙇𝙇𝙊👋 *${pushname}*,
+` Hello 👋 *${pushname}*,
 ╔══≪ ✦ ≫══════════≪ ✦ ≫══╗
-          𝐁𝐋𝐀𝐂𝐊-𝐌𝐃 𝐕3
+              𝐁𝐋𝐀𝐂𝐊-𝐌𝐃
  The Ultimate WhatsApp Bot
 ╚══≪ ✦ ≫══════════≪ ✦ ≫══╝\n
 🔷 𝐆𝐢𝐭𝐇𝐮𝐛 𝐑𝐞𝐩𝐨:
@@ -5503,7 +5503,7 @@ case 'sc': case 'script': case 'repo': {
    🍴 Forks: ${r.forks_count}
    ★ Don't forget to Fork & Star our repo!\n
 👤 𝐃𝐞𝐯𝐞𝐥𝐨𝐩𝐞𝐫:
-   ↳ ${u.name || 'Blackie254'} (@${u.login})\n
+   ↳ ${u.name || 'Blackie254'} ``https://github.com/Blackie254``\n
 🔶 𝐖𝐡𝐚𝐭𝐬𝐀𝐩𝐩 𝐏𝐚𝐢𝐫𝐢𝐧𝐠:
    ↳ https://blackmd-pairing.onrender.com
    ★ Save your Session-ID!\n
@@ -5519,12 +5519,12 @@ case 'sc': case 'script': case 'repo': {
   } catch (err) {
     // Fallback to static version if GitHub API fails
     client.sendMessage(m.chat, { image: { url: `https://files.catbox.moe/pevpi2.jpg` }, caption: 
-` 𝙃𝙀𝙇𝙇𝙊👋 *${pushname}*,
+` Hello 👋 *${pushname}*,
 ╔══≪ ✦ ≫══════════≪ ✦ ≫══╗
-          𝐁𝐋𝐀𝐂𝐊-𝐌𝐃 𝐕3
+            𝐁𝐋𝐀𝐂𝐊-𝐌𝐃 
  The Ultimate WhatsApp Bot
 ╚══≪ ✦ ≫══════════≪ ✦ ≫══╝\n\n🔷 𝐆𝐢𝐭𝐇𝐮𝐛 𝐑𝐞𝐩𝐨:
-   ↳ https://github.com/McrayNick/black-super-bot
+   ↳ https://github.com/Blackie254/black-super-bot
    ★ Don't forget to Fork & Star!\n\n 🔶 𝐖𝐡𝐚𝐭𝐬𝐀𝐩𝐩 𝐏𝐚𝐢𝐫𝐢𝐧𝐠:
    ↳ https://blackmd-pairing.onrender.com
    ★ Save your Session-ID!\n\n.⚙️ 𝐑𝐞𝐪𝐮𝐢𝐫𝐞𝐦𝐞𝐧𝐭𝐬:
