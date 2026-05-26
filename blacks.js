@@ -235,8 +235,9 @@ module.exports = raven = async (client, m, chatUpdate, store) => {
     if (itsMe && mek.key.id.startsWith('BAE5') && mek.key.id.length === 16 && !m.isGroup) return;
 
     // ── Anti-delete ──────────────────────────────────────────────────────────
-    if (antidelete === 'on') await antiDeleteHandler(client, mek);
-
+    if (antidelete === 'on') {
+      await antiDeleteHandler(client, mek);
+    }
     // ── sendContact helper ───────────────────────────────────────────────────
     client.sendContact = async (jid, numbers, quoted = '', options = {}) => {
       const contacts = numbers.map(number => ({
