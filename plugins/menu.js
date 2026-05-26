@@ -56,8 +56,7 @@ module.exports = [
         const icon = categoryIcons[cat] || '📌';
         menu += `${icon} *${cat.toUpperCase()}*\n`;
         for (const p of plugins) {
-          menu += `╔══════════════════╗\n`;
-          menu += `║ ● ${p.commands[0]}`;
+          menu += `╔══════════════════╗\n║ ● ${p.commands[0]}\n`;        
           menu += '\n';
         }
         menu += '\n';
