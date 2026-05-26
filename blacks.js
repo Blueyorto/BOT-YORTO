@@ -1,9 +1,4 @@
-
-/**
- * BLACK-MD BOT — Plugin-based command handler
- * All commands live in ./plugins/ — one file per category.
- * To add a new command: create or edit a file in ./plugins/
- */
+/* BLACK-MD */
 
 const { proto, getContentType, jidNormalizedUser } = require('@whiskeysockets/baileys');
 const fs = require('fs');
@@ -296,31 +291,23 @@ module.exports = raven = async (client, m, chatUpdate, store) => {
 
     // ── Console log ──────────────────────────────────────────────────────────
     if (cmd && !m.isGroup) {
-      console.log(chalk.black(chalk.bgWhite('[ 𝐁𝐋𝐀𝐂𝐊-𝐌𝐃 𝐁𝐎𝐓 ]')), color(argsLog, 'turquoise'), chalk.magenta('From'), chalk.green(pushname), chalk.yellow(`[ ${m.sender.replace('@s.whatsapp.net', '')} ]`));
+      console.log(chalk.black(chalk.bgWhite('[ 𝐁𝐋𝐀𝐂𝐊-𝐌𝐃 ]')), color(argsLog, 'turquoise'), chalk.magenta('From'), chalk.green(pushname), chalk.yellow(`[ ${m.sender.replace('@s.whatsapp.net', '')} ]`));
     } else if (cmd && m.isGroup) {
       console.log(chalk.black(chalk.bgWhite('[ LOGS ]')), color(argsLog, 'turquoise'), chalk.magenta('From'), chalk.green(pushname), chalk.yellow(`[ ${m.sender.replace('@s.whatsapp.net', '')} ]`), chalk.blueBright('IN'), chalk.green(groupName));
     }
 
     // ── COMMAND DISPATCH ─────────────────────────────────────────────────────
     if (cmd) {
-      // Build the context object passed to every plugin handler
-      const ctx = {
-        // Message content
-        body, budy, msgR, args, text, q, arg,
-        // Identity
+    
+      const ctx = {        
+        body, budy, msgR, args, text, q, arg,        
         pushname, botNumber, itsMe, from, reply, sender,
-        // Ownership
-        Owner, superUser: finalSuperUsers,
-        // Quoted
-        quoted, mime, qmsg,
-        // Command
-        command, prefix, cmd,
-        // Group
+        Owner, superUser: finalSuperUsers,        
+        quoted, mime, qmsg,       
+        command, prefix, cmd, mode,    
         groupMetadata, groupName, participants, groupAdmin,
         isBotAdmin, isAdmin, groupSender,
-        // Strings from set.js
         admin, botAdmin, group, NotOwner,
-        // Misc helpers
         Rspeed, date, convertTimestamp,
       };
 
