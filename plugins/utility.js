@@ -1,5 +1,3 @@
-'use strict';
-
 const api = 'https://apis.keithsite.top';
 
 module.exports = [
@@ -8,21 +6,43 @@ module.exports = [
     command: ['ping', 'speed'],
     description: 'Check bot response speed',
     category: 'utility',
-    handler: async (client, m, { reply }) => {
-      const start = Date.now();
-      await reply('🏓 Pong');
-      const end = Date.now();
-      m.reply(`🏓 *Pong*\n⚡ Speed: *${end - start}ms*`);
+    handler: async (client, m, { reply, Rspeed }) => {
+      await reply('🏓 _Checking..._');
+      m.reply(`𝗣𝗼𝗻𝗴\n ${Rspeed.toFixed(4)} 𝗠𝘀`);
     }
   },
 
   {
-    command: ['uptime', 'runtime'],
+    command: ['uptime'],
     description: 'Check bot uptime',
     category: 'utility',
-    handler: async (client, m, { reply }) => {
+    handler: async (client, m) => {
       const { runtime } = require('../lib/ravenfunc');
       m.reply(runtime(process.uptime()));
+    }
+  },
+
+  {
+    command: ['runtime'],
+    description: 'Check bot runtime with rich card',
+    category: 'utility',
+    handler: async (client, m) => {
+      const { runtime } = require('../lib/ravenfunc');
+      const raven = `𝐁𝐋𝐀𝐂𝐊-𝐌𝐃 𝗵𝗮𝘀 𝗯𝗲𝗲𝗻 𝗿𝘂𝗻𝗻𝗶𝗻𝗴 𝘀𝗶𝗻𝗰𝗲 ${runtime(process.uptime())}`;
+      client.sendMessage(m.chat, {
+        text: raven,
+        contextInfo: {
+          externalAdReply: {
+            showAdAttribution: true,
+            title: '𝐁𝐋𝐀𝐂𝐊-𝐌𝐃 𝐁𝐎𝐓',
+            body: 'https://whatsapp.com/channel/0029VaxCd13DzgTGK42G292X',
+            thumbnailUrl: 'https://i.imgur.com/gmIbuTZ.jpeg',
+            sourceUrl: 'https://whatsapp.com/channel/0029VaxCd13DzgTGK42G292X',
+            mediaType: 1,
+            renderLargerThumbnail: true
+          }
+        }
+      }, { quoted: m });
     }
   },
 
@@ -30,10 +50,8 @@ module.exports = [
     command: ['owner'],
     description: 'Get owner contact',
     category: 'utility',
-    handler: async (client, m) => {
-      const { dev } = require('../set');
-      const owners = dev.split(',');
-      client.sendContact(m.chat, owners, m);
+    handler: async (client, m, { from }) => {
+      client.sendContact(from, ['254114283550'], m);
     }
   },
 
@@ -41,9 +59,9 @@ module.exports = [
     command: ['advice'],
     description: 'Get a random piece of advice',
     category: 'utility',
-    handler: async (client, m) => {
+    handler: async (client, m, { reply }) => {
       const advice = require('badadvice');
-      m.reply(advice());
+      reply(advice());
     }
   },
 
@@ -51,23 +69,20 @@ module.exports = [
     command: ['lyrics'],
     description: 'Get song lyrics',
     category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      if (!text) return reply('Provide a song name. E.g: .lyrics Shape of You');
-      await reply('🎵 _Searching lyrics..._');
-      const Genius = require('genius-lyrics');
-      const Client = new Genius.Client('TUoAEhL79JJyU-MpOsBDkFhJFWFH28nv6dgVgPA-9R1YRwLNP_zicdX2omG2qKE8gYLJat5F5VSBNLfdnlpfJg');
+    handler: async (client, m, { reply, text, from }) => {
+      if (!text) return reply('Provide a song name!');
       try {
-        const searches = await Client.songs.search(text);
-        if (!searches.length) return reply(`❌ No lyrics found for: *${text}*`);
-        const song = searches[0];
-        const lyricsText = await song.lyrics();
-        const output = `🎵 *${song.title}* — ${song.artist.name}\n\n${lyricsText}`;
-        if (output.length > 4000) {
-          return m.reply(output.slice(0, 4000) + '\n\n_[Lyrics truncated]_');
-        }
-        m.reply(output);
-      } catch (e) {
-        reply('❌ Could not fetch lyrics: ' + e.message);
+        const suggestRes = await global.axios.get('https://api.lyrics.ovh/suggest/' + encodeURIComponent(text));
+        const hit = suggestRes.data?.data?.[0];
+        if (!hit) return reply('No results found for: ' + text);
+        const artist = hit.artist.name;
+        const title = hit.title;
+        const lyricsRes = await global.axios.get('https://api.lyrics.ovh/v1/' + encodeURIComponent(artist) + '/' + encodeURIComponent(title));
+        if (!lyricsRes.data?.lyrics) return reply('Lyrics not found for: ' + title);
+        const msg = `*${title}*\n_${artist}_\n\n${lyricsRes.data.lyrics}`;
+        await client.sendMessage(from, { text: msg }, { quoted: m });
+      } catch (error) {
+        reply('I did not find any lyrics for ' + text + '. Try searching a different song.');
       }
     }
   },
@@ -76,13 +91,24 @@ module.exports = [
     command: ['bible'],
     description: 'Get a Bible verse',
     category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      if (!text) return reply('Provide a verse. E.g: .bible John 3:16');
-      await reply('📖 _Fetching verse..._');
-      const res = await global.axios.get(`https://bible-api.com/${encodeURIComponent(text)}`);
-      if (!res.data || res.data.error) return reply('❌ Verse not found. Try: .bible John 3:16');
-      const v = res.data;
-      m.reply(`📖 *${v.reference}*\n\n${v.text.trim()}\n\n_— ${v.translation_name}_`);
+    handler: async (client, m, { reply, text, pushname }) => {
+      if (!text) return reply('Please provide a Bible reference.\n\nExample: bible John 3:16');
+      try {
+        const response = await global.axios.get(`https://bible-api.com/${encodeURIComponent(text)}`);
+        if (response.status === 200 && response.data.text) {
+          const { reference: ref, text: verseText, translation_name } = response.data;
+          reply(
+            `*Hello there, below is what you requested*\n\n` +
+            `📖 *Reference:* ${ref}\n` +
+            ` ${verseText}\n\n` +
+            `_Requested by ${pushname}_`
+          );
+        } else {
+          reply('*Verse not found.* Please check the reference and try again.');
+        }
+      } catch (error) {
+        reply('*An error occurred while fetching the Bible verse.* Please try again.');
+      }
     }
   },
 
@@ -90,14 +116,27 @@ module.exports = [
     command: ['quran'],
     description: 'Get a Quran verse',
     category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      if (!text) return reply('Provide a verse. E.g: .quran 1:1');
-      await reply('📖 _Fetching verse..._');
-      const [surah, ayah] = text.split(':');
-      const res = await global.axios.get(`https://api.alquran.cloud/v1/ayah/${surah}:${ayah}/en.asad`);
-      const data = res.data?.data;
-      if (!data) return reply('❌ Verse not found. Try: .quran 1:1');
-      m.reply(`☪️ *Surah ${data.surah.englishName} (${data.surah.name}) — Ayah ${data.numberInSurah}*\n\n${data.text}\n\n_— Translation: Muhammad Asad_`);
+    handler: async (client, m, { reply, text, pushname }) => {
+      if (!text) return reply('Please provide Surah and Ayah\n*Example:* quran 2:255');
+      const input = text.split(':');
+      if (input.length !== 2) return reply('Incorrect format. Use: Surah:Ayah (e.g. 2:255)');
+      const [surah, ayah] = input;
+      try {
+        const res = await global.axios.get(`https://api.alquran.cloud/v1/ayah/${surah}:${ayah}/editions/quran-uthmani,en.asad`);
+        const arabic = res.data.data[0].text;
+        const english = res.data.data[1].text;
+        const surahInfo = res.data.data[0].surah;
+        const msg =
+          `*Holy Qur'an Verse*\n\n` +
+          `*Surah:* ${surahInfo.englishName} (${surahInfo.name})\n` +
+          `*Ayah:* ${ayah}\n\n` +
+          `*Arabic:* ${arabic}\n\n` +
+          `*English:* ${english}\n\n` +
+          `_Requested by ${pushname}_`;
+        client.sendMessage(m.chat, { text: msg }, { quoted: m });
+      } catch (e) {
+        reply('Could not find the verse. Please check the Surah and Ayah.');
+      }
     }
   },
 
@@ -125,11 +164,23 @@ module.exports = [
     description: 'Text to speech',
     category: 'utility',
     handler: async (client, m, { reply, text }) => {
-      if (!text) return reply('Provide text to convert to speech. E.g: .tts Hello World');
-      await reply('🎙️ _Converting text to speech..._');
+      if (!text) return reply('Provide text for conversion!');
       const googleTTS = require('google-tts-api');
-      const url = googleTTS.getAudioUrl(text, { lang: 'en', slow: false });
-      await client.sendMessage(m.chat, { audio: { url }, mimetype: 'audio/ogg; codecs=opus', ptt: true }, { quoted: m });
+      const url = googleTTS.getAudioUrl(text, { lang: 'hi-IN', slow: false, host: 'https://translate.google.com' });
+      try {
+        const { execSync } = require('child_process');
+        const fs = require('fs');
+        const tmpMp3 = `/tmp/tts_${Date.now()}.mp3`;
+        const tmpOgg = `/tmp/tts_${Date.now()}.ogg`;
+        const mp3Buf = (await global.axios.get(url, { responseType: 'arraybuffer' })).data;
+        fs.writeFileSync(tmpMp3, Buffer.from(mp3Buf));
+        execSync(`ffmpeg -i ${tmpMp3} -c:a libopus -ac 1 -ar 16000 -b:a 32k ${tmpOgg} -y`);
+        const oggBuf = fs.readFileSync(tmpOgg);
+        await client.sendMessage(m.chat, { audio: oggBuf, mimetype: 'audio/ogg; codecs=opus', ptt: true }, { quoted: m });
+        try { fs.unlinkSync(tmpMp3); fs.unlinkSync(tmpOgg); } catch (e) {}
+      } catch (e) {
+        await client.sendMessage(m.chat, { audio: { url }, mimetype: 'audio/mpeg', ptt: false }, { quoted: m });
+      }
     }
   },
 
@@ -138,12 +189,33 @@ module.exports = [
     description: 'Get weather for a location',
     category: 'utility',
     handler: async (client, m, { reply, text }) => {
-      if (!text) return reply('Provide a location. E.g: .weather Nairobi');
-      await reply('🌤️ _Fetching weather..._');
-      const res = await global.axios.get(`${api}/tools/weather`, { params: { city: text } });
-      const data = res.data?.result || res.data;
-      if (!data) return reply('❌ Could not find weather for that location.');
-      m.reply(typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+      if (!text) return reply('provide a city/town name');
+      try {
+        const response = await fetch(`http://api.openweathermap.org/data/2.5/weather?q=${text}&units=metric&appid=1ad47ec6172f19dfaf89eb3307f74785`);
+        const data = await response.json();
+        const cityName = data.name;
+        const temperature = data.main.temp;
+        const description = data.weather[0].description;
+        const humidity = data.main.humidity;
+        const windSpeed = data.wind.speed;
+        const rainVolume = data.rain ? data.rain['1h'] : 0;
+        const cloudiness = data.clouds.all;
+        const sunrise = new Date(data.sys.sunrise * 1000);
+        const sunset = new Date(data.sys.sunset * 1000);
+        await m.reply(
+          `❄️ Weather in ${cityName}\n\n` +
+          `🌡️ Temperature: ${temperature}°C\n` +
+          `📝 Description: ${description}\n` +
+          `❄️ Humidity: ${humidity}%\n` +
+          `🌀 Wind Speed: ${windSpeed} m/s\n` +
+          `🌧️ Rain Volume (last hour): ${rainVolume} mm\n` +
+          `☁️ Cloudiness: ${cloudiness}%\n` +
+          `🌄 Sunrise: ${sunrise.toLocaleTimeString()}\n` +
+          `🌅 Sunset: ${sunset.toLocaleTimeString()}`
+        );
+      } catch (e) {
+        m.reply('Unable to find that location.');
+      }
     }
   },
 
@@ -152,12 +224,13 @@ module.exports = [
     description: 'Calculate a math expression',
     category: 'utility',
     handler: async (client, m, { reply, text }) => {
-      if (!text) return reply('Provide a math expression. E.g: .calc 2 + 2');
+      if (!text) return m.reply('*Example usage:* .calculate 5+72');
+      if (!/^[0-9+\-*/().\s]+$/.test(text)) return m.reply('Invalid format. Only numbers and +, -, *, /, ( ) are allowed.');
       try {
-        const result = eval(text.replace(/[^0-9+\-*/().\s%^]/g, ''));
-        m.reply(`🧮 *${text}*\n= *${result}*`);
+        let result = eval(text);
+        m.reply(`Result: ${result}`);
       } catch {
-        reply('❌ Invalid expression. E.g: .calc 2 + 2 * 5');
+        reply('❌ Invalid expression.');
       }
     }
   },
@@ -166,16 +239,20 @@ module.exports = [
     command: ['trt', 'translate'],
     description: 'Translate text',
     category: 'utility',
-    handler: async (client, m, { reply, text, args }) => {
-      if (!text) return reply('Provide target language and text.\nE.g: .translate fr Hello how are you\nLanguage codes: fr=French, es=Spanish, sw=Swahili, ar=Arabic');
-      const lang = args[0];
-      const content = args.slice(1).join(' ');
-      if (!content) return reply('Provide text after the language code.\nE.g: .translate sw Hello');
-      await reply('🌍 _Translating..._');
-      const res = await global.axios.get(`${api}/tools/translate`, { params: { text: content, lang } });
-      const result = res.data?.result || res.data?.translated;
-      if (!result) return reply('❌ Translation failed. Check your language code.');
-      m.reply(`🌍 *Translation (${lang}):*\n\n${result}`);
+    handler: async (client, m, { reply, text, args, from }) => {
+      if (args.length < 2) return m.reply('Please provide a language code and text to translate!');
+      const targetLang = args[0];
+      const textToTranslate = args.slice(1).join(' ');
+      try {
+        const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(textToTranslate)}&langpair=en|${targetLang}`);
+        if (!response.ok) return m.reply('Translation service unavailable. Try again later.');
+        const data = await response.json();
+        const translated = data.responseData?.translatedText;
+        if (!translated) return m.reply('Translation failed. Check your language code.');
+        await client.sendMessage(from, { text: `🌍 *Translation (${targetLang}):*\n\n${translated}` }, { quoted: m });
+      } catch (error) {
+        m.reply('Translation failed: ' + error.message);
+      }
     }
   },
 
@@ -183,33 +260,68 @@ module.exports = [
     command: ['define'],
     description: 'Define a word',
     category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      if (!text) return reply('Provide a word to define. E.g: .define serendipity');
-      await reply('📚 _Looking up definition..._');
-      const res = await global.axios.get(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(text)}`);
-      const data = res.data?.[0];
-      if (!data) return reply(`❌ No definition found for: *${text}*`);
-      const meaning = data.meanings?.[0];
-      const def = meaning?.definitions?.[0];
-      let txt = `📚 *${data.word}*`;
-      if (data.phonetic) txt += ` _(${data.phonetic})_`;
-      txt += `\n\n*${meaning.partOfSpeech}*\n${def.definition}`;
-      if (def.example) txt += `\n\n_"${def.example}"_`;
-      m.reply(txt);
+    handler: async (client, m, { reply, text, from }) => {
+      if (!text) return m.reply('Please provide a word.');
+      try {
+        const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(text)}`);
+        if (!response.ok) return m.reply('Failed to fetch data. Please try again later.');
+        const data = await response.json();
+        if (!data || !data[0] || !data[0].meanings || data[0].meanings.length === 0) return m.reply('No definitions found for the provided word.');
+        const definition = data[0].meanings[0].definitions[0].definition;
+        await client.sendMessage(from, { text: definition }, { quoted: m });
+      } catch (error) {
+        m.reply('An error occurred while fetching the data. Please try again later.\n' + error);
+      }
     }
   },
 
   {
     command: ['zodiac'],
-    description: 'Get zodiac sign info',
+    description: 'Get zodiac sign by birth month and day',
     category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      if (!text) return reply('Provide your zodiac sign. E.g: .zodiac aries');
-      await reply('♈ _Fetching zodiac info..._');
-      const res = await global.axios.get(`${api}/fun/zodiac`, { params: { sign: text.toLowerCase() } });
-      const data = res.data?.result || res.data;
-      if (!data) return reply('❌ Invalid zodiac sign. Try: aries, taurus, gemini, cancer, leo, virgo, libra, scorpio, sagittarius, capricorn, aquarius, pisces');
-      m.reply(typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+    handler: async (client, m, { reply, text, pushname }) => {
+      if (!text) return reply('Please provide your birth month and date\n*Example:* zodiac 8 23 (for August 23)');
+      const input = text.split(' ');
+      if (input.length !== 2 || isNaN(input[0]) || isNaN(input[1])) return reply('Incorrect format. Use: month day (e.g. zodiac 5 15 for May 15)');
+      const month = parseInt(input[0]);
+      const day = parseInt(input[1]);
+      if (month < 1 || month > 12 || day < 1 || day > 31) return reply('Invalid date. Please check your month (1-12) and day (1-31)');
+      let zodiacSign = '';
+      let traits = '';
+      if ((month == 3 && day >= 21) || (month == 4 && day <= 19)) {
+        zodiacSign = 'Aries'; traits = 'Adventurous, energetic, courageous, enthusiastic, confident, dynamic, quick-witted';
+      } else if ((month == 4 && day >= 20) || (month == 5 && day <= 20)) {
+        zodiacSign = 'Taurus'; traits = 'Patient, reliable, warmhearted, loving, persistent, determined, placid, security loving';
+      } else if ((month == 5 && day >= 21) || (month == 6 && day <= 20)) {
+        zodiacSign = 'Gemini'; traits = 'Adaptable, versatile, communicative, witty, intellectual, eloquent, youthful, lively';
+      } else if ((month == 6 && day >= 21) || (month == 7 && day <= 22)) {
+        zodiacSign = 'Cancer'; traits = 'Emotional, loving, intuitive, imaginative, shrewd, cautious, protective, sympathetic';
+      } else if ((month == 7 && day >= 23) || (month == 8 && day <= 22)) {
+        zodiacSign = 'Leo'; traits = 'Generous, warmhearted, creative, enthusiastic, broad-minded, expansive, faithful, loving';
+      } else if ((month == 8 && day >= 23) || (month == 9 && day <= 22)) {
+        zodiacSign = 'Virgo'; traits = 'Modest, shy, meticulous, reliable, practical, diligent, intelligent, analytical';
+      } else if ((month == 9 && day >= 23) || (month == 10 && day <= 22)) {
+        zodiacSign = 'Libra'; traits = 'Diplomatic, urbane, romantic, charming, easygoing, sociable, idealistic, peaceable';
+      } else if ((month == 10 && day >= 23) || (month == 11 && day <= 21)) {
+        zodiacSign = 'Scorpio'; traits = 'Determined, forceful, emotional, intuitive, powerful, passionate, exciting, magnetic';
+      } else if ((month == 11 && day >= 22) || (month == 12 && day <= 21)) {
+        zodiacSign = 'Sagittarius'; traits = 'Optimistic, freedom-loving, jovial, good-humored, honest, straightforward, intellectual';
+      } else if ((month == 12 && day >= 22) || (month == 1 && day <= 19)) {
+        zodiacSign = 'Capricorn'; traits = 'Practical, prudent, ambitious, disciplined, patient, careful, humorous, reserved';
+      } else if ((month == 1 && day >= 20) || (month == 2 && day <= 18)) {
+        zodiacSign = 'Aquarius'; traits = 'Friendly, humanitarian, honest, loyal, original, inventive, independent, intellectual';
+      } else if ((month == 2 && day >= 19) || (month == 3 && day <= 20)) {
+        zodiacSign = 'Pisces'; traits = 'Imaginative, sensitive, compassionate, kind, selfless, unworldly, intuitive, sympathetic';
+      } else {
+        return reply('Could not determine zodiac sign. Please check your birth date.');
+      }
+      const msg =
+        `*Zodiac Sign*\n\n` +
+        `*Birth Date:* ${month}/${day}\n` +
+        `*Sign:* ${zodiacSign}\n` +
+        `*Traits:* ${traits}\n\n` +
+        `_Requested by ${pushname}_`;
+      client.sendMessage(m.chat, { text: msg }, { quoted: m });
     }
   },
 
@@ -217,9 +329,15 @@ module.exports = [
     command: ['joke'],
     description: 'Get a random joke',
     category: 'utility',
-    handler: async (client, m) => {
-      const res = await global.axios.get('https://official-joke-api.appspot.com/random_joke');
-      m.reply(`😂 *${res.data.setup}*\n\n${res.data.punchline}`);
+    handler: async (client, m, { reply }) => {
+      try {
+        const response = await global.axios.get('https://official-joke-api.appspot.com/random_joke');
+        const joke = response.data;
+        const jokeMessage = `😂 *Below is a random joke for you* 😂\n\n*${joke.setup}*\n\n${joke.punchline} 😄`;
+        return reply(jokeMessage);
+      } catch (e) {
+        return reply("Couldn't fetch a joke right now. Please try again later.");
+      }
     }
   },
 
@@ -244,59 +362,392 @@ module.exports = [
   },
 
   {
-    command: ['save'],
-    description: 'Save a quoted message to bot DM',
+    command: ['support'],
+    description: 'Get support links',
     category: 'utility',
-    handler: async (client, m, { reply }) => {
-      if (!m.quoted) return reply('Quote a message to save.');
-      const q = m.quoted;
-      if (q.text) {
-        await client.sendMessage(client.user.id, { text: `📌 Saved:\n\n${q.text}` });
-      } else if (q.msg?.mimetype) {
-        const buf = await client.downloadMediaMessage(q);
-        const mime = q.msg.mimetype;
-        if (/image/.test(mime)) await client.sendMessage(client.user.id, { image: buf, caption: '📌 Saved image' });
-        else if (/video/.test(mime)) await client.sendMessage(client.user.id, { video: buf, caption: '📌 Saved video' });
-        else if (/audio/.test(mime)) await client.sendMessage(client.user.id, { audio: buf, mimetype: mime });
-        else await client.sendMessage(client.user.id, { document: buf, mimetype: mime, fileName: 'saved_file' });
-      } else {
-        return reply('Cannot save that type of message.');
-      }
-      reply('✅ Saved to your DM!');
+    handler: async (client, m) => {
+      const links = {
+        group: 'https://chat.whatsapp.com/CtvPN0aDdpE5HVjFLtXgAr',
+        channel: 'https://whatsapp.com/channel/0029VawxyHxLdQeX3kA96G3N',
+        email: 'mailto:cryptoboy1649@gmail.com',
+        github: 'https://github.com/black-super-bot/issues',
+        developer: 'https://wa.me/254114283550'
+      };
+      const banner = 'https://files.catbox.moe/xiflcv.jpeg';
+      await client.sendPresenceUpdate('composing', m.chat);
+      const supportMessage =
+        `▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄\n` +
+        `█                             █\n` +
+        `█   🄱🄻🄰🄲🄺🅈 🅂🅄🄿🄿🄾🅁🅃   █\n` +
+        `█                             █\n` +
+        `▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀\n\n` +
+        `✧ 𝙂𝙍𝙊𝙐𝙋 » ${links.group}\n\n` +
+        `✧ 𝘾𝙃𝘼𝙉𝙉𝙀𝙇 » ${links.channel}\n\n` +
+        `✧ 𝙀𝙈𝘼𝙄𝙇 » ${links.email}\n\n` +
+        `✧ 𝙂𝙄𝙏𝙃𝙐𝘽 » ${links.github}\n\n` +
+        `✧ 𝘿𝙀𝙑𝙀𝙇𝙊𝙋𝙀𝙍 » ${links.developer}\n\n` +
+        `▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄\n` +
+        `█  24/7 PREMIUM SUPPORT  █\n` +
+        `▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀`;
+      await client.sendMessage(m.chat, {
+        image: { url: banner },
+        caption: supportMessage,
+        contextInfo: {
+          externalAdReply: {
+            title: '🅿🆁🅴🅼🅸🆄🅼 🆂🆄🅿🅿🅾🆁🆃',
+            body: 'BLACKY BOT v1.0 | Instant Response',
+            thumbnail: { url: banner },
+            sourceUrl: links.channel
+          }
+        }
+      });
     }
   },
 
   {
     command: ['sc', 'script', 'repo'],
-    description: 'Get bot source code link',
+    description: 'Get bot source code and stats',
     category: 'utility',
-    handler: async (client, m) => {
-      m.reply(`📂 *BLACK-MD Source Code*\n\nhttps://github.com/McrayNick/black-super-bot\n\n_Star ⭐ the repo if you enjoy the bot!_`);
-    }
-  },
-
-  {
-    command: ['support'],
-    description: 'Get support group link',
-    category: 'utility',
-    handler: async (client, m) => {
-      m.reply(`🆘 *BLACK-MD Support*\n\nJoin our support group for help and updates.\n\nhttps://chat.whatsapp.com/LDBdQY8fKbs1qkPWCTuJGX`);
+    handler: async (client, m, { pushname }) => {
+      try {
+        const repoRes = await global.axios.get('https://api.github.com/repos/Blackie254/black-super-bot', { timeout: 10000 });
+        const userRes = await global.axios.get('https://api.github.com/users/Blackie254', { timeout: 10000 });
+        const r = repoRes.data;
+        const u = userRes.data;
+        client.sendMessage(m.chat, {
+          image: { url: u.avatar_url },
+          caption:
+            ` Hello 👋 *${pushname}*,\n` +
+            `╔══≪ ✦ ≫══════════≪ ✦ ≫══╗\n` +
+            `              𝐁𝐋𝐀𝐂𝐊-𝐌𝐃\n` +
+            ` The Ultimate WhatsApp Bot\n` +
+            `╚══≪ ✦ ≫══════════≪ ✦ ≫══╝\n\n` +
+            `🔷 𝐆𝐢𝐭𝐇𝐮𝐛 𝐑𝐞𝐩𝐨:\n` +
+            `   ↳ ${r.html_url}\n` +
+            `   ⭐ Stars: ${r.stargazers_count}\n` +
+            `   🍴 Forks: ${r.forks_count}\n` +
+            `   ★ Don't forget to Fork & Star our repo!\n\n` +
+            `👤 𝐃𝐞𝐯𝐞𝐥𝐨𝐩𝐞𝐫:\n` +
+            `   ↳ ${u.name || 'Blackie254'} => https://github.com/Blackie254\n\n` +
+            `🔶 𝐖𝐡𝐚𝐭𝐬𝐀𝐩𝐩 𝐏𝐚𝐢𝐫𝐢𝐧𝐠:\n` +
+            `   ↳ https://blackmd-pairing.onrender.com\n` +
+            `   ★ Save your Session-ID!\n\n` +
+            `⚙️ 𝐑𝐞𝐪𝐮𝐢𝐫𝐞𝐦𝐞𝐧𝐭𝐬:\n` +
+            `   ✓ Complete all variables\n` +
+            `   ✓ Keep API keys secure\n` +
+            `   ✓ Deploy properly\n\n` +
+            `╔══≪ ✦ ≫═══════════════≪ ✦ ≫══╗\n` +
+            `       𝗠𝗮𝗱𝗲 𝗼𝗻 𝗲𝗮𝗿𝘁𝗵 𝗯𝘆 𝗛𝘂𝗺𝗮𝗻𝘀🔥!\n` +
+            `╚══≪ ✦ ≫═══════════════≪ ✦ ≫══╝`
+        }, { quoted: m });
+      } catch (err) {
+        client.sendMessage(m.chat, {
+          image: { url: 'https://files.catbox.moe/pevpi2.jpg' },
+          caption:
+            ` Hello 👋 *${pushname}*,\n` +
+            `╔══≪ ✦ ≫══════════≪ ✦ ≫══╗\n` +
+            `            𝐁𝐋𝐀𝐂𝐊-𝐌𝐃 \n` +
+            ` The Ultimate WhatsApp Bot\n` +
+            `╚══≪ ✦ ≫══════════≪ ✦ ≫══╝\n\n` +
+            `🔷 𝐆𝐢𝐭𝐇𝐮𝐛 𝐑𝐞𝐩𝐨:\n` +
+            `   ↳ https://github.com/Blackie254/black-super-bot\n` +
+            `   ★ Don't forget to Fork & Star!\n\n` +
+            `🔶 𝐖𝐡𝐚𝐭𝐬𝐀𝐩𝐩 𝐏𝐚𝐢𝐫𝐢𝐧𝐠:\n` +
+            `   ↳ https://blackmd-pairing.onrender.com\n` +
+            `   ★ Save your Session-ID!\n\n` +
+            `⚙️ 𝐑𝐞𝐪𝐮𝐢𝐫𝐞𝐦𝐞𝐧𝐭𝐬:\n` +
+            `   ✓ Complete all variables\n` +
+            `   ✓ Keep API keys secure\n` +
+            `   ✓ Deploy properly\n\n` +
+            `╔══≪ ✦ ≫═══════════════≪ ✦ ≫══╗\n` +
+            `        𝗠𝗮𝗱𝗲 𝗼𝗻 𝗲𝗮𝗿𝘁𝗵 𝗯𝘆 𝗛𝘂𝗺𝗮𝗻𝘀🔥!\n` +
+            `╚══≪ ✦ ≫═══════════════≪ ✦ ≫══╝`
+        }, { quoted: m });
+      }
     }
   },
 
   {
     command: ['checknum', 'validate'],
-    description: 'Check if a number is on WhatsApp',
+    description: 'Validate a phone number and check WhatsApp',
     category: 'utility',
     handler: async (client, m, { reply, text }) => {
-      if (!text) return reply('Provide a phone number with country code. E.g: .checknum 254712345678');
-      const num = text.replace(/[^0-9]/g, '');
-      await reply(`🔍 Checking *+${num}*...`);
-      const results = await client.onWhatsApp(num);
-      if (!results || !results[0] || !results[0].exists) {
-        return reply(`❌ +${num} is *NOT* on WhatsApp`);
+      if (!text) return reply('Usage: validate +254712345678\nProvide the full number with country code (e.g. +1 for US, +44 for UK, +254 for Kenya).');
+      const cleaned = text.trim().replace(/[\s\-().]/g, '');
+      const digits = cleaned.replace(/^\+/, '');
+      if (!digits || !/^\d{7,15}$/.test(digits)) return reply('❌ Invalid number format. Use international format, e.g. +254712345678 or +14155551234');
+      m.reply('🔍 Validating +' + digits + ' worldwide...');
+      const region = digits.startsWith('1') && digits.length === 11 ? 1 : 3;
+      let apiData = null;
+      try {
+        const apiRes = await global.axios.get('https://api.phonevalidator.com/api/v4/phonesearch', {
+          params: { apikey: 'dbc19b10-f34e-4857-b42b-6c12543d42e3', phone: digits, type: 'basic', region },
+          timeout: 10000
+        });
+        apiData = apiRes.data?.PhoneBasic || null;
+      } catch (e) {}
+      const jid = digits + '@s.whatsapp.net';
+      let onWA = false;
+      try {
+        const [result] = await client.onWhatsApp(jid);
+        onWA = result?.exists === true;
+      } catch (e) {}
+      let about = null;
+      try {
+        const statusList = await client.fetchStatus(jid);
+        if (Array.isArray(statusList) && statusList.length > 0) {
+          const st = statusList[0]?.status?.status;
+          if (typeof st === 'string' && st.length > 0) about = st;
+        }
+      } catch (e) {}
+      const aboutText = about || '🔒 Private (hidden by WhatsApp privacy settings)';
+      let ppStatus = 'None / hidden';
+      let ppUrl = null;
+      try {
+        ppUrl = await client.profilePictureUrl(jid, 'image');
+        if (ppUrl) ppStatus = 'Available';
+      } catch (e) {}
+      const isValid = apiData?.FakeNumber === 'NO';
+      const lineType = apiData?.LineType || 'Unknown';
+      const carrier = apiData?.PhoneCompany || 'Unknown';
+      const country = apiData?.Country || 'Unknown';
+      const countryCode = apiData?.CountryCode || '??';
+      const fakeReason = apiData?.FakeNumberReason || '';
+      const replyText =
+        '*📱 Number Validation Results*\n' +
+        '━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+        '📞 *Number:* +' + digits + '\n' +
+        '🌍 *Country:* ' + country + ' (' + countryCode + ')\n' +
+        '🏢 *Carrier:* ' + carrier + '\n' +
+        '📶 *Line Type:* ' + lineType + '\n' +
+        '✅ *Valid Number:* ' + (isValid ? '✅ Yes' : '❌ No' + (fakeReason ? ' — ' + fakeReason : '')) + '\n\n' +
+        '💬 *WhatsApp:* ' + (onWA ? '✅ Active on WhatsApp' : '❌ Not registered on WhatsApp') + '\n' +
+        '📝 *About/Bio:* ' + aboutText + '\n' +
+        '🖼️ *Profile Pic:* ' + ppStatus + '\n\n' +
+        '🔗 https://wa.me/' + digits;
+      if (ppUrl) {
+        await client.sendMessage(m.chat, { image: { url: ppUrl }, caption: replyText }, { quoted: m });
+      } else {
+        await client.sendMessage(m.chat, { text: replyText }, { quoted: m });
       }
-      reply(`✅ +${num} is on WhatsApp\nJID: ${results[0].jid}`);
+    }
+  },
+
+  {
+    command: ['github'],
+    description: 'Get GitHub user info',
+    category: 'utility',
+    handler: async (client, m, { reply, text }) => {
+      if (!text) return m.reply('Provide a github username to stalk');
+      try {
+        const response = await fetch(`https://api.github.com/users/${encodeURIComponent(text)}`, { headers: { 'User-Agent': 'BlackMD-Bot' } });
+        if (response.status === 404) return m.reply(`❌ GitHub user "${text}" not found.`);
+        if (!response.ok) return m.reply(`❌ GitHub API error: ${response.status}`);
+        const data = await response.json();
+        const username = data.login || 'N/A';
+        const nickname = data.name || 'N/A';
+        const bio = data.bio || 'N/A';
+        const profilePic = data.avatar_url;
+        const url = data.html_url;
+        const type = data.type || 'N/A';
+        const company = data.company || 'N/A';
+        const blog = data.blog || 'N/A';
+        const location = data.location || 'N/A';
+        const publicRepos = data.public_repos ?? 0;
+        const publicGists = data.public_gists ?? 0;
+        const followers = data.followers ?? 0;
+        const following = data.following ?? 0;
+        const createdAt = data.created_at ? new Date(data.created_at).toDateString() : 'N/A';
+        const message =
+          `*GitHub User Info*\n\n` +
+          `Username:- ${username}\n\nNickname:- ${nickname}\n\nBio:- ${bio}\n\nLink:- ${url}\n\n` +
+          `Location:- ${location}\n\nCompany:- ${company}\n\nBlog:- ${blog}\n\n` +
+          `Followers:- ${followers}\n\nFollowing:- ${following}\n\nRepos:- ${publicRepos}\n\n` +
+          `Gists:- ${publicGists}\n\nAccount Type:- ${type}\n\nCreated:- ${createdAt}`;
+        await client.sendMessage(m.chat, { image: { url: profilePic }, caption: message }, { quoted: m });
+      } catch (error) {
+        m.reply('Unable to fetch data\n' + error);
+      }
+    }
+  },
+
+  {
+    command: ['gitclone'],
+    description: 'Download a GitHub repo as ZIP',
+    category: 'utility',
+    handler: async (client, m, { reply, text }) => {
+      if (!text) return m.reply('Where is the link?');
+      if (!text.includes('github.com')) return m.reply('Is that a GitHub repo link ?!');
+      const regex1 = /(?:https|git)(?::\/\/|@)github\.com[\/:]([^\/:]+)\/(.+)/i;
+      let [, user3, repo] = text.match(regex1) || [];
+      repo = repo.replace(/.git$/, '');
+      const url = `https://api.github.com/repos/${user3}/${repo}/zipball`;
+      const headRes = await fetch(url, { method: 'HEAD' });
+      const filename = headRes.headers.get('content-disposition').match(/attachment; filename=(.*)/)[1];
+      await client.sendMessage(m.chat, { document: { url }, fileName: filename + '.zip', mimetype: 'application/zip' }, { quoted: m }).catch(() => m.reply('error'));
+    }
+  },
+
+  {
+    command: ['screenshot', 'ss'],
+    description: 'Screenshot a website',
+    category: 'utility',
+    handler: async (client, m, { reply, text }) => {
+      const { botname } = require('../set');
+      if (!text) return m.reply('Provide a website link to screenshot.');
+      try {
+        const cap = `𝗦𝗰𝗿𝗲𝗲𝗻𝘀𝗵𝗼𝘁 𝗯𝘆 ${botname}`;
+        const image = `https://image.thum.io/get/fullpage/${text}`;
+        await client.sendMessage(m.chat, { image: { url: image }, caption: cap }, { quoted: m });
+      } catch (error) {
+        m.reply('An error occured.');
+      }
+    }
+  },
+
+  {
+    command: ['alive', 'test'],
+    description: 'Check if bot is alive',
+    category: 'utility',
+    handler: async (client, m) => {
+      const fs = require('fs');
+      const dooc = {
+        audio: fs.readFileSync('./Media/kv.ogg'),
+        mimetype: 'audio/ogg; codecs=opus',
+        ptt: true,
+        waveform: [100, 0, 100, 0, 100, 0, 100],
+        contextInfo: {
+          mentionedJid: [m.sender],
+          externalAdReply: {
+            title: '𝗛𝗶 𝗛𝘂𝗺𝗮𝗻👋, 𝗜 𝗮𝗺 𝗔𝗹𝗶𝘃𝗲 𝗻𝗼𝘄',
+            body: '𝐁𝐋𝐀𝐂𝐊-𝐌𝐃',
+            thumbnailUrl: 'https://files.catbox.moe/dq3bb9.jpg',
+            sourceUrl: '',
+            mediaType: 1,
+            renderLargerThumbnail: true
+          }
+        }
+      };
+      await client.sendMessage(m.chat, dooc, { quoted: m });
+    }
+  },
+
+  {
+    command: ['apk', 'app'],
+    description: 'Download an APK by name',
+    category: 'utility',
+    handler: async (client, m, { reply, text }) => {
+      if (!text) return reply('Where is the app name?');
+      const { fetchJson } = require('../lib/ravenfunc');
+      const kyuu = await fetchJson(`https://api.bk9.dev/search/apk?q=${text}`);
+      const tylor = await fetchJson(`https://api.bk9.dev/download/apk?id=${kyuu.BK9[0].id}`);
+      await client.sendMessage(m.chat, {
+        document: { url: tylor.BK9.dllink },
+        fileName: tylor.BK9.name,
+        mimetype: 'application/vnd.android.package-archive',
+        contextInfo: {
+          externalAdReply: {
+            title: 'BLACK-MD BOT',
+            body: `${tylor.BK9.name}`,
+            thumbnailUrl: `${tylor.BK9.icon}`,
+            sourceUrl: `${tylor.BK9.dllink}`,
+            mediaType: 2,
+            showAdAttribution: true,
+            renderLargerThumbnail: false
+          }
+        }
+      }, { quoted: m });
+    }
+  },
+
+  {
+    command: ['mix'],
+    description: 'Mix two emojis into a sticker',
+    category: 'utility',
+    handler: async (client, m, { reply, text }) => {
+      const { Sticker, StickerTypes } = require('wa-sticker-formatter');
+      const { botname } = require('../set');
+      if (!text) return m.reply('No emojis provided?');
+      const emojis = text.split('+');
+      if (emojis.length !== 2) return m.reply("Specify the emojis and separate with '+'");
+      const emoji1 = emojis[0].trim();
+      const emoji2 = emojis[1].trim();
+      try {
+        const response = await global.axios.get(`https://levanter.onrender.com/emix?q=${emoji1}${emoji2}`);
+        if (response.data.status === true) {
+          let stickerMess = new Sticker(response.data.result, {
+            pack: botname,
+            type: StickerTypes.CROPPED,
+            categories: ['🤩', '🎉'],
+            id: '12345',
+            quality: 70,
+            background: 'transparent'
+          });
+          const stickerBuffer = await stickerMess.toBuffer();
+          client.sendMessage(m.chat, { sticker: stickerBuffer }, { quoted: m });
+        } else {
+          m.reply('Unable to create emoji mix.');
+        }
+      } catch (error) {
+        m.reply('An error occurred while creating the emoji mix.' + error);
+      }
+    }
+  },
+
+  {
+    command: ['save'],
+    description: 'Save a status message to DM',
+    category: 'utility',
+    handler: async (client, m, { reply }) => {
+      try {
+        const quotedMessage = m.msg?.contextInfo?.quotedMessage;
+        if (!quotedMessage) return m.reply('❌ Please reply to a status message');
+        if (!m.quoted?.chat?.endsWith('@broadcast')) return m.reply('⚠️ That message is not a status! Please reply to a status message.');
+        const mediaBuffer = await client.downloadMediaMessage(m.quoted);
+        if (!mediaBuffer || mediaBuffer.length === 0) return m.reply('🚫 Could not download the status media. It may have expired.');
+        let payload;
+        let mediaType;
+        if (quotedMessage.imageMessage) {
+          mediaType = 'image';
+          payload = { image: mediaBuffer, caption: quotedMessage.imageMessage.caption || '📸 Saved status image', mimetype: 'image/jpeg' };
+        } else if (quotedMessage.videoMessage) {
+          mediaType = 'video';
+          payload = { video: mediaBuffer, caption: quotedMessage.videoMessage.caption || '🎥 Saved status video', mimetype: 'video/mp4' };
+        } else {
+          return m.reply('❌ Only image and video statuses can be saved!');
+        }
+        await client.sendMessage(m.sender, payload, { quoted: m });
+        return m.reply(`✅  ${mediaType} 𝐬𝐚𝐯𝐞𝐝 𝐛𝐥𝐚𝐜𝐤-𝐌𝐃!`);
+      } catch (error) {
+        if (error.message.includes('404') || error.message.includes('not found')) return m.reply('⚠️ The status may have expired or been deleted.');
+        return m.reply('❌ Failed to save status. Error: ' + error.message);
+      }
+    }
+  },
+
+  {
+    command: ['tweet'],
+    description: 'Create a fake tweet image',
+    category: 'utility',
+    handler: async (client, m, { reply, text }) => {
+      if (!text) return reply('Provide tweet text. E.g: .tweet Hello World');
+      await reply('🐦 _Generating tweet..._');
+      const res = await global.axios.get(`${api}/tools/tweet`, { params: { text }, responseType: 'arraybuffer' });
+      await client.sendMessage(m.chat, { image: Buffer.from(res.data), caption: '🐦 *Tweet Generated*' }, { quoted: m });
+    }
+  },
+
+  {
+    command: ['poll'],
+    description: 'Create a group poll',
+    category: 'utility',
+    handler: async (client, m, { reply, text, group }) => {
+      if (!m.isGroup) return reply(group);
+      if (!text) return reply('Format: .poll Question | Option1 | Option2 | ...');
+      const parts = text.split('|').map(p => p.trim());
+      if (parts.length < 3) return reply('Provide at least a question and 2 options.\nE.g: .poll Best fruit? | Apple | Mango | Banana');
+      const [question, ...options] = parts;
+      await client.sendMessage(m.chat, { poll: { name: question, values: options, selectableCount: 1 } }, { quoted: m });
     }
   },
 
@@ -306,7 +757,7 @@ module.exports = [
     category: 'utility',
     handler: async (client, m, { reply }) => {
       const Obf = require('javascript-obfuscator');
-      if (!m.quoted || !m.quoted.text) return reply('Quote/Tag a valid JavaScript code to encrypt!');
+      if (!m.quoted || !m.quoted.text) return m.reply('Quote/Tag a valid JavaScript code to encrypt!');
       const obfuscationResult = Obf.obfuscate(m.quoted.text, {
         compact: true,
         controlFlowFlattening: true,
@@ -337,79 +788,247 @@ module.exports = [
 
   {
     command: ['tg', 'telegram'],
-    description: 'Get Telegram group/channel info',
+    description: 'Download Telegram sticker pack to DM',
     category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      if (!text) return reply('Provide a Telegram username or link. E.g: .tg @durov');
-      await reply('📱 _Fetching Telegram info..._');
-      const res = await global.axios.get(`${api}/tools/tg`, { params: { user: text } });
-      const data = res.data?.result || res.data;
-      if (!data) return reply('❌ Could not fetch Telegram info.');
-      m.reply(typeof data === 'string' ? data : JSON.stringify(data, null, 2));
-    }
-  },
-
-  {
-    command: ['gitclone'],
-    description: 'Clone a GitHub repo',
-    category: 'utility',
-    handler: async (client, m, { reply, text, Owner, NotOwner }) => {
-      if (!Owner) return reply(NotOwner);
-      if (!text) return reply('Provide a GitHub repo URL. E.g: .gitclone https://github.com/user/repo');
-      const { exec } = require('child_process');
-      await reply(`📦 _Cloning ${text}..._`);
-      exec(`git clone ${text}`, (err, stdout, stderr) => {
-        if (err) return reply(`❌ Clone failed:\n${stderr || err.message}`);
-        reply(`✅ Successfully cloned!\n${stdout || ''}`);
-      });
-    }
-  },
-
-  {
-    command: ['github'],
-    description: 'Get GitHub user/repo info',
-    category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      if (!text) return reply('Provide a GitHub username or repo. E.g: .github McrayNick or .github McrayNick/black-super-bot');
-      await reply('🐙 _Fetching GitHub info..._');
-      const url = text.includes('/')
-        ? `https://api.github.com/repos/${text}`
-        : `https://api.github.com/users/${text}`;
-      const res = await global.axios.get(url);
-      const d = res.data;
-      if (text.includes('/')) {
-        m.reply(`🐙 *${d.full_name}*\n\n📝 ${d.description || 'No description'}\n⭐ Stars: ${d.stargazers_count}\n🍴 Forks: ${d.forks_count}\n👁️ Watchers: ${d.watchers_count}\n💻 Language: ${d.language || 'N/A'}\n🔗 ${d.html_url}`);
-      } else {
-        m.reply(`👤 *${d.name || d.login}*\n\n📝 ${d.bio || 'No bio'}\n👥 Followers: ${d.followers}\n➡️ Following: ${d.following}\n📦 Repos: ${d.public_repos}\n🔗 ${d.html_url}`);
+    handler: async (client, m, { reply, args }) => {
+      if (!args[0]) return m.reply('⚠️ Please provide a Telegram sticker URL!\n\nExample: .tg https://t.me/addstickers/Porcientoreal');
+      if (!args[0].match(/(https:\/\/t.me\/addstickers\/)/gi)) return m.reply('❌ Invalid URL! Make sure it\'s a Telegram sticker pack URL.\nExample: https://t.me/addstickers/YourPackName');
+      const packName = args[0].replace('https://t.me/addstickers/', '').trim();
+      const botToken = '8103143873:AAHDq1PpwJaN2f22ASvCWTuDXX-DQ1_ad4U';
+      await m.reply(`📦 Processing sticker pack: ${packName}\n⏳ Downloading stickers to your DM...`);
+      try {
+        const response = await fetch(`https://api.telegram.org/bot${botToken}/getStickerSet?name=${encodeURIComponent(packName)}`, {
+          method: 'GET', headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' }
+        });
+        if (!response.ok) {
+          if (response.status === 404) return m.reply('❌ Sticker pack not found. Make sure:\n1. The URL is correct\n2. The sticker pack is public\n3. The pack name is exact');
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const stickerSet = await response.json();
+        if (!stickerSet.ok || !stickerSet.result) return m.reply('❌ Invalid sticker pack. The pack might be private or doesn\'t exist.');
+        let successCount = 0;
+        const totalStickers = stickerSet.result.stickers.length;
+        const maxStickers = Math.min(totalStickers, 30);
+        for (let i = 0; i < maxStickers; i++) {
+          try {
+            const sticker = stickerSet.result.stickers[i];
+            const fileInfoResponse = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${sticker.file_id}`);
+            if (!fileInfoResponse.ok) continue;
+            const fileData = await fileInfoResponse.json();
+            if (!fileData.ok || !fileData.result.file_path) continue;
+            const fileUrl = `https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`;
+            const imageResponse = await fetch(fileUrl);
+            if (!imageResponse.ok) continue;
+            const arrayBuffer = await imageResponse.arrayBuffer();
+            const imageBuffer = Buffer.from(arrayBuffer);
+            await client.sendMessage(m.sender, { sticker: imageBuffer }, { quoted: m });
+            successCount++;
+            await new Promise(resolve => setTimeout(resolve, 800));
+          } catch (err) { continue; }
+        }
+        if (successCount > 0) {
+          await client.sendMessage(m.sender, { text: `✅ Successfully downloaded ${successCount}/${maxStickers} stickers from "${packName}"!` });
+          await m.reply(`📨 Sent ${successCount} stickers to your DM! Check your private messages.`);
+        } else {
+          await m.reply('❌ Failed to download any stickers. The pack might be private or contain unsupported formats.');
+        }
+      } catch (error) {
+        await m.reply('❌ Failed to download Telegram stickers!\n\nPossible reasons:\n• Invalid sticker pack URL\n• Sticker pack is private\n• Network error\n• Daily API limit reached\n• Bot token issues');
       }
     }
   },
 
   {
-    command: ['tweet'],
-    description: 'Create a fake tweet image',
+    command: ['pair', 'rent'],
+    description: 'Get pairing code for bot session',
     category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      if (!text) return reply('Provide tweet text. E.g: .tweet Hello World');
-      await reply('🐦 _Generating tweet..._');
-      const res = await global.axios.get(`${api}/tools/tweet`, { params: { text }, responseType: 'arraybuffer' });
-      await client.sendMessage(m.chat, { image: Buffer.from(res.data), caption: '🐦 *Tweet Generated*' }, { quoted: m });
+    handler: async (client, m, { reply, q }) => {
+      if (!q) return await reply('𝐡𝐨𝐥𝐥𝐚 𝐩𝐥𝐞𝐚𝐬𝐞 𝐩𝐫𝐨𝐯𝐢𝐝𝐞 𝐚 𝐯𝐚𝐥𝐢𝐝 𝐰𝐡𝐚𝐭𝐬𝐚𝐩𝐩 𝐧𝐮𝐦𝐛𝐞𝐫 𝐦𝐦𝐡... 𝐄𝐱𝐚𝐦𝐩𝐥𝐞- pair 25411428XXX');
+      try {
+        const numbers = q.split(',').map(v => v.replace(/[^0-9]/g, '')).filter(v => v.length > 5 && v.length < 20);
+        if (numbers.length === 0) return m.reply('Invalid number❌️ Please use the correct format!');
+        for (const number of numbers) {
+          const whatsappID = number + '@s.whatsapp.net';
+          const result = await client.onWhatsApp(whatsappID);
+          if (!result[0]?.exists) return m.reply('That number is not registered on WhatsApp❗️');
+          m.reply('𝐰𝐚𝐢𝐭 𝐚 𝐦𝐨𝐦𝐞𝐧𝐭 𝐟𝐨𝐫 𝐁𝐥𝐚𝐜𝐤 𝐌𝐃 𝐩𝐚𝐢𝐫 𝐜𝐨𝐝𝐞');
+          const { data } = await global.axios(`https://blackmd-pairing.onrender.com/code?number=${number}`);
+          const code = data.code;
+          const { sleep } = require('../lib/ravenfunc');
+          await sleep(3000);
+          await m.reply(` ${code}`);
+        }
+      } catch (error) {
+        await reply('An error occurred. Please try again later.');
+      }
     }
   },
 
   {
-    command: ['poll'],
-    description: 'Create a group poll',
+    command: ['vcf', 'group-vcf'],
+    description: 'Export group contacts as VCF',
+    category: 'utility',
+    handler: async (client, m, { reply, group }) => {
+      if (!m.isGroup) return m.reply('Command meant for groups');
+      const fs = require('fs');
+      try {
+        const metadata = await client.groupMetadata(m.chat);
+        const participants = metadata.participants || [];
+        let vcard = '';
+        let no = 0;
+        for (const p of participants) {
+          const num = p.id.split('@')[0];
+          vcard +=
+            `BEGIN:VCARD\n` +
+            `VERSION:3.0\n` +
+            `FN:[${no++}] +${num}\n` +
+            `TEL;type=CELL;type=VOICE;waid=${num}:+${num}\n` +
+            `END:VCARD\n`;
+        }
+        const filePath = './contacts.vcf';
+        await m.reply(`⏳ Compiling ${participants.length} contacts...`);
+        fs.writeFileSync(filePath, vcard.trim());
+        await client.sendMessage(m.chat, {
+          document: fs.readFileSync(filePath),
+          mimetype: 'text/vcard',
+          fileName: 'Group Contacts.vcf',
+          caption: `VCF for ${metadata.subject}\n${participants.length} contacts`
+        }, { quoted: m });
+        fs.unlinkSync(filePath);
+      } catch (err) {
+        m.reply('❌ Failed to generate VCF.');
+      }
+    }
+  },
+
+  {
+    command: ['ytsearch', 'yts'],
+    description: 'Search YouTube',
     category: 'utility',
     handler: async (client, m, { reply, text }) => {
-      if (!m.isGroup) return reply('Polls only work in groups.');
-      if (!text) return reply('Format: .poll Question | Option1 | Option2 | ...');
-      const parts = text.split('|').map(p => p.trim());
-      if (parts.length < 3) return reply('Provide at least a question and 2 options.\nE.g: .poll Best fruit? | Apple | Mango | Banana');
-      const [question, ...options] = parts;
-      await client.sendMessage(m.chat, {
-        poll: { name: question, values: options, selectableCount: 1 }
-      }, { quoted: m });
+      if (!text) { reply('Provide a search term!\nE.g: Alan walker alone'); return; }
+      const yts = require('yt-search');
+      const { videos } = await yts(text);
+      if (!videos || videos.length <= 0) { reply(`No Matching videos found for : *${text}*!!`); return; }
+      const length = videos.length < 10 ? videos.length : 10;
+      let tex = `YouTube Search\n🔍 Query ~> ${text}\n\n`;
+      for (let i = 0; i < length; i++) {
+        tex += `Link ~> ${videos[i].url}\nChannel ~> ${videos[i].author.name}\nTitle ~> ${videos[i].title}\n\n`;
+      }
+      reply(tex);
+    }
+  },
+
+  {
+    command: ['whatsong', 'shazam'],
+    description: 'Identify a song from audio/video',
+    category: 'utility',
+    handler: async (client, m, { reply }) => {
+      try {
+        if (!m.quoted) return reply('Quote a short audio or video to identify the song.');
+        const d = m.quoted;
+        const mimes = (d.msg || d).mimetype || d.mediaType || '';
+        if (!/video|audio/i.test(mimes)) return reply('Quote an audio or video message.');
+        await reply('🎵 Analyzing the media...');
+        const buffer = await client.downloadMediaMessage(d);
+        const acrcloud = require('acrcloud');
+        const acr = new acrcloud({
+          host: 'identify-eu-west-1.acrcloud.com',
+          access_key: '2631ab98e77b49509e3edcf493757300',
+          access_secret: 'KKbVWlTNCL3JjxjrWnywMdvQGanyhKRN0fpQxyUo'
+        });
+        const { status, metadata } = await acr.identify(buffer);
+        if (status.code !== 0) return reply('❌ Could not identify the song. Try a clearer audio.');
+        const { title, artists, album, genres, release_date } = metadata.music[0];
+        const artistNames = artists ? artists.map(a => a.name).join(', ') : 'Unknown';
+        let txt =
+          `🎵 *Song Identified!*\n\n` +
+          `*• Title:* ${title}\n` +
+          `*• Artists:* ${artistNames}\n` +
+          (album ? `*• Album:* ${album.name}\n` : '') +
+          (genres ? `*• Genres:* ${genres.map(g => g.name).join(', ')}\n` : '') +
+          (release_date ? `*• Released:* ${release_date}\n` : '') +
+          `\n⬇️ Downloading...`;
+        await client.sendMessage(m.chat, { text: txt }, { quoted: m });
+        const search = await global.axios.get(`${api}/search/yts?query=${encodeURIComponent(title + ' ' + artistNames)}`);
+        const videos = search.data?.result;
+        if (!Array.isArray(videos) || videos.length === 0) return reply('✅ Song identified! But could not find a download link.');
+        const vid = videos[0];
+        const dlRes = await global.axios.get(`${api}/dl/ytmp3?url=${encodeURIComponent(vid.url)}`);
+        const dlUrl = dlRes.data?.result?.link || dlRes.data?.link;
+        if (!dlUrl) return reply('✅ Song identified! But download failed.');
+        await client.sendMessage(m.chat, { audio: { url: dlUrl }, mimetype: 'audio/mpeg', fileName: `${title}.mp3` }, { quoted: m });
+      } catch (e) {
+        reply('❌ Error: ' + e.message);
+      }
+    }
+  },
+
+  {
+    command: ['compile-py'],
+    description: 'Run Python code',
+    category: 'utility',
+    handler: async (client, m, { reply, text }) => {
+      if (!text && !m.quoted) return reply('Quote/tag a python code to compile.');
+      const { python } = require('compile-run');
+      const sourcecode = m.quoted?.text || text || m.text;
+      python.runSource(sourcecode)
+        .then(result => {
+          if (result.stdout) reply(result.stdout);
+          if (result.stderr) reply(result.stderr);
+        })
+        .catch(err => reply(String(err)));
+    }
+  },
+
+  {
+    command: ['compile-js'],
+    description: 'Run JavaScript code',
+    category: 'utility',
+    handler: async (client, m, { reply, text }) => {
+      if (!text && !m.quoted) return reply('Quote/tag a Js code to compile.');
+      const { node } = require('compile-run');
+      const sourcecode = m.quoted?.text || text || m.text;
+      node.runSource(sourcecode)
+        .then(result => {
+          if (result.stdout) reply(result.stdout);
+          if (result.stderr) reply(result.stderr);
+        })
+        .catch(err => reply(String(err)));
+    }
+  },
+
+  {
+    command: ['compile-c'],
+    description: 'Compile and run C code',
+    category: 'utility',
+    handler: async (client, m, { reply, text }) => {
+      if (!text && !m.quoted) return reply('Quote/tag a C code to compile');
+      const { c } = require('compile-run');
+      const sourcecode = m.quoted?.text || text || m.text;
+      c.runSource(sourcecode)
+        .then(result => {
+          if (result.stdout) reply(result.stdout);
+          if (result.stderr) reply(result.stderr);
+        })
+        .catch(err => reply(String(err)));
+    }
+  },
+
+  {
+    command: ['compile-c++'],
+    description: 'Compile and run C++ code',
+    category: 'utility',
+    handler: async (client, m, { reply, text }) => {
+      if (!text && !m.quoted) return reply('Quote/tag a C++ code to compile');
+      const { cpp } = require('compile-run');
+      const sourcecode = m.quoted?.text || text || m.text;
+      cpp.runSource(sourcecode)
+        .then(result => {
+          if (result.stdout) reply(result.stdout);
+          if (result.stderr) reply(result.stderr);
+        })
+        .catch(err => reply(String(err)));
     }
   },
 
