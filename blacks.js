@@ -304,7 +304,7 @@ module.exports = raven = async (client, m, chatUpdate, store) => {
         pushname, botNumber, itsMe, from, reply, sender,
         Owner, superUser: finalSuperUsers,        
         quoted, mime, qmsg,       
-        command, prefix, cmd, mode,    
+        command, prefix, menutype, cmd, mode,    
         groupMetadata, groupName, participants, groupAdmin,
         isBotAdmin, isAdmin, groupSender,
         admin, botAdmin, group, NotOwner,
