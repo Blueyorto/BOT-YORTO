@@ -34,7 +34,7 @@ module.exports = [
         group: '👥',
         media: '🎆',
         ai: '🤖',
-        dowloads: '📥',
+        downloads: '📥',
         coding: '🎭',
         utility: '🔧',
         owner: '👑',
@@ -55,6 +55,7 @@ module.exports = [
       for (const [cat, plugins] of Object.entries(byCategory)) {
         const icon = categoryIcons[cat] || '📌';
         menu += `${icon} *${cat.toUpperCase()}*\n`;
+        menu += `╔══════════════════╗\n`;
         for (const p of plugins) {
           menu += `║ ● ${p.commands[0]}`;
           menu += '\n';
