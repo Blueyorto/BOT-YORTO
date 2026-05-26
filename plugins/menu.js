@@ -1,6 +1,9 @@
 'use strict';
 
 const handler = require('../lib/handler');
+const { getSettings } = require('../database/config');
+const s = await getSettings();
+const mode = s.mode;
 
 module.exports = [
 
@@ -8,7 +11,7 @@ module.exports = [
     command: ['menu', 'help'],
     description: 'Show command list',
     category: 'menu',
-    handler: async (client, m, { prefix, pushname, mode, Rspeed }) => {
+    handler: async (client, m, { prefix, pushname, Rspeed }) => {
       const commands = handler.listCommands();
 
       // Group by category
@@ -47,7 +50,7 @@ module.exports = [
       menu += `║         𝐁𝐋𝐀𝐂𝐊-𝐌𝐃  \n`;
       menu += `╚══════════════════╝\n\n`;
       menu += `👤 *User:* ${pushname}\n`;
-      menu += `🪩 *Mode:* ${mode}\n`;
+      menu += `🪩 *Mode:* *${mode.toUpperCase()}*\n`;
       menu += `⚡️ *Speed:* ${Rspeed.toFixed(4)} Ms\n`;
       menu += `🔑 *Prefix:* ${prefix}\n`;
       menu += `📦 *Total Commands:* ${commands.length}\n\n`;
@@ -55,8 +58,9 @@ module.exports = [
       for (const [cat, plugins] of Object.entries(byCategory)) {
         const icon = categoryIcons[cat] || '📌';
         menu += `${icon} *${cat.toUpperCase()}*\n`;
+        menu += `╔══════════════════╗\n`;
         for (const p of plugins) {
-          menu += `╔══════════════════╗\n║ ● ${p.commands[0]}\n`;        
+          menu += `║ ● ${p.commands[0]}`;
           menu += '\n';
         }
         menu += '\n';
