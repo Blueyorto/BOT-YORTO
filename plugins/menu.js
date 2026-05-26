@@ -8,7 +8,7 @@ module.exports = [
     command: ['menu', 'help'],
     description: 'Show command list',
     category: 'menu',
-    handler: async (client, m, { prefix, pushname }) => {
+    handler: async (client, m, { prefix, pushname, mode, Rspeed }) => {
       const commands = handler.listCommands();
 
       // Group by category
@@ -32,12 +32,13 @@ module.exports = [
 
       const categoryIcons = {
         group: '👥',
-        media: '🎭',
+        media: '🎆',
         ai: '🤖',
-        music: '🎵',
+        dowloads: '📥',
+        coding: '🎭',
         utility: '🔧',
         owner: '👑',
-        fun: '🎉',
+        effects: '✨️',
         football: '⚽️',
         misc: '📦',
       };
@@ -46,6 +47,8 @@ module.exports = [
       menu += `║         𝐁𝐋𝐀𝐂𝐊-𝐌𝐃  \n`;
       menu += `╚══════════════════╝\n\n`;
       menu += `👤 *User:* ${pushname}\n`;
+      menu += `🪩 *Mode:* ${mode}\n`;
+      menu += `⚡️ *Speed:* ${Rspeed.toFixed(4)}\n`;
       menu += `🔑 *Prefix:* ${prefix}\n`;
       menu += `📦 *Total Commands:* ${commands.length}\n\n`;
 
@@ -53,7 +56,9 @@ module.exports = [
         const icon = categoryIcons[cat] || '📌';
         menu += `${icon} *${cat.toUpperCase()}*\n`;
         for (const p of plugins) {
-          menu += `  ● ${p.commands[0]}`;
+          menu += `╔══════════════════╗\n`;
+          menu += `║ ● ${p.commands[0]}`;
+          menu += `╚══════════════════╝\n\n`;
           menu += '\n';
         }
         menu += '\n';
