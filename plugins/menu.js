@@ -50,7 +50,7 @@ module.exports = [
       menu += `║         𝐁𝐋𝐀𝐂𝐊-𝐌𝐃  \n`;
       menu += `╚══════════════════╝\n\n`;
       menu += `👤 *User:* ${pushname}\n`;
-      menu += `🪩 *Mode:* *${mode.toUpperCase()}*\n`;
+      menu += `🪩 *Mode:* ${mode.toUpperCase()}\n`;
       menu += `⚡️ *Speed:* ${Rspeed.toFixed(4)} Ms\n`;
       menu += `🔑 *Prefix:* ${prefix}\n`;
       menu += `📦 *Total Commands:* ${commands.length}\n\n`;
@@ -58,7 +58,6 @@ module.exports = [
       for (const [cat, plugins] of Object.entries(byCategory)) {
         const icon = categoryIcons[cat] || '📌';
         menu += `${icon} *${cat.toUpperCase()}*\n`;
-        menu += `╔══════════════════╗\n`;
         for (const p of plugins) {
           menu += `║ ● ${p.commands[0]}`;
           menu += '\n';
@@ -66,9 +65,9 @@ module.exports = [
         menu += '\n';
       }
       menu += `╚══════════════════╝\n\n`;
-      menu += `━━━━━━━━━━━━━━━━━━━\n`;
+      menu += `━━━━━━━━━━━━━━━━━━━━\n`;
       menu += `𝗠𝗮𝗱𝗲 𝗼𝗻 𝗲𝗮𝗿𝘁𝗵 𝗯𝘆 𝗛𝘂𝗺𝗮𝗻𝘀🔥!\n`;
-      menu += `━━━━━━━━━━━━━━━━━━━`;
+      menu += `━━━━━━━━━━━━━━━━━━━━`;
 
       m.reply(menu);
     }
