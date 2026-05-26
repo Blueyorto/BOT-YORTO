@@ -152,7 +152,6 @@ module.exports = [
     category: 'group',
     handler: async (client, m, { reply }) => {
       if (!m.isGroup) return m.reply('This command is meant for groups');
-      const { convertTimestamp } = require('../lib/ravenfunc');
       let info = await client.groupMetadata(m.chat);
       let ts = await convertTimestamp(info.creation);
       let pp;
