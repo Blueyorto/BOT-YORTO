@@ -8,7 +8,7 @@ module.exports = [
     command: ['menu', 'help'],
     description: 'Show command list',
     category: 'menu',
-    handler: async (client, m, { prefix, mode, pushname, Rspeed }) => {
+    handler: async (client, m, { prefix, mode, menutype, pushname, Rspeed, quoted }) => {
       const commands = handler.listCommands();
 
       // Group by category
@@ -68,7 +68,39 @@ module.exports = [
       menu += `𝗠𝗮𝗱𝗲 𝗼𝗻 𝗲𝗮𝗿𝘁𝗵 𝗯𝘆 𝗛𝘂𝗺𝗮𝗻𝘀🔥!\n`;
       menu += `━━━━━━━━━━━━━━━━━━━━`;
 
-      m.reply(menu);
+      if (menutype === 'video') {
+
+                   client.sendMessage(m.chat, {
+                        video: fs.readFileSync('../Media/blacky.mp4'),
+                        caption: menu,
+                        gifPlayback: true
+                    }, {
+                        quoted: m
+                    })
+                } else if (menutype === 'text') {
+client.sendMessage(from, { text: menu }, {quoted: m})
+
+} else if (menutype === 'image') {
+client.sendMessage(m.chat, { image: { url: 'https://files.catbox.moe/t03s77.jpg' }, caption: menu }, { quoted: m })
+} else if (menutype === 'link') {
+client.sendMessage(m.chat, {
+                        text: menu,
+                        contextInfo: {
+                            externalAdReply: {
+                                showAdAttribution: true,
+                                title: `𝐁𝐋𝐀𝐂𝐊-𝐌𝐃`,
+                                body: `${runtime(process.uptime())}`,
+                                thumbnail: fs.readFileSync('../Media/blackmachant.jpg'),
+                                sourceUrl: 'https://wa.me/254114283550?text=Hello👋+blackmerchant+Nihostie+Bot+Mkuu+😔',
+                                mediaType: 1,
+                                renderLargerThumbnail: true
+                            }
+                        }
+                    }, {
+                        quoted: m
+                    })
+
+    }
     }
   },
 
