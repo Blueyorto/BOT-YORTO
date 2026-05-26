@@ -240,6 +240,7 @@ module.exports = [
     category: 'media',
     handler: async (client, m, { reply }) => {
     try {
+      const mime = m.quoted.mimetype || '';
       if (!m.quoted) return m.reply('Reply to an image to remove its background.');
       if (!/image/.test(mime)) return m.reply('That is not an image. Quote an image and try again.');
 
