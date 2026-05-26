@@ -1,4 +1,3 @@
-const api = 'https://apis.keithsite.top';
 
 module.exports = [
 
@@ -64,27 +63,7 @@ module.exports = [
     }
   },
 
-  {
-    command: ['lyrics'],
-    description: 'Get song lyrics',
-    category: 'utility',
-    handler: async (client, m, { reply, text, from }) => {
-      if (!text) return reply('Provide a song name!');
-      try {
-        const suggestRes = await global.axios.get('https://api.lyrics.ovh/suggest/' + encodeURIComponent(text));
-        const hit = suggestRes.data?.data?.[0];
-        if (!hit) return reply('No results found for: ' + text);
-        const artist = hit.artist.name;
-        const title = hit.title;
-        const lyricsRes = await global.axios.get('https://api.lyrics.ovh/v1/' + encodeURIComponent(artist) + '/' + encodeURIComponent(title));
-        if (!lyricsRes.data?.lyrics) return reply('Lyrics not found for: ' + title);
-        const msg = `*${title}*\n_${artist}_\n\n${lyricsRes.data.lyrics}`;
-        await client.sendMessage(from, { text: msg }, { quoted: m });
-      } catch (error) {
-        reply('I did not find any lyrics for ' + text + '. Try searching a different song.');
-      }
-    }
-  },
+  
 
   {
     command: ['bible'],
@@ -631,98 +610,8 @@ module.exports = [
     }
   },
 
-  {
-    command: ['apk', 'app'],
-    description: 'Download an APK by name',
-    category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      if (!text) return reply('Where is the app name?');
-      const { fetchJson } = require('../lib/ravenfunc');
-      const kyuu = await fetchJson(`https://api.bk9.dev/search/apk?q=${text}`);
-      const tylor = await fetchJson(`https://api.bk9.dev/download/apk?id=${kyuu.BK9[0].id}`);
-      await client.sendMessage(m.chat, {
-        document: { url: tylor.BK9.dllink },
-        fileName: tylor.BK9.name,
-        mimetype: 'application/vnd.android.package-archive',
-        contextInfo: {
-          externalAdReply: {
-            title: 'BLACK-MD BOT',
-            body: `${tylor.BK9.name}`,
-            thumbnailUrl: `${tylor.BK9.icon}`,
-            sourceUrl: `${tylor.BK9.dllink}`,
-            mediaType: 2,
-            showAdAttribution: true,
-            renderLargerThumbnail: false
-          }
-        }
-      }, { quoted: m });
-    }
-  },
 
-  {
-    command: ['mix'],
-    description: 'Mix two emojis into a sticker',
-    category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      const { Sticker, StickerTypes } = require('wa-sticker-formatter');
-      const { botname } = require('../set');
-      if (!text) return m.reply('No emojis provided?');
-      const emojis = text.split('+');
-      if (emojis.length !== 2) return m.reply("Specify the emojis and separate with '+'");
-      const emoji1 = emojis[0].trim();
-      const emoji2 = emojis[1].trim();
-      try {
-        const response = await global.axios.get(`https://levanter.onrender.com/emix?q=${emoji1}${emoji2}`);
-        if (response.data.status === true) {
-          let stickerMess = new Sticker(response.data.result, {
-            pack: botname,
-            type: StickerTypes.CROPPED,
-            categories: ['🤩', '🎉'],
-            id: '12345',
-            quality: 70,
-            background: 'transparent'
-          });
-          const stickerBuffer = await stickerMess.toBuffer();
-          client.sendMessage(m.chat, { sticker: stickerBuffer }, { quoted: m });
-        } else {
-          m.reply('Unable to create emoji mix.');
-        }
-      } catch (error) {
-        m.reply('An error occurred while creating the emoji mix.' + error);
-      }
-    }
-  },
-
-  {
-    command: ['save'],
-    description: 'Save a status message to DM',
-    category: 'utility',
-    handler: async (client, m, { reply }) => {
-      try {
-        const quotedMessage = m.msg?.contextInfo?.quotedMessage;
-        if (!quotedMessage) return m.reply('❌ Please reply to a status message');
-        if (!m.quoted?.chat?.endsWith('@broadcast')) return m.reply('⚠️ That message is not a status! Please reply to a status message.');
-        const mediaBuffer = await client.downloadMediaMessage(m.quoted);
-        if (!mediaBuffer || mediaBuffer.length === 0) return m.reply('🚫 Could not download the status media. It may have expired.');
-        let payload;
-        let mediaType;
-        if (quotedMessage.imageMessage) {
-          mediaType = 'image';
-          payload = { image: mediaBuffer, caption: quotedMessage.imageMessage.caption || '📸 Saved status image', mimetype: 'image/jpeg' };
-        } else if (quotedMessage.videoMessage) {
-          mediaType = 'video';
-          payload = { video: mediaBuffer, caption: quotedMessage.videoMessage.caption || '🎥 Saved status video', mimetype: 'video/mp4' };
-        } else {
-          return m.reply('❌ Only image and video statuses can be saved!');
-        }
-        await client.sendMessage(m.sender, payload, { quoted: m });
-        return m.reply(`✅  ${mediaType} 𝐬𝐚𝐯𝐞𝐝 𝐛𝐥𝐚𝐜𝐤-𝐌𝐃!`);
-      } catch (error) {
-        if (error.message.includes('404') || error.message.includes('not found')) return m.reply('⚠️ The status may have expired or been deleted.');
-        return m.reply('❌ Failed to save status. Error: ' + error.message);
-      }
-    }
-  },
+  
 
   {
     command: ['tweet'],
@@ -750,40 +639,7 @@ module.exports = [
     }
   },
 
-  {
-    command: ['enc', 'encrypte'],
-    description: 'Obfuscate/encrypt JavaScript code',
-    category: 'utility',
-    handler: async (client, m, { reply }) => {
-      const Obf = require('javascript-obfuscator');
-      if (!m.quoted || !m.quoted.text) return m.reply('Quote/Tag a valid JavaScript code to encrypt!');
-      const obfuscationResult = Obf.obfuscate(m.quoted.text, {
-        compact: true,
-        controlFlowFlattening: true,
-        controlFlowFlatteningThreshold: 1,
-        numbersToExpressions: true,
-        simplify: true,
-        stringArrayShuffle: true,
-        splitStrings: true,
-        stringArrayThreshold: 1
-      });
-      m.reply(obfuscationResult.getObfuscatedCode());
-    }
-  },
-
-  {
-    command: ['gpass', 'genpassword'],
-    description: 'Generate a strong password',
-    category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      const length = parseInt(text) || 16;
-      if (length < 4 || length > 64) return reply('Password length must be between 4 and 64.');
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
-      let password = '';
-      for (let i = 0; i < length; i++) password += chars[Math.floor(Math.random() * chars.length)];
-      m.reply(`🔐 *Generated Password (${length} chars):*\n\`${password}\`\n\n_Keep this safe!_`);
-    }
-  },
+  
 
   {
     command: ['tg', 'telegram'],
@@ -897,92 +753,6 @@ module.exports = [
       } catch (err) {
         m.reply('❌ Failed to generate VCF.');
       }
-    }
-  },
-
-  {
-    command: ['ytsearch', 'yts'],
-    description: 'Search YouTube',
-    category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      if (!text) { reply('Provide a search term!\nE.g: Alan walker alone'); return; }
-      const yts = require('yt-search');
-      const { videos } = await yts(text);
-      if (!videos || videos.length <= 0) { reply(`No Matching videos found for : *${text}*!!`); return; }
-      const length = videos.length < 10 ? videos.length : 10;
-      let tex = `YouTube Search\n🔍 Query ~> ${text}\n\n`;
-      for (let i = 0; i < length; i++) {
-        tex += `Link ~> ${videos[i].url}\nChannel ~> ${videos[i].author.name}\nTitle ~> ${videos[i].title}\n\n`;
-      }
-      reply(tex);
-    }
-  }, 
-
-  {
-    command: ['compile-py'],
-    description: 'Run Python code',
-    category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      if (!text && !m.quoted) return reply('Quote/tag a python code to compile.');
-      const { python } = require('compile-run');
-      const sourcecode = m.quoted?.text || text || m.text;
-      python.runSource(sourcecode)
-        .then(result => {
-          if (result.stdout) reply(result.stdout);
-          if (result.stderr) reply(result.stderr);
-        })
-        .catch(err => reply(String(err)));
-    }
-  },
-
-  {
-    command: ['compile-js'],
-    description: 'Run JavaScript code',
-    category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      if (!text && !m.quoted) return reply('Quote/tag a Js code to compile.');
-      const { node } = require('compile-run');
-      const sourcecode = m.quoted?.text || text || m.text;
-      node.runSource(sourcecode)
-        .then(result => {
-          if (result.stdout) reply(result.stdout);
-          if (result.stderr) reply(result.stderr);
-        })
-        .catch(err => reply(String(err)));
-    }
-  },
-
-  {
-    command: ['compile-c'],
-    description: 'Compile and run C code',
-    category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      if (!text && !m.quoted) return reply('Quote/tag a C code to compile');
-      const { c } = require('compile-run');
-      const sourcecode = m.quoted?.text || text || m.text;
-      c.runSource(sourcecode)
-        .then(result => {
-          if (result.stdout) reply(result.stdout);
-          if (result.stderr) reply(result.stderr);
-        })
-        .catch(err => reply(String(err)));
-    }
-  },
-
-  {
-    command: ['compile-c++'],
-    description: 'Compile and run C++ code',
-    category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      if (!text && !m.quoted) return reply('Quote/tag a C++ code to compile');
-      const { cpp } = require('compile-run');
-      const sourcecode = m.quoted?.text || text || m.text;
-      cpp.runSource(sourcecode)
-        .then(result => {
-          if (result.stdout) reply(result.stdout);
-          if (result.stderr) reply(result.stderr);
-        })
-        .catch(err => reply(String(err)));
     }
   },
 
