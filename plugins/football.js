@@ -1,74 +1,260 @@
-const axios = require('axios');
+'use strict';
+
+const axios = global.axios || require('axios');
 const api = 'https://apis.keithsite.top';
 
-module.exports = {
-  command: ['epl', 'premierleague', 'laliga', 'bundesliga', 'ligue1', 'seriea', 'ucl', 'fifa', 'euro', 'eplscorers', 'laligascorers', 'bundesligascorers', 'serieascorers', 'ligue1scorers', 'uclscorers'],
-  handler: async (client, m, ctx) => {
-    const { command } = ctx;
-
-    const standingsMap = {
-      epl: { path: 'epl/standings', title: '📊 *Premier League Standings*', flag: '🐐' },
-      premierleague: { path: 'epl/standings', title: '📊 *Premier League Standings*', flag: '😉' },
-      laliga: { path: 'laliga/standings', title: '📊 *La Liga Standings*', flag: '🇪🇸' },
-      bundesliga: { path: 'bundesliga/standings', title: '📊 *Bundesliga Standings*', flag: '🇩🇪' },
-      ligue1: { path: 'ligue1/standings', title: '📊 *Ligue 1 Standings*', flag: '🇫🇷' },
-      seriea: { path: 'seriea/standings', title: '📊 *Serie A Standings*', flag: '🇮🇹' },
-      ucl: { path: 'ucl/standings', title: '🏆 *UCL Standings*', flag: '⭐' },
-      fifa: { path: 'fifa/standings', title: '🌍 *FIFA Rankings*', flag: '🌍' },
-      euro: { path: 'euros/standings', title: '🇪🇺 *Euro Standings*', flag: '🇪🇺' }
-    };
-
-    const scorersMap = {
-      eplscorers: { path: 'epl/scorers', title: '⚽ *Premier League Top Scorers*' },
-      laligascorers: { path: 'laliga/scorers', title: '⚽ *La Liga Top Scorers*' },
-      bundesligascorers: { path: 'bundesliga/scorers', title: '⚽ *Bundesliga Top Scorers*' },
-      serieascorers: { path: 'seriea/scorers', title: '⚽ *Serie A Top Scorers*' },
-      ligue1scorers: { path: 'ligue1/scorers', title: '⚽ *Ligue 1 Top Scorers*' },
-      uclscorers: { path: 'ucl/scorers', title: '🏆 *UCL Top Scorers*' }
-    };
-
-    if (standingsMap[command]) {
-      const { path, title, flag } = standingsMap[command];
-      try {
-        const res = await axios.get(`${api}/${path}`, { timeout: 15000 });
-        const data = res.data;
-        if (!data?.result?.standings?.length) return m.reply(`❌ Failed to fetch ${title}.`);
-        let text = `${title}\n\n`;
-        for (const t of data.result.standings) {
-          let tag = flag;
-          if (command === 'epl' || command === 'premierleague') {
-            if (t.position <= 4) tag = '🏆';
-            else if (t.position <= 6) tag = '🥈';
-            else if (t.position >= 18) tag = '⚠️';
-            else tag = '🧱';
-            text += `${tag} *${t.position}. ${t.team}*\nP:${t.played} W:${t.won} D:${t.draw} L:${t.lost} Pts:${t.points} GD:${t.goalDifference}\n\n`;
-          } else {
-            text += `${flag} ${t.position}. ${t.team} - ${t.points} pts\n`;
-          }
-        }
-        return m.reply(text);
-      } catch { return m.reply(`❌ Error fetching ${title}.`); }
-    }
-
-    if (scorersMap[command]) {
-      const { path, title } = scorersMap[command];
-      try {
-        await client.sendMessage(m.chat, { react: { text: "⚽", key: m.key } });
-        const res = await axios.get(`${api}/${path}`, { timeout: 15000 });
-        const data = res.data;
-        const scorers = data?.result?.topScorers;
-        if (!scorers?.length) return m.reply(`❌ Failed to fetch scorers.`);
-        let text = `${title}\n\n`;
-        scorers.slice(0, 10).forEach(s => {
-          const medal = s.rank == 1 ? "🥇" : s.rank == 2 ? "🥈" : s.rank == 3 ? "🥉" : "⚽";
-          if (command === 'eplscorers') {
-            text += `${medal} *${s.rank}. ${s.player}* (${s.team})\nGoals: ${s.goals} | Assists: ${s.assists}\nPenalties: ${s.penalties}\n\n`;
-          } else {
-            text += `${medal} ${s.rank}. ${s.player}${s.team ? ` (${s.team})` : ''} - ${s.goals}⚽\n`;
-          }
-        });
-        return m.reply(text);
-      } catch { return m.reply(`❌ Error fetching scorers.`); }
-    }
+// ── Helper: render standings rows ────────────────────────────────────────────
+function standingsText(title, flag, teams) {
+  let text = `📊 *${title}*\n\n`;
+  for (const t of teams) {
+    text += `${flag} ${t.position}. ${t.team} - ${t.points} pts\n`;
   }
-};
+  return text;
+}
+
+// ── Helper: render scorers rows ──────────────────────────────────────────────
+function scorersText(title, scorers) {
+  let text = `⚽ *${title}*\n\n`;
+  scorers.slice(0, 10).forEach(s => {
+    const medal = s.rank == 1 ? '🥇' : s.rank == 2 ? '🥈' : s.rank == 3 ? '🥉' : '⚽';
+    text += `${medal} *${s.rank}. ${s.player}*`;
+    if (s.team) text += ` (${s.team})`;
+    text += `\nGoals: ${s.goals}`;
+    if (s.assists !== undefined) text += ` | Assists: ${s.assists}`;
+    if (s.penalties !== undefined) text += ` | Pens: ${s.penalties}`;
+    text += '\n\n';
+  });
+  return text.trim();
+}
+
+module.exports = [
+
+  // ═══════════════════════════════════════════════════════════
+  // STANDINGS
+  // ═══════════════════════════════════════════════════════════
+
+  {
+    command: ['epl', 'premierleague'],
+    description: 'Premier League standings',
+    category: 'football',
+    handler: async (client, m) => {
+      try {
+        await client.sendMessage(m.chat, { react: { text: '📊', key: m.key } });
+        const res = await axios.get(`${api}/epl/standings`);
+        const data = res.data;
+        if (!data.status || !Array.isArray(data.result?.standings)) {
+          return m.reply('❌ Failed to fetch Premier League standings.');
+        }
+        let text = `📊 *Premier League Standings*\n\n`;
+        for (const team of data.result.standings) {
+          let tag = '🧱';
+          if (team.position <= 4) tag = '🏆';
+          else if (team.position <= 6) tag = '🥈';
+          else if (team.position >= 18) tag = '⚠️';
+          text += `${tag} *${team.position}. ${team.team}*\n`;
+          text += `P:${team.played} W:${team.won} D:${team.draw} L:${team.lost} `;
+          text += `Pts:${team.points} GD:${team.goalDifference}\n\n`;
+        }
+        m.reply(text);
+      } catch (e) {
+        m.reply('❌ Error fetching EPL standings.');
+      }
+    }
+  },
+
+  {
+    command: ['laliga'],
+    description: 'La Liga standings',
+    category: 'football',
+    handler: async (client, m) => {
+      try {
+        const res = await axios.get(`${api}/laliga/standings`);
+        m.reply(standingsText('La Liga Standings', '🇪🇦', res.data.result.standings));
+      } catch {
+        m.reply('❌ Error fetching La Liga.');
+      }
+    }
+  },
+
+  {
+    command: ['bundesliga'],
+    description: 'Bundesliga standings',
+    category: 'football',
+    handler: async (client, m) => {
+      try {
+        const res = await axios.get(`${api}/bundesliga/standings`);
+        m.reply(standingsText('Bundesliga Standings', '🇩🇪', res.data.result.standings));
+      } catch {
+        m.reply('❌ Error fetching Bundesliga.');
+      }
+    }
+  },
+
+  {
+    command: ['ligue1'],
+    description: 'Ligue 1 standings',
+    category: 'football',
+    handler: async (client, m) => {
+      try {
+        const res = await axios.get(`${api}/ligue1/standings`);
+        m.reply(standingsText('Ligue 1 Standings', '🇫🇷', res.data.result.standings));
+      } catch {
+        m.reply('❌ Error fetching Ligue 1.');
+      }
+    }
+  },
+
+  {
+    command: ['seriea'],
+    description: 'Serie A standings',
+    category: 'football',
+    handler: async (client, m) => {
+      try {
+        const res = await axios.get(`${api}/seriea/standings`);
+        m.reply(standingsText('Serie A Standings', '🇮🇹', res.data.result.standings));
+      } catch {
+        m.reply('❌ Error fetching Serie A.');
+      }
+    }
+  },
+
+  {
+    command: ['ucl'],
+    description: 'UEFA Champions League standings',
+    category: 'football',
+    handler: async (client, m) => {
+      try {
+        const res = await axios.get(`${api}/ucl/standings`);
+        m.reply(standingsText('UCL Standings', '🏆', res.data.result.standings));
+      } catch {
+        m.reply('❌ Error fetching UCL.');
+      }
+    }
+  },
+
+  {
+    command: ['fifa'],
+    description: 'FIFA world rankings',
+    category: 'football',
+    handler: async (client, m) => {
+      try {
+        const res = await axios.get(`${api}/fifa/standings`);
+        let text = `🌍 *FIFA Rankings*\n\n`;
+        for (const t of res.data.result.standings) {
+          text += `${t.position}. ${t.team} - ${t.points}\n`;
+        }
+        m.reply(text);
+      } catch {
+        m.reply('❌ Error fetching FIFA.');
+      }
+    }
+  },
+
+  {
+    command: ['euro'],
+    description: 'Euro standings',
+    category: 'football',
+    handler: async (client, m) => {
+      try {
+        const res = await axios.get(`${api}/euros/standings`);
+        m.reply(standingsText('Euro Standings', '🇪🇺', res.data.result.standings));
+      } catch {
+        m.reply('❌ Error fetching Euro.');
+      }
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════
+  // TOP SCORERS
+  // ═══════════════════════════════════════════════════════════
+
+  {
+    command: ['eplscorers'],
+    description: 'Premier League top scorers',
+    category: 'football',
+    handler: async (client, m) => {
+      try {
+        await client.sendMessage(m.chat, { react: { text: '⚽', key: m.key } });
+        const res = await axios.get(`${api}/epl/scorers`);
+        const data = res.data;
+        if (!data.status || !Array.isArray(data.result?.topScorers)) {
+          return m.reply('❌ Failed to fetch EPL scorers.');
+        }
+        m.reply(scorersText('Premier League Top Scorers', data.result.topScorers));
+      } catch (e) {
+        m.reply('❌ Error fetching EPL scorers.');
+      }
+    }
+  },
+
+  {
+    command: ['laligascorers'],
+    description: 'La Liga top scorers',
+    category: 'football',
+    handler: async (client, m) => {
+      try {
+        const res = await axios.get(`${api}/laliga/scorers`);
+        m.reply(scorersText('La Liga Top Scorers', res.data.result.topScorers));
+      } catch {
+        m.reply('❌ Error fetching La Liga scorers.');
+      }
+    }
+  },
+
+  {
+    command: ['bundesligascorers'],
+    description: 'Bundesliga top scorers',
+    category: 'football',
+    handler: async (client, m) => {
+      try {
+        const res = await axios.get(`${api}/bundesliga/scorers`);
+        m.reply(scorersText('Bundesliga Top Scorers', res.data.result.topScorers));
+      } catch {
+        m.reply('❌ Error fetching Bundesliga scorers.');
+      }
+    }
+  },
+
+  {
+    command: ['serieascorers'],
+    description: 'Serie A top scorers',
+    category: 'football',
+    handler: async (client, m) => {
+      try {
+        const res = await axios.get(`${api}/seriea/scorers`);
+        m.reply(scorersText('Serie A Top Scorers', res.data.result.topScorers));
+      } catch {
+        m.reply('❌ Error fetching Serie A scorers.');
+      }
+    }
+  },
+
+  {
+    command: ['ligue1scorers'],
+    description: 'Ligue 1 top scorers',
+    category: 'football',
+    handler: async (client, m) => {
+      try {
+        const res = await axios.get(`${api}/ligue1/scorers`);
+        m.reply(scorersText('Ligue 1 Top Scorers', res.data.result.topScorers));
+      } catch {
+        m.reply('❌ Error fetching Ligue 1 scorers.');
+      }
+    }
+  },
+
+  {
+    command: ['uclscorers'],
+    description: 'UCL top scorers',
+    category: 'football',
+    handler: async (client, m) => {
+      try {
+        const res = await axios.get(`${api}/ucl/scorers`);
+        m.reply(scorersText('UCL Top Scorers', res.data.result.topScorers));
+      } catch {
+        m.reply('❌ Error fetching UCL scorers.');
+      }
+    }
+  },
+
+];
