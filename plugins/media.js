@@ -1,6 +1,8 @@
 'use strict';
 
 const fs = require('fs');
+global.axios = require('axios').default
+const uploadToUguu = require('./lib/uugu');
 
 module.exports = [
 
@@ -230,6 +232,35 @@ module.exports = [
         try { fs.unlinkSync(tmpOut); } catch {}
       });
     }
+  },
+  
+  {
+    command: ['removebg', 'rbg'],
+    description: 'remove background of a picture',
+    category: 'media',
+    handler: async (client, m, { reply }) => {
+    try {
+      if (!m.quoted) return m.reply('Reply to an image to remove its background.');
+      if (!/image/.test(mime)) return m.reply('That is not an image. Quote an image and try again.');
+
+      m.reply('A moment, removing the background...');
+
+      const filePath = await client.downloadAndSaveMediaMessage(m.quoted);
+      const uploaded = await uploadToUguu(filePath);
+      try { require('fs').unlinkSync(filePath); } catch(e) {}
+
+      const res = await axios.get(`https://apis.keithsite.top/ai/removebg?url=${encodeURIComponent(uploaded)}`);
+      if (!res.data || !res.data.result) return m.reply('Failed to remove background. Try again.');
+
+      await client.sendMessage(m.chat, {
+        image: { url: res.data.result },
+        caption: 'Edited by BLACK-MD'
+      }, { quoted: m });
+
+    } catch (err) {
+      m.reply('An error occurred: ' + err.message);
+    }
+  }
   },
   
   {
