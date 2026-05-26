@@ -24,7 +24,7 @@ module.exports = [
   {
     command: ['gpass', 'genpassword'],
     description: 'Generate a strong password',
-    category: 'utility',
+    category: 'coding',
     handler: async (client, m, { reply, text }) => {
       const length = parseInt(text) || 16;
       if (length < 4 || length > 64) return reply('Password length must be between 4 and 64.');
