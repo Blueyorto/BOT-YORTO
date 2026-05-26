@@ -5,7 +5,7 @@ const fs = require('fs');
 module.exports = [
 
   {
-    command: ['s', 'sticker'],
+    command: ['sticker', 's'],
     description: 'Convert image/video to sticker',
     category: 'media',
     handler: async (client, m, { reply, msgR }) => {
@@ -56,7 +56,39 @@ module.exports = [
       client.sendMessage(m.chat, { sticker: buf }, { quoted: m });
     }
   },
-
+{
+    command: ['mix'],
+    description: 'Mix two emojis into a sticker',
+    category: 'media',
+    handler: async (client, m, { reply, text }) => {
+      const { Sticker, StickerTypes } = require('wa-sticker-formatter');
+      const { botname } = require('../set');
+      if (!text) return m.reply('No emojis provided?');
+      const emojis = text.split('+');
+      if (emojis.length !== 2) return m.reply("Specify the emojis and separate with '+'");
+      const emoji1 = emojis[0].trim();
+      const emoji2 = emojis[1].trim();
+      try {
+        const response = await global.axios.get(`https://levanter.onrender.com/emix?q=${emoji1}${emoji2}`);
+        if (response.data.status === true) {
+          let stickerMess = new Sticker(response.data.result, {
+            pack: botname,
+            type: StickerTypes.CROPPED,
+            categories: ['🤩', '🎉'],
+            id: '12345',
+            quality: 70,
+            background: 'transparent'
+          });
+          const stickerBuffer = await stickerMess.toBuffer();
+          client.sendMessage(m.chat, { sticker: stickerBuffer }, { quoted: m });
+        } else {
+          m.reply('Unable to create emoji mix.');
+        }
+      } catch (error) {
+        m.reply('An error occurred while creating the emoji mix.' + error);
+      }
+    }
+  },
   {
     command: ['vv', 'retrieve'],
     description: 'Retrieve a view-once message (to chat)',
@@ -197,6 +229,37 @@ module.exports = [
         try { fs.unlinkSync(tmpIn); } catch {}
         try { fs.unlinkSync(tmpOut); } catch {}
       });
+    }
+  },
+  
+  {
+    command: ['save'],
+    description: 'Save a status message to DM',
+    category: 'media',
+    handler: async (client, m, { reply }) => {
+      try {
+        const quotedMessage = m.msg?.contextInfo?.quotedMessage;
+        if (!quotedMessage) return m.reply('❌ Please reply to a status message');
+        if (!m.quoted?.chat?.endsWith('@broadcast')) return m.reply('⚠️ That message is not a status! Please reply to a status message.');
+        const mediaBuffer = await client.downloadMediaMessage(m.quoted);
+        if (!mediaBuffer || mediaBuffer.length === 0) return m.reply('🚫 Could not download the status media. It may have expired.');
+        let payload;
+        let mediaType;
+        if (quotedMessage.imageMessage) {
+          mediaType = 'image';
+          payload = { image: mediaBuffer, caption: quotedMessage.imageMessage.caption || '📸 Saved status image', mimetype: 'image/jpeg' };
+        } else if (quotedMessage.videoMessage) {
+          mediaType = 'video';
+          payload = { video: mediaBuffer, caption: quotedMessage.videoMessage.caption || '🎥 Saved status video', mimetype: 'video/mp4' };
+        } else {
+          return m.reply('❌ Only image and video statuses can be saved!');
+        }
+        await client.sendMessage(m.sender, payload, { quoted: m });
+        return m.reply(`✅  ${mediaType} 𝐬𝐚𝐯𝐞𝐝 𝐛𝐥𝐚𝐜𝐤-𝐌𝐃!`);
+      } catch (error) {
+        if (error.message.includes('404') || error.message.includes('not found')) return m.reply('⚠️ The status may have expired or been deleted.');
+        return m.reply('❌ Failed to save status. Error: ' + error.message);
+      }
     }
   },
 
