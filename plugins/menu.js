@@ -8,7 +8,7 @@ module.exports = [
     command: ['menu', 'help'],
     description: 'Show command list',
     category: 'menu',
-    handler: async (client, m, { prefix, mode, menutype, pushname, Rspeed, quoted }) => {
+    handler: async (client, m, { prefix, mode, menutype, pushname, Rspeed }) => {
       const commands = handler.listCommands();
 
       // Group by category
@@ -44,11 +44,11 @@ module.exports = [
       };
 
       let menu = `╔══════════════════╗\n`;
-      menu += `║         𝐁𝐋𝐀𝐂𝐊-𝐌𝐃  \n`;
+      menu += `║       ☆  𝐁𝐋𝐀𝐂𝐊-𝐌𝐃  ☆ \n`;
       menu += `╚══════════════════╝\n\n`;
       menu += `👤 *User:* ${pushname}\n`;
       menu += `🪩 *Mode:* ${mode.toUpperCase()}\n`;
-      menu += `⚡️ *Speed:* ${Rspeed.toFixed(3)} Ms\n`;
+      menu += `⚡️ *Speed:* ${Rspeed.toFixed(4)} Ms\n`;
       menu += `🔑 *Prefix:* ${prefix}\n`;
       menu += `📦 *Total Commands:* ${commands.length}\n`;
       menu += `════════════════════\n\n`;
