@@ -71,7 +71,7 @@ module.exports = [
       if (menutype === 'video') {
 
                    client.sendMessage(m.chat, {
-                        video: fs.readFileSync('../Media/blacky.mp4'),
+                        video: fs.readFileSync('./Media/blacky.mp4'),
                         caption: menu,
                         gifPlayback: true
                     }, {
@@ -90,7 +90,7 @@ client.sendMessage(m.chat, {
                                 showAdAttribution: true,
                                 title: `𝐁𝐋𝐀𝐂𝐊-𝐌𝐃`,
                                 body: `${runtime(process.uptime())}`,
-                                thumbnail: fs.readFileSync('../Media/blackmachant.jpg'),
+                                thumbnail: fs.readFileSync('./Media/blackmachant.jpg'),
                                 sourceUrl: 'https://wa.me/254114283550?text=Hello👋+blackmerchant+Nihostie+Bot+Mkuu+😔',
                                 mediaType: 1,
                                 renderLargerThumbnail: true
