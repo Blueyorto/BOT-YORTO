@@ -7,8 +7,7 @@ module.exports = [
     description: 'Check bot response speed',
     category: 'utility',
     handler: async (client, m, { reply, Rspeed }) => {
-      await reply('🏓 _Checking..._');
-      m.reply(`𝗣𝗼𝗻𝗴\n ${Rspeed.toFixed(4)} 𝗠𝘀`);
+      m.reply(`🏓 𝗣𝗼𝗻𝗴\n ${Rspeed.toFixed(4)} 𝗠𝘀`);
     }
   },
 
@@ -917,52 +916,7 @@ module.exports = [
       }
       reply(tex);
     }
-  },
-
-  {
-    command: ['whatsong', 'shazam'],
-    description: 'Identify a song from audio/video',
-    category: 'utility',
-    handler: async (client, m, { reply }) => {
-      try {
-        if (!m.quoted) return reply('Quote a short audio or video to identify the song.');
-        const d = m.quoted;
-        const mimes = (d.msg || d).mimetype || d.mediaType || '';
-        if (!/video|audio/i.test(mimes)) return reply('Quote an audio or video message.');
-        await reply('🎵 Analyzing the media...');
-        const buffer = await client.downloadMediaMessage(d);
-        const acrcloud = require('acrcloud');
-        const acr = new acrcloud({
-          host: 'identify-eu-west-1.acrcloud.com',
-          access_key: '2631ab98e77b49509e3edcf493757300',
-          access_secret: 'KKbVWlTNCL3JjxjrWnywMdvQGanyhKRN0fpQxyUo'
-        });
-        const { status, metadata } = await acr.identify(buffer);
-        if (status.code !== 0) return reply('❌ Could not identify the song. Try a clearer audio.');
-        const { title, artists, album, genres, release_date } = metadata.music[0];
-        const artistNames = artists ? artists.map(a => a.name).join(', ') : 'Unknown';
-        let txt =
-          `🎵 *Song Identified!*\n\n` +
-          `*• Title:* ${title}\n` +
-          `*• Artists:* ${artistNames}\n` +
-          (album ? `*• Album:* ${album.name}\n` : '') +
-          (genres ? `*• Genres:* ${genres.map(g => g.name).join(', ')}\n` : '') +
-          (release_date ? `*• Released:* ${release_date}\n` : '') +
-          `\n⬇️ Downloading...`;
-        await client.sendMessage(m.chat, { text: txt }, { quoted: m });
-        const search = await global.axios.get(`${api}/search/yts?query=${encodeURIComponent(title + ' ' + artistNames)}`);
-        const videos = search.data?.result;
-        if (!Array.isArray(videos) || videos.length === 0) return reply('✅ Song identified! But could not find a download link.');
-        const vid = videos[0];
-        const dlRes = await global.axios.get(`${api}/dl/ytmp3?url=${encodeURIComponent(vid.url)}`);
-        const dlUrl = dlRes.data?.result?.link || dlRes.data?.link;
-        if (!dlUrl) return reply('✅ Song identified! But download failed.');
-        await client.sendMessage(m.chat, { audio: { url: dlUrl }, mimetype: 'audio/mpeg', fileName: `${title}.mp3` }, { quoted: m });
-      } catch (e) {
-        reply('❌ Error: ' + e.message);
-      }
-    }
-  },
+  }, 
 
   {
     command: ['compile-py'],
