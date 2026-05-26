@@ -1,8 +1,8 @@
 'use strict';
 
 const fs = require('fs');
-global.axios = require('axios').default
-const uploadToUguu = require('./lib/uugu');
+const axios = global.axios || require('axios');
+const uploadToUguu = require('../lib/uugu');
 
 module.exports = [
 
