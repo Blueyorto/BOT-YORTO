@@ -13,7 +13,6 @@ module.exports = [
 
       // Group by category
       const byCategory = {};
-      // Re-import all plugin objects to get categories
       const fs = require('fs');
       const path = require('path');
       const pluginsDir = path.join(__dirname);
@@ -39,11 +38,12 @@ module.exports = [
         utility: '🔧',
         owner: '👑',
         fun: '🎉',
+        football: '⚽️',
         misc: '📦',
       };
 
       let menu = `╔══════════════════╗\n`;
-      menu += `║   𝐁𝐋𝐀𝐂𝐊-𝐌𝐃 𝐌𝐄𝐍𝐔   ║\n`;
+      menu += `║         𝐁𝐋𝐀𝐂𝐊-𝐌𝐃  \n`;
       menu += `╚══════════════════╝\n\n`;
       menu += `👤 *User:* ${pushname}\n`;
       menu += `🔑 *Prefix:* ${prefix}\n`;
@@ -55,14 +55,13 @@ module.exports = [
         for (const p of plugins) {
           menu += `  • ${prefix}${p.commands[0]}`;
           if (p.commands.length > 1) menu += ` _(${p.commands.slice(1).join(', ')})_`;
-          if (p.description) menu += ` — ${p.description}`;
           menu += '\n';
         }
         menu += '\n';
       }
 
       menu += `━━━━━━━━━━━━━━━━━━\n`;
-      menu += `_Powered by BLACK-MD Bot_`;
+      menu += `_𝗠𝗮𝗱𝗲 𝗼𝗻 𝗲𝗮𝗿𝘁𝗵 𝗯𝘆 𝗛𝘂𝗺𝗮𝗻𝘀🔥!_`;
 
       m.reply(menu);
     }
