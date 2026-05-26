@@ -583,49 +583,56 @@ module.exports = [
   },
 
   // ═══════════════════════════════════════════════════════════
-  // MEDIA CONVERSION
+  // OTHER DOWNLOADS
   // ═══════════════════════════════════════════════════════════
-
+  
   {
-    command: ['toaudio', 'audioe'],
-    description: 'Convert quoted video/audio to MP3',
+    command: ['lyrics'],
+    description: 'Get song lyrics',
     category: 'downloads',
-    handler: async (client, m) => {
-      const quotedMessage = m.msg?.contextInfo?.quotedMessage;
-      const mediaType = quotedMessage?.videoMessage || quotedMessage?.audioMessage;
-      if (!mediaType) return m.reply('❌ Quote an audio or video to convert to MP3.');
+    handler: async (client, m, { reply, text, from }) => {
+      if (!text) return reply('Provide a song name!');
       try {
-        const buffer = await client.downloadMediaMessage(mediaType);
-        await client.sendMessage(m.chat, { audio: buffer, mimetype: 'audio/mpeg' }, { quoted: m });
+        const suggestRes = await global.axios.get('https://api.lyrics.ovh/suggest/' + encodeURIComponent(text));
+        const hit = suggestRes.data?.data?.[0];
+        if (!hit) return reply('No results found for: ' + text);
+        const artist = hit.artist.name;
+        const title = hit.title;
+        const lyricsRes = await global.axios.get('https://api.lyrics.ovh/v1/' + encodeURIComponent(artist) + '/' + encodeURIComponent(title));
+        if (!lyricsRes.data?.lyrics) return reply('Lyrics not found for: ' + title);
+        const msg = `*${title}*\n_${artist}_\n\n${lyricsRes.data.lyrics}`;
+        await client.sendMessage(from, { text: msg }, { quoted: m });
       } catch (error) {
-        m.reply('❌ An error occurred while converting the media.');
+        reply('I did not find any lyrics for ' + text + '. Try searching a different song.');
       }
     }
   },
 
-  {
-    command: ['tovideo', 'mp4', 'tovid'],
-    description: 'Convert animated sticker to video',
+{
+    command: ['apk', 'app'],
+    description: 'Download an APK by name',
     category: 'downloads',
-    handler: async (client, m, { reply, quoted, mime, command, prefix }) => {
-      if (!quoted) return reply(`📎 Reply to an *animated sticker* with *${prefix + command}* to convert it to a video`);
-      if (!/webp/.test(mime)) return reply(`⚠️ That's not a sticker. Reply to an animated sticker with *${prefix + command}*`);
-      const fs = require('fs');
-      const { webp2mp4File } = require('../lib/webp2mp4');
-      let media, outputPath;
-      try {
-        await m.reply('🎬 _Converting sticker to video..._');
-        media = await client.downloadMediaMessage(quoted);
-        const converted = await webp2mp4File(media);
-        outputPath = converted.result;
-        const videoBuffer = fs.readFileSync(outputPath);
-        await client.sendMessage(m.chat, { video: videoBuffer, caption: '🎬 *Sticker → Video*\n_Converted with ffmpeg_' }, { quoted: m });
-      } catch (err) {
-        m.reply('❌ Conversion failed. Make sure it is an *animated* sticker (not a static one).');
-      } finally {
-        try { if (media) fs.unlinkSync(media); } catch {}
-        try { if (outputPath) fs.unlinkSync(outputPath); } catch {}
-      }
+    handler: async (client, m, { reply, text }) => {
+      if (!text) return reply('Where is the app name?');
+      const { fetchJson } = require('../lib/ravenfunc');
+      const kyuu = await fetchJson(`https://api.bk9.dev/search/apk?q=${text}`);
+      const tylor = await fetchJson(`https://api.bk9.dev/download/apk?id=${kyuu.BK9[0].id}`);
+      await client.sendMessage(m.chat, {
+        document: { url: tylor.BK9.dllink },
+        fileName: tylor.BK9.name,
+        mimetype: 'application/vnd.android.package-archive',
+        contextInfo: {
+          externalAdReply: {
+            title: 'BLACK-MD BOT',
+            body: `${tylor.BK9.name}`,
+            thumbnailUrl: `${tylor.BK9.icon}`,
+            sourceUrl: `${tylor.BK9.dllink}`,
+            mediaType: 2,
+            showAdAttribution: true,
+            renderLargerThumbnail: false
+          }
+        }
+      }, { quoted: m });
     }
   },
 
