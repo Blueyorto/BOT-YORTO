@@ -1,4 +1,3 @@
-'use strict';
 
 /**
  * BLACK-MD BOT — Plugin-based command handler
