@@ -308,7 +308,7 @@ module.exports = raven = async (client, m, chatUpdate, store) => {
         groupMetadata, groupName, participants, groupAdmin,
         isBotAdmin, isAdmin, groupSender,
         admin, botAdmin, group, NotOwner,
-        Rspeed, date, convertTimestamp,
+        Rspeed, date, convertTimestamp, generateProfilePicture
       };
 
       const handled = await handler.dispatch(command, client, m, ctx);
