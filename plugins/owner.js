@@ -375,32 +375,25 @@ module.exports = [
     description: 'Set bot profile picture with full resolution (Owner only)',
     category: 'owner',
     handler: async (client, m, { Owner, NotOwner, msgR }) => {
-                      if(!Owner) return m.reply(NotOwner); 
-                      const { S_WHATSAPP_NET } = require('@whiskeysockets/baileys');
-                      const { generateProfilePicture } = require('@whiskeysockets/baileys');
-                      try {
-const fs = require("fs");
-if(!msgR) { m.reply('𝗤𝘂𝗼𝘁𝗲 𝗮𝗻 𝗶𝗺𝗮𝗴𝗲...') ; return } ;
+        if (!Owner) return m.reply(NotOwner);
+        const { S_WHATSAPP_NET, generateProfilePicture, downloadMediaMessage } = require('@whiskeysockets/baileys');
+        try {
+            if (!msgR) { m.reply('𝗤𝘂𝗼𝘁𝗲 𝗮𝗻 𝗶𝗺𝗮𝗴𝗲...'); return; }
 
-let media;
-if (msgR.imageMessage) {
-     media = msgR.imageMessage
+            if (!msgR.imageMessage) {
+                return m.reply('𝗛𝘂𝗵 𝘁𝗵𝗶𝘀 𝗶𝘀 𝗻𝗼𝘁 𝗮𝗻 𝗶𝗺𝗮𝗴𝗲...');
+            }
 
-  } else {
-    m.reply('𝗛𝘂𝗵 𝘁𝗵𝗶𝘀 𝗶𝘀 𝗻𝗼𝘁 𝗮𝗻 𝗶𝗺𝗮𝗴𝗲...'); return
-  } ;
+            const medisBuffer = await downloadMediaMessage(msgR, 'buffer', {});
 
-var medis = await client.downloadAndSaveMediaMessage(media);
-         var {
-                        img
-                    } = await generateProfilePicture(medis)
+            const { img } = await generateProfilePicture(medisBuffer);
 
-client.query({
+            await client.query({
                 tag: 'iq',
                 attrs: {
                     target: undefined,
                     to: S_WHATSAPP_NET,
-                    type:'set',
+                    type: 'set',
                     xmlns: 'w:profile:picture'
                 },
                 content: [
@@ -410,18 +403,15 @@ client.query({
                         content: img
                     }
                 ]
-            })      
-                    fs.unlinkSync(medis)
-                    m.reply("𝗣𝗿𝗼𝗳𝗶𝗹𝗲 𝗽𝗶𝗰𝘁𝘂𝗿𝗲 𝘂𝗽𝗱𝗮𝘁𝗲𝗱 𝘀𝘂𝗰𝗰𝗲𝘀𝗳𝘂𝗹𝗹𝘆✅")
+            });
 
-} catch (error) {
+            m.reply("𝗣𝗿𝗼𝗳𝗶𝗹𝗲 𝗽𝗶𝗰𝘁𝘂𝗿𝗲 𝘂𝗽𝗱𝗮𝘁𝗲𝗱 𝘀𝘂𝗰𝗰𝗲𝘀𝗳𝘂𝗹𝗹𝘆✅");
 
-m.reply("An error occured while updating profile photo\n" + error)
-
-}
-  }
- },
-  
+        } catch (error) {
+            m.reply("An error occured while updating profile photo\n" + error);
+        }
+    }
+},
 
   {
     command: ['eval'],
