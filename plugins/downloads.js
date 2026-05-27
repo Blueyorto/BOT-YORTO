@@ -454,36 +454,75 @@ module.exports = [
       }
     }
   },
-
-  {
-    command: ['twitter'],
-    description: 'Download twitter video',
-    category: 'downloads',
-    handler: async (client, m, { text }) => {
-      if (!text || !text.startsWith('http')) return m.reply('📌 Provide a valid X or twitter video link!');
-      try {
-        await m.reply('⏳ Please wait, fetching your video...');
-        await client.sendMessage(m.chat, { react: { text: '📥', key: m.key } });
-
-        let response = await axios.get(`${api}/download/twitter?url=${encodeURIComponent(text)}`, { timeout: 100000 });
-        let result = response.data?.result;
-        if (!result?.media?.sd) return m.reply('❌ Failed to fetch twitter video.');
-
-        let videoUrl = result.media.hd || result.media.sd;
-        let head = await axios.head(videoUrl).catch(() => null);
-        if (!head || !head.headers['content-type']?.includes('video')) return m.reply('❌ Invalid video format.');
-
-        let res = await axios.get(videoUrl, { responseType: 'arraybuffer' });
-        let size = res.headers['content-length'];
-        if (size && size > 100 * 1024 * 1024) return m.reply('❌ Video too large.');
-
-        let buffer = Buffer.from(res.data);
-        await client.sendMessage(m.chat, { video: buffer, mimetype: 'video/mp4', caption: '📘 Twitter Video' }, { quoted: m });
-      } catch (err) {
-        m.reply('❌ Error downloading Twitter video.');
-      }
+  
+{
+  command: ['twitter', 'tw', 'xdl'],
+  description: 'Download Twitter/X video or image',
+  category: 'downloads',
+  handler: async (client, m, { text }) => {
+    if (!text || !/https?:\/\/(www\.)?(twitter\.com|x\.com)\/.+\/status\/\d+/.test(text)) {
+      return m.reply('📌 Provide a valid Twitter/X post link!\nExample: .twitter https://x.com/user/status/123456');
     }
-  },
+
+    try {
+      await m.reply('⏳ Fetching your media...');
+      await client.sendMessage(m.chat, { react: { text: '📥', key: m.key } });
+
+      const tweetId = text.match(/\/status\/(\d+)/)?.[1];
+      if (!tweetId) return m.reply('❌ Could not parse tweet ID from that link.');
+
+      const res = await axios.get(`https://api.fxtwitter.com/i/status/${tweetId}`, {
+        timeout: 30000,
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      });
+
+      const tweet = res.data?.tweet;
+      if (!tweet) return m.reply('❌ Tweet not found or is from a private account.');
+
+      const caption = `🐦 *@${tweet.author?.screen_name || 'Unknown'}*\n\n${tweet.text || ''}\n\n❤️ ${tweet.likes || 0}  🔁 ${tweet.retweets || 0}`;
+      const media = tweet.media;
+
+      // ── Video / GIF ──────────────────────────────────────────────────
+      if (media?.videos?.length) {
+        const video = media.videos[0];
+        const videoUrl = video.url;
+
+        const dl = await axios.get(videoUrl, { responseType: 'arraybuffer', timeout: 60000 });
+        const size = parseInt(dl.headers['content-length'] || '0');
+        if (size > 100 * 1024 * 1024) return m.reply('❌ Video too large to send (over 100MB).');
+
+        const buffer = Buffer.from(dl.data);
+        const isGif = video.type === 'gif';
+
+        await client.sendMessage(m.chat, {
+          video: buffer,
+          mimetype: 'video/mp4',
+          caption: caption,
+          gifPlayback: isGif
+        }, { quoted: m });
+
+      // ── Photos ───────────────────────────────────────────────────────
+      } else if (media?.photos?.length) {
+        for (const photo of media.photos) {
+          const dl = await axios.get(photo.url, { responseType: 'arraybuffer', timeout: 30000 });
+          const buffer = Buffer.from(dl.data);
+          await client.sendMessage(m.chat, {
+            image: buffer,
+            caption: caption
+          }, { quoted: m });
+        }
+
+      // ── Text only tweet ──────────────────────────────────────────────
+      } else {
+        m.reply(`🐦 *Tweet (no media)*\n\n${caption}`);
+      }
+
+    } catch (err) {
+      const msg = err?.response?.data?.message || err.message || 'Unknown error';
+      m.reply(`❌ Failed to download: ${msg}`);
+    }
+  }
+},
 
   {
     command: ['facebook', 'fb', 'fbdl'],
