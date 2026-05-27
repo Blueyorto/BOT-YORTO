@@ -1,30 +1,16 @@
-/* BLACK-MD */
+// BLACK-MD v3
 
-const { proto, getContentType, jidNormalizedUser } = require('@whiskeysockets/baileys');
+const { jidNormalizedUser } = require('@whiskeysockets/baileys');
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
 global.axios = require('axios').default;
 const chalk = require('chalk');
-const fetch = require('node-fetch');
-const uploadToUguu = require('./lib/uugu');
 const speed = require('performance-now');
-const Genius = require('genius-lyrics');
-const yts = require('yt-search');
-const { DateTime } = require('luxon');
-const uploadtoimgur = require('./lib/imgur');
-const advice = require('badadvice');
-const { c, cpp, node, python, java } = require('compile-run');
-const acrcloud = require('acrcloud');
-const ytdl = require('ytdl-core');
-const Client = new Genius.Client('TUoAEhL79JJyU-MpOsBDkFhJFWFH28nv6dgVgPA-9R1YRwLNP_zicdX2omG2qKE8gYLJat5F5VSBNLfdnlpfJg');
-const { webp2mp4File } = require('./lib/ravenupload');
-const { getSettings, updateSetting } = require('./database/config');
 const fetchSettings = require('./database/fetchSettings');
 const { antiDeleteHandler } = require('./lib/antidelete');
-const { exec, spawn, execSync } = require('child_process');
-const { appname, herokuapi, botname, author, packname, mycode, admin, botAdmin, dev, group, bad, owner, NotOwner } = require('./set.js');
-const { smsg, runtime, isUrl, processTime, formatp, tanggal, formatDate, getTime, sleep, generateProfilePicture, clockString, fetchJson, getBuffer, jsonformat, parseMention, getRandom } = require('./lib/ravenfunc');
+const { botname, author, packname, mycode, admin, botAdmin, dev, group, bad, owner, NotOwner } = require('./set.js');
+const { smsg, sleep, generateProfilePicture, fetchJson, getBuffer, } = require('./lib/ravenfunc');
 
 // ─── Load Plugin System ───────────────────────────────────────────────────────
 const handler = require('./lib/handler');
@@ -148,7 +134,6 @@ module.exports = raven = async (client, m, chatUpdate, store) => {
           return mek.key.participant || mek.key.remoteJid;
         })();
 
-    const Heroku = require('heroku-client');
     const command = body.replace(prefix, '').trim().split(/ +/).shift().toLowerCase();
     const args = body.trim().split(/ +/).slice(1);
     const pushname = m.pushName || 'No Name';
@@ -204,13 +189,12 @@ module.exports = raven = async (client, m, chatUpdate, store) => {
     const isAdmin = m.isGroup ? groupAdmin.includes(groupSender) : false;
 
     const maindev = '254114283550';
-    const date = new Date();
     const timestamp = speed();
     const Rspeed = speed() - timestamp;
 
     let argsLog = budy.length > 30 ? `${q.substring(0, 30)}...` : budy;
 
-    // ── WA Presence ──────────────────────────────────────────────────────────
+    // ── Online status ──────────────────────────────────────────────────────────
     const Grace = mek.key.remoteJid;
     if (wapresence === 'online') {
       client.sendPresenceUpdate('available', Grace);
@@ -306,15 +290,14 @@ module.exports = raven = async (client, m, chatUpdate, store) => {
         quoted, mime, qmsg,       
         command, prefix, menutype, cmd, mode,    
         groupMetadata, groupName, participants, groupAdmin,
-        isBotAdmin, isAdmin, groupSender,
-        admin, botAdmin, group, NotOwner,
+        isBotAdmin, isAdmin, groupSender, standardizeJid,
+        admin, botAdmin, group, NotOwner, resolveLid,
         Rspeed, date, convertTimestamp, generateProfilePicture
       };
 
       const handled = await handler.dispatch(command, client, m, ctx);
 
       if (!handled) {
-        // Unknown command
         if (command && budy.toLowerCase() !== undefined) {
           if (m.chat.endsWith('broadcast')) return;
           if (m.isBaileys) return;
