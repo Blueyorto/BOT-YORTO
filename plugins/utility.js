@@ -6,7 +6,7 @@ module.exports = [
     description: 'Check bot response speed',
     category: 'utility',
     handler: async (client, m, { reply, Rspeed }) => {
-      m.reply(`🏓 𝗣𝗼𝗻𝗴\n ${Rspeed.toFixed(4)} 𝗠𝘀`);
+      m.reply(`𝗣𝗼𝗻𝗴!\n ⚡️ *Speed:* ${Rspeed.toFixed(4)} 𝗠𝘀`);
     }
   },
 
@@ -32,9 +32,9 @@ module.exports = [
         contextInfo: {
           externalAdReply: {
             showAdAttribution: true,
-            title: '𝐁𝐋𝐀𝐂𝐊-𝐌𝐃 𝐁𝐎𝐓',
+            title: '𝐁𝐋𝐀𝐂𝐊-𝐌𝐃',
             body: 'https://whatsapp.com/channel/0029VaxCd13DzgTGK42G292X',
-            thumbnailUrl: 'https://i.imgur.com/gmIbuTZ.jpeg',
+            thumbnailUrl: 'https://i.ibb.co/HLWq3qVs/faab81f4a3dd.jpg',
             sourceUrl: 'https://whatsapp.com/channel/0029VaxCd13DzgTGK42G292X',
             mediaType: 1,
             renderLargerThumbnail: true
@@ -579,7 +579,7 @@ module.exports = [
     command: ['tweet'],
     description: 'Create a fake tweet image',
     category: 'utility',
-    handler: async (client, m, { reply, text }) => {
+    handler: async (client, m, { reply, pushname, text }) => {
       if (!text) return m.reply("provide some text for the tweet");
 
 const displayname = pushname;
