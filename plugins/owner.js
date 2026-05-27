@@ -570,6 +570,56 @@ module.exports = [
       }
     }
   },
+
+  {
+  command: ['getcmd'],
+  description: 'Get the source code of any command',
+  category: 'owner',
+  handler: async (client, m, { Owner, NotOwner, text }) => {
+    if (!Owner) return m.reply(NotOwner);
+    if (!text) return m.reply('Usage: getcmd <commandname>');
+
+    const fs = require('fs');
+    const path = require('path');
+
+    const pluginsDir = path.join(__dirname);
+    const files = fs.readdirSync(pluginsDir).filter(f => f.endsWith('.js'));
+
+    let found = null;
+    let foundFile = null;
+
+    for (const file of files) {
+      const content = fs.readFileSync(path.join(pluginsDir, file), 'utf8');
+
+      const regex = new RegExp(
+        `\\{[^{}]*command:\\s*\\[[^\\]]*['"\`]${text.trim()}['"\`][^\\]]*\\][\\s\\S]*?(?=\\},\\s*\\{|\\}\\s*\\];)`,
+        'g'
+      );
+
+      const match = content.match(regex);
+      if (match) {
+        found = match[0];
+        foundFile = file;
+        break;
+      }
+    }
+
+    if (!found) {
+      return m.reply(`❌ Command *.${text.trim()}* not found in any plugin file.`);
+    }
+
+    const output =
+      `📄 *Command:* .${text.trim()}\n` +
+      `📁 *File:* plugins/${foundFile}\n\n` +
+      `\`\`\`\n${found.trim()}\n\`\`\``;
+
+    if (output.length > 4000) {
+      return m.reply(output.substring(0, 3990) + '\n...[truncated]```');
+    }
+    m.reply(output);
+  }
+},
+
   
   {
     command: ['togroupstatus', 'groupstatus', 'statusgroup'],
