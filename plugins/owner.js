@@ -371,20 +371,28 @@ module.exports = [
   },
 
   {
-    command: ['getcase'],
-    description: 'Get source code of a command from blacks.js',
+    command: ['fullpp'],
+    description: 'Set bot profile picture with full resolution (Owner only)',
     category: 'owner',
-    handler: async (client, m, { reply, Owner, NotOwner, text, q }) => {
+    handler: async (client, m, { Owner, NotOwner, msgR }) => {
       if (!Owner) return m.reply(NotOwner);
-      if (!text) return reply('Example usage:- getcase menu');
+      const { S_WHATSAPP_NET } = require('@whiskeysockets/baileys');
+      const { generateProfilePicture } = require('@whiskeysockets/baileys');
       const fs = require('fs');
-      const getcase = (cases) => {
-        return 'case ' + `"${cases}"` + fs.readFileSync('./blacks.js').toString().split('case "' + cases + '"')[1].split('break')[0] + 'break';
-      };
       try {
-        reply(`${getcase(q)}`);
-      } catch (e) {
-        return reply(`Case *${text}* Not found`);
+        if (!msgR) return m.reply('𝗤𝘂𝗼𝘁𝗲 𝗮𝗻 𝗶𝗺𝗮𝗴𝗲...');
+        if (!msgR.imageMessage) return m.reply('𝗛𝘂𝗵 𝘁𝗵𝗶𝘀 𝗶𝘀 𝗻𝗼𝘁 𝗮𝗻 𝗶𝗺𝗮𝗴𝗲...');
+        let medis = await client.downloadAndSaveMediaMessage(msgR.imageMessage);
+        const { img } = await generateProfilePicture(medis);
+        await client.query({
+          tag: 'iq',
+          attrs: { target: undefined, to: S_WHATSAPP_NET, type: 'set', xmlns: 'w:profile:picture' },
+          content: [{ tag: 'picture', attrs: { type: 'image' }, content: img }]
+        });
+        fs.unlinkSync(medis);
+        m.reply('𝗣𝗿𝗼𝗳𝗶𝗹𝗲 𝗽𝗶𝗰𝘁𝘂𝗿𝗲 𝘂𝗽𝗱𝗮𝘁𝗲𝗱 𝘀𝘂𝗰𝗰𝗲𝘀𝘀𝗳𝘂𝗹𝗹𝘆✅');
+      } catch (error) {
+        m.reply('An error occured while updating profile photo\n' + error);
       }
     }
   },
@@ -477,6 +485,25 @@ module.exports = [
     }
   },
 
+  
+  {
+    command: ['blocklist'],
+    description: 'Show blocked contacts (Owner only)',
+    category: 'owner',
+    handler: async (client, m, { Owner, NotOwner }) => {
+      if (!Owner) return m.reply(NotOwner);
+      try {
+        let blocked = await client.fetchBlocklist();
+        if (!blocked || blocked.length === 0) return m.reply('You have no blocked contacts.');
+        let list = `*Blocked Contacts (${blocked.length})*\n\n`;
+        blocked.forEach((jid, i) => { list += `${i + 1}. +${jid.replace(/@.+/, '')}\n`; });
+        m.reply(list.trim());
+      } catch (err) {
+        m.reply('Error fetching blocklist: ' + err.message);
+      }
+    }
+  },
+  
   {
     command: ['togroupstatus', 'groupstatus', 'statusgroup'],
     description: 'Send a message/media to group status',
