@@ -374,9 +374,9 @@ module.exports = [
     command: ['fullpp'],
     description: 'Set bot profile picture with full resolution (Owner only)',
     category: 'owner',
-    handler: async (client, m, { Owner, NotOwner, msgR }) => {
+    handler: async (client, m, { Owner, NotOwner, msgR, generateProfilePicture }) => {
         if (!Owner) return m.reply(NotOwner);
-        const { S_WHATSAPP_NET, generateProfilePicture } = require('@whiskeysockets/baileys');
+        const { S_WHATSAPP_NET } = require('@whiskeysockets/baileys');
         const fs = require('fs');
         try {
             if (!msgR) return m.reply('𝗤𝘂𝗼𝘁𝗲 𝗮𝗻 𝗶𝗺𝗮𝗴𝗲...');
