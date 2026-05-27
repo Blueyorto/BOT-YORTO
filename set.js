@@ -17,7 +17,6 @@ const port = process.env.PORT || 10000;
 
 module.exports = {
   session,
-  sessionName,
   author,
   packname,
   dev,
