@@ -1,11 +1,11 @@
-/* If it works, don't  Fix it */
+// BLACK-MD v3
+
 const {
   default: ravenConnect,
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
   downloadContentFromMessage,
-  proto,
   jidNormalizedUser,
   getContentType,
 } = require("@whiskeysockets/baileys");
@@ -13,19 +13,16 @@ const {
 const pino = require("pino");
 const { Boom } = require("@hapi/boom");
 const fs = require("fs");
-const axios = require("axios");
 const path = require('path');
 const express = require("express");
 const chalk = require("chalk");
 const FileType = require("file-type");
 const figlet = require("figlet");
 const app = express();
-let lastTextTime = 0;
-const messageDelay = 5000;
 const Events = require('./action/events');
 const logger = pino({ level: 'silent' });
 const { smsg } = require('./lib/ravenfunc');
-const { session, port, mycode, packname } = require("./set.js");
+const { session, port } = require("./set.js");
 const makeInMemoryStore = require('./store/store.js'); 
 const { initializeDatabase } = require('./database/config');
 const fetchSettings = require('./database/fetchSettings');
@@ -286,7 +283,9 @@ client.ev.on("messages.upsert", async (chatUpdate) => {
   client.ev.on("group-participants.update", async (update) => {
         Events(client, update);
     });
-
+  
+let lastTextTime = 0;
+const messageDelay = 5000;
  client.ev.on('call', async (callData) => {
     try {
       const liveSettings = await fetchSettings();
