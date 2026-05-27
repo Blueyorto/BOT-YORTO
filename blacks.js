@@ -190,6 +190,7 @@ module.exports = raven = async (client, m, chatUpdate, store) => {
 
     const maindev = '254114283550';
     const timestamp = speed();
+    const date = new Date()
     const Rspeed = speed() - timestamp;
 
     let argsLog = budy.length > 30 ? `${q.substring(0, 30)}...` : budy;
