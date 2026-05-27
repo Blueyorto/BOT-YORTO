@@ -1,11 +1,11 @@
-/* If it works, don't  Fix it */
+// BLACK-MD v3
+
 const {
   default: ravenConnect,
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
   downloadContentFromMessage,
-  proto,
   jidNormalizedUser,
   getContentType,
 } = require("@whiskeysockets/baileys");
@@ -13,21 +13,16 @@ const {
 const pino = require("pino");
 const { Boom } = require("@hapi/boom");
 const fs = require("fs");
-const axios = require("axios");
 const path = require('path');
 const express = require("express");
 const chalk = require("chalk");
 const FileType = require("file-type");
 const figlet = require("figlet");
 const app = express();
-let lastTextTime = 0;
-const messageDelay = 5000;
 const Events = require('./action/events');
 const logger = pino({ level: 'silent' });
-const PhoneNumber = require("awesome-phonenumber");
-const { imageToWebp, videoToWebp, writeExifImg, writeExifVid } = require('./lib/ravenexif');
 const { smsg } = require('./lib/ravenfunc');
-const { sessionName, session, port, mycode, antiforeign, packname } = require("./set.js");
+const { session, port } = require("./set.js");
 const makeInMemoryStore = require('./store/store.js'); 
 const { initializeDatabase } = require('./database/config');
 const fetchSettings = require('./database/fetchSettings');
@@ -286,23 +281,11 @@ client.ev.on("messages.upsert", async (chatUpdate) => {
   });
 
   client.ev.on("group-participants.update", async (update) => {
-        if (antiforeign === 'on' && update.action === "add") {
-            for (let participant of update.participants) {
-                const jid = jidNormalizedUser(participant);
-                const phoneNumber = jid.split("@")[0];
-                if (!phoneNumber.startsWith(mycode)) {
-                        await client.sendMessage(update.id, {
-                    text: "Your Country code is not allowed to join this group !",
-                    mentions: [jid]
-                });
-                    await client.groupParticipantsUpdate(update.id, [jid], "remove");
-                    console.log(`Removed ${jid} from group ${update.id} because they are not from ${mycode}`);
-                }
-            }
-        }
-        Events(client, update); // Call existing event handler
+        Events(client, update);
     });
-
+  
+let lastTextTime = 0;
+const messageDelay = 5000;
  client.ev.on('call', async (callData) => {
     try {
       const liveSettings = await fetchSettings();
@@ -314,7 +297,7 @@ client.ev.on("messages.upsert", async (chatUpdate) => {
         const currentTime = Date.now();
         if (currentTime - lastTextTime >= messageDelay) {
           await client.sendMessage(callerId, {
-            text: "Anticall is active, Only texts are allowed"
+            text: "🚫 Anticall is active! Only texts messages are allowed"
           });
           lastTextTime = currentTime;
         } else {
@@ -349,84 +332,8 @@ client.ev.on("messages.upsert", async (chatUpdate) => {
     return (withoutContact ? "" : v.name) || v.subject || v.verifiedName || PhoneNumber("+" + jid.replace("@s.whatsapp.net", "")).getNumber("international");
   };
 
-  client.setStatus = (status) => {
-    client.query({
-      tag: "iq",
-      attrs: {
-        to: "@s.whatsapp.net",
-        type: "set",
-        xmlns: "status",
-      },
-      content: [
-        {
-          tag: "status",
-          attrs: {},
-          content: Buffer.from(status, "utf-8"),
-        },
-      ],
-    });
-    return status;
-  };
-
   client.public = true;
   client.serializeM = (m) => smsg(client, m, store);
-
-  client.sendImage = async (jid, path, caption = "", quoted = "", options) => {
-    let buffer = Buffer.isBuffer(path)
-      ? path
-      : /^data:.*?\/.*?;base64,/i.test(path)
-      ? Buffer.from(path.split`,`[1], "base64")
-      : /^https?:\/\//.test(path)
-      ? await getBuffer(path)
-      : fs.existsSync(path)
-      ? fs.readFileSync(path)
-      : Buffer.alloc(0);
-    return await client.sendMessage(jid, { image: buffer, caption: caption, ...options }, { quoted });
-  };
-
-  client.sendFile = async (jid, PATH, fileName, quoted = {}, options = {}) => {
-    let types = await client.getFile(PATH, true);
-    let { filename, size, ext, mime, data } = types;
-    let type = '', mimetype = mime, pathFile = filename;
-    if (options.asDocument) type = 'document';
-    if (options.asSticker || /webp/.test(mime)) {
-      let { writeExif } = require('./lib/ravenexif.js');
-      let media = { mimetype: mime, data };
-      pathFile = await writeExif(media, { packname: packname, author: packname, categories: options.categories ? options.categories : [] });
-      await fs.promises.unlink(filename);
-      type = 'sticker';
-      mimetype = 'image/webp';
-    } else if (/image/.test(mime)) type = 'image';
-    else if (/video/.test(mime)) type = 'video';
-    else if (/audio/.test(mime)) type = 'audio';
-    else type = 'document';
-    await client.sendMessage(jid, { [type]: { url: pathFile }, mimetype, fileName, ...options }, { quoted, ...options });
-    return fs.promises.unlink(pathFile);
-  };
-
-  client.sendImageAsSticker = async (jid, path, quoted, options = {}) => {
-    let buff = Buffer.isBuffer(path) ? path : /^data:.*?\/.*?;base64,/i.test(path) ? Buffer.from(path.split`,`[1], 'base64') : /^https?:\/\//.test(path) ? await getBuffer(path) : fs.existsSync(path) ? fs.readFileSync(path) : Buffer.alloc(0);
-    let buffer;
-    if (options && (options.packname || options.author)) {
-      buffer = await writeExifImg(buff, options);
-    } else {
-      buffer = await imageToWebp(buff);
-    }
-    await client.sendMessage(jid, { sticker: { url: buffer }, ...options }, { quoted });
-    return buffer;
-  };
-
-  client.sendVideoAsSticker = async (jid, path, quoted, options = {}) => {
-    let buff = Buffer.isBuffer(path) ? path : /^data:.*?\/.*?;base64,/i.test(path) ? Buffer.from(path.split`,`[1], 'base64') : /^https?:\/\//.test(path) ? await getBuffer(path) : fs.existsSync(path) ? fs.readFileSync(path) : Buffer.alloc(0);
-    let buffer;
-    if (options && (options.packname || options.author)) {
-      buffer = await writeExifVid(buff, options);
-    } else {
-      buffer = await videoToWebp(buff);
-    }
-    await client.sendMessage(jid, { sticker: { url: buffer }, ...options }, { quoted });
-    return buffer;
-  };
 
   client.downloadMediaMessage = async (message) => {
     let mime = (message.msg || message).mimetype || '';
@@ -457,32 +364,6 @@ client.ev.on("messages.upsert", async (chatUpdate) => {
   };
 
   client.sendText = (jid, text, quoted = "", options) => client.sendMessage(jid, { text: text, ...options }, { quoted });
-
-  client.cMod = (jid, copy, text = "", sender = client.user.id, options = {}) => {
-    let mtype = Object.keys(copy.message)[0];
-    let isEphemeral = mtype === "ephemeralMessage";
-    if (isEphemeral) {
-      mtype = Object.keys(copy.message.ephemeralMessage.message)[0];
-    }
-    let msg = isEphemeral ? copy.message.ephemeralMessage.message : copy.message;
-    let content = msg[mtype];
-    if (typeof content === "string") msg[mtype] = text || content;
-    else if (content.caption) content.caption = text || content.caption;
-    else if (content.text) content.text = text || content.text;
-    if (typeof content !== "string")
-      msg[mtype] = {
-        ...content,
-        ...options,
-      };
-    if (copy.key.participant) sender = copy.key.participant = sender || copy.key.participant;
-    else if (copy.key.participant) sender = copy.key.participant = sender || copy.key.participant;
-    if (copy.key.remoteJid.includes("@s.whatsapp.net")) sender = sender || copy.key.remoteJid;
-    else if (copy.key.remoteJid.includes("@broadcast")) sender = sender || copy.key.remoteJid;
-    copy.key.remoteJid = jid;
-    copy.key.fromMe = sender === client.user.id;
-
-    return proto.WebMessageInfo.fromObject(copy);
-  };
 
   return client;
 }
