@@ -370,23 +370,29 @@ module.exports = [
     }
   },
 
-  {
+{
     command: ['fullpp'],
     description: 'Set bot profile picture with full resolution (Owner only)',
     category: 'owner',
     handler: async (client, m, { Owner, NotOwner, msgR }) => {
         if (!Owner) return m.reply(NotOwner);
-        const { S_WHATSAPP_NET, generateProfilePicture, downloadMediaMessage } = require('@whiskeysockets/baileys');
+        const { S_WHATSAPP_NET, generateProfilePicture } = require('@whiskeysockets/baileys');
+        const fs = require('fs');
         try {
-            if (!msgR) { m.reply('𝗤𝘂𝗼𝘁𝗲 𝗮𝗻 𝗶𝗺𝗮𝗴𝗲...'); return; }
+            if (!msgR) return m.reply('𝗤𝘂𝗼𝘁𝗲 𝗮𝗻 𝗶𝗺𝗮𝗴𝗲...');
 
-            if (!msgR.imageMessage) {
+            let media;
+            if (msgR.imageMessage) {
+                media = msgR.imageMessage;
+            } else {
                 return m.reply('𝗛𝘂𝗵 𝘁𝗵𝗶𝘀 𝗶𝘀 𝗻𝗼𝘁 𝗮𝗻 𝗶𝗺𝗮𝗴𝗲...');
             }
 
-            const medisBuffer = await downloadMediaMessage(msgR, 'buffer', {});
+            var medis = await client.downloadAndSaveMediaMessage(media);
 
-            const { img } = await generateProfilePicture(medisBuffer);
+            var medisBuffer = fs.readFileSync(medis);
+
+            var { img } = await generateProfilePicture(medisBuffer);
 
             await client.query({
                 tag: 'iq',
@@ -396,23 +402,22 @@ module.exports = [
                     type: 'set',
                     xmlns: 'w:profile:picture'
                 },
-                content: [
-                    {
-                        tag: 'picture',
-                        attrs: { type: 'image' },
-                        content: img
-                    }
-                ]
+                content: [{
+                    tag: 'picture',
+                    attrs: { type: 'image' },
+                    content: img
+                }]
             });
 
-            m.reply("𝗣𝗿𝗼𝗳𝗶𝗹𝗲 𝗽𝗶𝗰𝘁𝘂𝗿𝗲 𝘂𝗽𝗱𝗮𝘁𝗲𝗱 𝘀𝘂𝗰𝗰𝗲𝘀𝗳𝘂𝗹𝗹𝘆✅");
+            fs.unlinkSync(medis); // clean up temp file
+            m.reply('𝗣𝗿𝗼𝗳𝗶𝗹𝗲 𝗽𝗶𝗰𝘁𝘂𝗿𝗲 𝘂𝗽𝗱𝗮𝘁𝗲𝗱 𝘀𝘂𝗰𝗰𝗲𝘀𝗳𝘂𝗹𝗹𝘆✅');
 
         } catch (error) {
-            m.reply("An error occured while updating profile photo\n" + error);
+            m.reply('An error occured while updating profile photo\n' + error);
         }
     }
 },
-
+  
   {
     command: ['eval'],
     description: 'Evaluate a bot Baileys function',
