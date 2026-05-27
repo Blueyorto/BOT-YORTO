@@ -222,7 +222,7 @@ module.exports = [
   // ═══════════════════════════════════════════════════════════
 
   {
-    command: ['ytv', 'video', 'ytmp4'],
+    command: ['video', 'ytv', 'ytmp4'],
     description: 'Download YouTube video (MP4)',
     category: 'downloads',
     handler: async (client, m, { text }) => {
@@ -367,7 +367,7 @@ module.exports = [
 
         let downloadUrl = null;
 
-        // Primary: keithsite
+        // Primary api: keith
         try {
           const r1 = await axios.get(`${api}/download/audio?url=${encodeURIComponent(videoUrl)}`, { timeout: 30000 });
           if (r1.data?.status && r1.data?.result) downloadUrl = r1.data.result;
@@ -381,7 +381,7 @@ module.exports = [
           } catch (_) {}
         }
 
-        // Fallback 2: mcow
+        // Fallback 2: gifted
         if (!downloadUrl) {
           try {
             const r3 = await axios.get(`https://mcow.giftedtechnexus.workers.dev/api/yta?url=${encodeURIComponent(videoUrl)}`, { timeout: 60000 });
@@ -510,6 +510,36 @@ module.exports = [
         }
       } catch (e) {
         reply(`An error occurred during download: ${e.message}`);
+      }
+    }
+  },
+
+  {
+    command: ['facebook', 'fb', 'fbdl'],
+    description: 'Download Facebook video',
+    category: 'downloads',
+    handler: async (client, m, { text }) => {
+      if (!text || !text.startsWith('http')) return m.reply('📌 Provide a valid X or twitter video link!');
+      try {
+        await m.reply('⏳ Please wait, fetching your video...');
+        await client.sendMessage(m.chat, { react: { text: '📥', key: m.key } });
+
+        let response = await axios.get(`${api}/download/twitter?url=${encodeURIComponent(text)}`, { timeout: 100000 });
+        let result = response.data?.result;
+        if (!result?.media?.sd) return m.reply('❌ Failed to fetch twitter video.');
+
+        let videoUrl = result.media.hd || result.media.sd;
+        let head = await axios.head(videoUrl).catch(() => null);
+        if (!head || !head.headers['content-type']?.includes('video')) return m.reply('❌ Invalid video format.');
+
+        let res = await axios.get(videoUrl, { responseType: 'arraybuffer' });
+        let size = res.headers['content-length'];
+        if (size && size > 100 * 1024 * 1024) return m.reply('❌ Video too large.');
+
+        let buffer = Buffer.from(res.data);
+        await client.sendMessage(m.chat, { video: buffer, mimetype: 'video/mp4', caption: '📘 Twitter Video' }, { quoted: m });
+      } catch (err) {
+        m.reply('❌ Error downloading Twitter video.');
       }
     }
   },
