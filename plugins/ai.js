@@ -105,6 +105,51 @@ module.exports = [
     }
   },
 
+  {
+    command: ['define'],
+    description: 'Define a word',
+    category: 'ai',
+    handler: async (client, m, { reply, text, from }) => {
+      if (!text) return m.reply('Please provide a word.');
+      try {
+        const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(text)}`);
+        if (!response.ok) return m.reply('Failed to fetch data. Please try again later.');
+        const data = await response.json();
+        if (!data || !data[0] || !data[0].meanings || data[0].meanings.length === 0) return m.reply('No definitions found for the provided word.');
+        const definition = data[0].meanings[0].definitions[0].definition;
+        await client.sendMessage(from, { text: definition }, { quoted: m });
+      } catch (error) {
+        m.reply('An error occurred while fetching the data. Please try again later.\n' + error);
+      }
+    }
+  },
+
+  {
+    command: ['google'],
+    description: 'Google search',
+    category: 'ai',
+    handler: async (client, m, { reply, text }) => {
+      const axios = require("axios");
+        if (!text) {
+            m.reply('Provide a search term!\nEg: .Google What is treason')
+            return;
+        }
+        let {
+            data
+        } = await axios.get(`https://www.googleapis.com/customsearch/v1?q=${text}&key=AIzaSyDMbI3nvmQUrfjoCJYLS69Lej1hSXQjnWI&cx=baf9bdb0c631236e5`)
+        if (data.items.length == 0) {
+            m.reply("❌ Unable to find a result")
+            return;
+        }
+        let tex = `SEARCH FROM GOOGLE\n🔍 Term:- ${text}\n\n`;
+        for (let i = 0; i < data.items.length; i++) {
+            tex += `🪧 Title:- ${data.items[i].title}\n🖥 Description:- ${data.items[i].snippet}\n🌐 Link:- ${data.items[i].link}\n\n`
+        }
+        m.reply(tex)
+     }
+  },
+
+
   // ── .image / .img — Image search (album) via keithsite ───────────────────
   {
     command: ['image', 'img'],
