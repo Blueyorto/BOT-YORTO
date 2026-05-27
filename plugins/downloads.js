@@ -456,7 +456,7 @@ module.exports = [
   },
   
 {
-  command: ['twitter', 'tw', 'xdl'],
+  command: ['twitter'],
   description: 'Download Twitter/X video or image',
   category: 'downloads',
   handler: async (client, m, { text }) => {
@@ -489,7 +489,7 @@ module.exports = [
 
         const dl = await axios.get(videoUrl, { responseType: 'arraybuffer', timeout: 60000 });
         const size = parseInt(dl.headers['content-length'] || '0');
-        if (size > 100 * 1024 * 1024) return m.reply('❌ Video too large to send (over 100MB).');
+        if (size > 150 * 1024 * 1024) return m.reply('❌ Video too large to send (over 150MB).');
 
         const buffer = Buffer.from(dl.data);
         const isGif = video.type === 'gif';
