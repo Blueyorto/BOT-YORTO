@@ -134,25 +134,6 @@ module.exports = [
   },
 
   {
-    command: ['dp', 'pp'],
-    description: 'Get profile picture of a tagged user',
-    category: 'media',
-    handler: async (client, m, { reply }) => {
-      if (!m.quoted) return reply('Tag a user!');
-      let ha = m.quoted.sender;
-      let qd, pp2;
-      try {
-        qd = await client.getName(ha);
-        pp2 = await client.profilePictureUrl(ha, 'image');
-      } catch {
-        pp2 = 'https://tinyurl.com/yx93l6da';
-        qd = ha.split('@')[0];
-      }
-      client.sendMessage(m.chat, { image: { url: pp2 }, caption: `Profile Picture of ${qd}`, fileLength: '999999999999' }, { quoted: m });
-    }
-  },
-
-  {
     command: ['botpp', 'botdp'],
     description: 'Get or change the bot profile picture',
     category: 'media',
@@ -172,7 +153,7 @@ module.exports = [
   },
 
   {
-    command: ['getpfp', 'getpp', 'getdp', 'profilepic'],
+    command: ['getpfp', 'dp'],
     description: 'Get the profile picture of any number',
     category: 'media',
     handler: async (client, m, { reply, text }) => {
