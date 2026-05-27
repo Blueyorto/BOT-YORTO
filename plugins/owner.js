@@ -613,8 +613,8 @@ module.exports = [
       `📁 *File:* plugins/${foundFile}\n\n` +
       `\`\`\`\n${found.trim()}\n\`\`\``;
 
-    if (output.length > 4000) {
-      return m.reply(output.substring(0, 3990) + '\n...[truncated]```');
+    if (output.length > 10000) {
+      return m.reply(output.substring(0, 9990) + '\n...[truncated]```');
     }
     m.reply(output);
   }
