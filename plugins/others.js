@@ -185,25 +185,89 @@ module.exports = [
       }
     }
   },
+  
+{
+  command: ['sysinfo', 'system'],
+  description: 'Show system info — platform, RAM, storage, hostname',
+  category: 'others',
+  handler: async (client, m, { reply }) => {
 
-  {
-    command: ['system'],
-    description: 'Show bot system info',
-    category: 'others',
-    handler: async (client, m, { Rspeed }) => {
-      const { runtime } = require('../lib/ravenfunc');
-      client.sendMessage(m.chat, {
-        image: { url: 'https://files.catbox.moe/s5nuh3.jpg' },
-        caption:
-          `*𝐁𝐎𝐓 𝐍𝐀𝐌𝐄: 𝐁𝐋𝐀𝐂𝐊-MD*\n\n` +
-          `*𝐒𝐏𝐄𝐄𝐃: ${Rspeed.toFixed(4)} 𝐌𝐒*\n\n` +
-          `*𝐑𝐔𝐍𝐓𝐈𝐌𝐄: ${runtime(process.uptime())}*\n\n` +
-          `*𝐏𝐋𝐀𝐓𝐅𝐎𝐑𝐌: 𝐇𝐄𝐑𝐎𝐊𝐔*\n\n` +
-          `*𝐇𝐎𝐒𝐓𝐍𝐀𝐌𝐄: 𝐁𝐋𝐀𝐂𝐊𝐈𝐄*\n\n` +
-          `*𝐋𝐈𝐁𝐑𝐀𝐑𝐘: Baileys*\n\n` +
-          `𝐃𝐄𝐕𝐄𝐋𝐎𝐏𝐄𝐑: 𝐁𝐋𝐀𝐂𝐊𝐈𝐄 𝐓𝐄𝐂𝐇`
-      }, { quoted: m });
+    const os = require('os');
+    const fs = require('fs');
+    const { execSync } = require('child_process');
+
+    // ── RAM ─────────────────────────────────────────────────────────────
+    const totalRam = os.totalmem();
+    const freeRam  = os.freemem();
+    const usedRam  = totalRam - freeRam;
+    const ramPct   = ((usedRam / totalRam) * 100).toFixed(1);
+
+    const toMB = (bytes) => (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    const toGB = (bytes) => (bytes / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+
+    // ── Storage ──────────────────────────────────────────────────────────
+    let totalDisk = 'N/A', usedDisk = 'N/A', freeDisk = 'N/A';
+    try {
+      const df = execSync("df -k / | tail -1").toString().trim().split(/\s+/);
+      totalDisk = toGB(parseInt(df[1]) * 1024);
+      usedDisk  = toGB(parseInt(df[2]) * 1024);
+      freeDisk  = toGB(parseInt(df[3]) * 1024);
+    } catch (_) {}
+
+    // ── CPU ──────────────────────────────────────────────────────────────
+    const cpus    = os.cpus();
+    const cpuName = cpus[0]?.model?.trim() || 'Unknown';
+    const cores   = cpus.length;
+
+    // ── Uptime ───────────────────────────────────────────────────────────
+    const uptimeSec = os.uptime();
+    const hrs  = Math.floor(uptimeSec / 3600);
+    const mins = Math.floor((uptimeSec % 3600) / 60);
+    const secs = Math.floor(uptimeSec % 60);
+    const uptime = `${hrs}h ${mins}m ${secs}s`;
+
+    // ── Process (bot) memory ─────────────────────────────────────────────
+    const botMem = process.memoryUsage();
+
+    // ── Network interfaces ───────────────────────────────────────────────
+    const nets = os.networkInterfaces();
+    let ip = 'N/A';
+    for (const iface of Object.values(nets)) {
+      const ext = iface?.find(i => i.family === 'IPv4' && !i.internal);
+      if (ext) { ip = ext.address; break; }
     }
-  },
+
+    const msg =
+      `╔══════════════════════╗\n` +
+      `║   💻 BLACK-MD SYSTEM  INFO      \n` +
+      `╚══════════════════════╝\n\n` +
+      `*🖥️ Host*\n` +
+      `┣ Hostname : ${os.hostname()}\n` +
+      `┣ Platform : ${os.platform()} (${os.type()})\n` +
+      `┣ Arch     : ${os.arch()}\n` +
+      `┣ Release  : ${os.release()}\n` +
+      `┗ IP Addr  : ${ip}\n\n` +
+      `*⚙️ CPU*\n` +
+      `┣ Model : ${cpuName}\n` +
+      `┗ Cores : ${cores}\n\n` +
+      `*🧠 RAM*\n` +
+      `┣ Total : ${toGB(totalRam)}\n` +
+      `┣ Used  : ${toMB(usedRam)} (${ramPct}%)\n` +
+      `┗ Free  : ${toMB(freeRam)}\n\n` +
+      `*💾 Storage (/*\n` +
+      `┣ Total : ${totalDisk}\n` +
+      `┣ Used  : ${usedDisk}\n` +
+      `┗ Free  : ${freeDisk}\n\n` +
+      `*🤖 Bot Process*\n` +
+      `┣ Heap Used  : ${toMB(botMem.heapUsed)}\n` +
+      `┣ Heap Total : ${toMB(botMem.heapTotal)}\n` +
+      `┗ RSS        : ${toMB(botMem.rss)}\n\n` +
+      `*⏱️ Uptime*\n` +
+      `┣ System : ${uptime}\n` +
+      `┗ Node   : v${process.version.replace('v', '')}`;
+
+    reply(msg);
+  }
+},
 
   ];
