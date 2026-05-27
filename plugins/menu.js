@@ -1,6 +1,7 @@
 'use strict';
 
 const handler = require('../lib/handler');
+const { runtime } = require('../lib/ravenfunc');
 
 module.exports = [
 
@@ -79,7 +80,7 @@ module.exports = [
                         quoted: m
                     })
                 } else if (menutype === 'text') {
-client.sendMessage(from, { text: menu }, {quoted: m})
+client.sendMessage(m.chat, { text: menu }, {quoted: m})
 
 } else if (menutype === 'image') {
 client.sendMessage(m.chat, { image: { url: 'https://files.catbox.moe/t03s77.jpg' }, caption: menu }, { quoted: m })
