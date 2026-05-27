@@ -28,7 +28,6 @@
     "google-tts-api": "^2.0.2",
     "figlet": "^1.5.2",
     "fluent-ffmpeg": "^2.1.2",
-    "node-catbox": "3.2.0",
     "express": "latest",
     "compile-run": "^2.3.4",
     "javascript-obfuscator": "^4.1.0",
