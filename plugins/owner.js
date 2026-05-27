@@ -577,49 +577,76 @@ module.exports = [
   category: 'owner',
   handler: async (client, m, { Owner, NotOwner, text }) => {
     if (!Owner) return m.reply(NotOwner);
-    if (!text) return m.reply('Usage: getcmd <commandname>');
+    if (!text) return m.reply('Usage: .getcmd <commandname>\nExample: .getcmd sticker');
 
     const fs = require('fs');
     const path = require('path');
+
+    function extractBlock(content, cmdName) {
+      const pattern = `'${cmdName}'`;
+      const altPattern = `"${cmdName}"`;
+
+      let cmdIdx = content.indexOf(pattern);
+      if (cmdIdx === -1) cmdIdx = content.indexOf(altPattern);
+      if (cmdIdx === -1) return null;
+
+      const before = content.substring(Math.max(0, cmdIdx - 60), cmdIdx);
+      if (!/command\s*:\s*\[/.test(before) && !/,\s*$/.test(before.trimEnd())) {
+      
+        const cmdRegex = new RegExp(`command\\s*:\\s*\\[[^\\]]*['"]${cmdName}['"]`);
+        const m2 = cmdRegex.exec(content);
+        if (!m2) return null;
+        cmdIdx = m2.index;
+      }
+
+      let braceStart = cmdIdx;
+      while (braceStart > 0 && content[braceStart] !== '{') braceStart--;
+
+      let depth = 0;
+      let braceEnd = braceStart;
+      for (let i = braceStart; i < content.length; i++) {
+        if (content[i] === '{') depth++;
+        else if (content[i] === '}') {
+          depth--;
+          if (depth === 0) { braceEnd = i; break; }
+        }
+      }
+
+      return content.substring(braceStart, braceEnd + 1);
+    }
 
     const pluginsDir = path.join(__dirname);
     const files = fs.readdirSync(pluginsDir).filter(f => f.endsWith('.js'));
 
     let found = null;
     let foundFile = null;
+    const cmd = text.trim().replace(/^\./, '');
 
     for (const file of files) {
       const content = fs.readFileSync(path.join(pluginsDir, file), 'utf8');
-
-      const regex = new RegExp(
-        `\\{[^{}]*command:\\s*\\[[^\\]]*['"\`]${text.trim()}['"\`][^\\]]*\\][\\s\\S]*?(?=\\},\\s*\\{|\\}\\s*\\];)`,
-        'g'
-      );
-
-      const match = content.match(regex);
-      if (match) {
-        found = match[0];
+      const block = extractBlock(content, cmd);
+      if (block) {
+        found = block;
         foundFile = file;
         break;
       }
     }
 
     if (!found) {
-      return m.reply(`❌ Command *.${text.trim()}* not found in any plugin file.`);
+      return m.reply(`❌ Command *.${cmd}* not found in any plugin file.`);
     }
 
-    const output =
-      `📄 *Command:* .${text.trim()}\n` +
-      `📁 *File:* plugins/${foundFile}\n\n` +
-      `\`\`\`\n${found.trim()}\n\`\`\``;
+    const header = `📄 *Command:* .${cmd}\n📁 *File:* plugins/${foundFile}\n\n`;
+    const code = `\`\`\`\n${found.trim()}\n\`\`\``;
+    const output = header + code;
 
     if (output.length > 10000) {
-      return m.reply(output.substring(0, 9990) + '\n...[truncated]```');
+      return m.reply(header + `\`\`\`\n${found.trim().substring(0, 9800)}\n...[code too long, showing first part]\n\`\`\``);
     }
+
     m.reply(output);
   }
 },
-
   
   {
     command: ['togroupstatus', 'groupstatus', 'statusgroup'],
