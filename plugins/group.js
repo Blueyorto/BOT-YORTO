@@ -88,7 +88,7 @@ module.exports = [
   },
 
   {
-    command: ['link', 'linkgroup'],
+    command: ['link', 'grouplink', 'gclink'],
     description: 'Get group invite link',
     category: 'group',
     handler: async (client, m, { reply, group, botAdmin, isBotAdmin, groupMetadata }) => {
@@ -188,9 +188,9 @@ module.exports = [
     command: ['gcprofile'],
     description: 'Show group profile info',
     category: 'group',
-    handler: async (client, m) => {
-      if (!m.isGroup) return m.reply('This command is meant for groups');
-      const { convertTimestamp } = require('../lib/ravenfunc');
+    handler: async (client, m, { reply, convertTimestamp }) => {
+      if (!m.isGroup) return reply('This command is meant for groups');
+      
       let info = await client.groupMetadata(m.chat);
       let ts = await convertTimestamp(info.creation);
       let pp;
@@ -333,7 +333,7 @@ module.exports = [
       if (users === jidNormalizedUser(client.user.id)) return reply('I cannot remove Myself 😡');
       await client.sendMessage(m.chat, {
         text: `@${parts}, Goodbye idiot🤧`,
-        mentions: [users]
+        mentions: [parts]
       }, { quoted: m });
       await client.groupParticipantsUpdate(m.chat, [users], 'remove');
     }
@@ -440,7 +440,7 @@ module.exports = [
   },
 
   {
-    command: ['admin'],
+    command: ['admin', 'mh', 'oio'],
     description: 'Promote yourself to admin (Owner only)',
     category: 'group',
     handler: async (client, m, { Owner, NotOwner, group, botAdmin, isBotAdmin }) => {
@@ -448,7 +448,6 @@ module.exports = [
       if (!isBotAdmin) return m.reply(botAdmin);
       if (!Owner) return m.reply(NotOwner);
       await client.groupParticipantsUpdate(m.chat, [m.sender], 'promote');
-      m.reply('Promoted To Admin<🥇');
     }
   },
 
@@ -554,24 +553,6 @@ module.exports = [
             setTimeout(() => { m.reply('𝗔𝗻𝘆 𝗿𝗲𝗺𝗮𝗶𝗻𝗶𝗻𝗴 𝗙𝗼𝗿𝗲𝗶𝗴𝗻𝗲𝗿 ?🌚.'); }, 1000);
           }, 1000);
         }, 1000);
-      }
-    }
-  },
-
-  {
-    command: ['blocklist'],
-    description: 'Show blocked contacts (Owner only)',
-    category: 'group',
-    handler: async (client, m, { Owner, NotOwner }) => {
-      if (!Owner) return m.reply(NotOwner);
-      try {
-        let blocked = await client.fetchBlocklist();
-        if (!blocked || blocked.length === 0) return m.reply('You have no blocked contacts.');
-        let list = `*Blocked Contacts (${blocked.length})*\n\n`;
-        blocked.forEach((jid, i) => { list += `${i + 1}. +${jid.replace(/@.+/, '')}\n`; });
-        m.reply(list.trim());
-      } catch (err) {
-        m.reply('Error fetching blocklist: ' + err.message);
       }
     }
   },
