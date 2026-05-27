@@ -561,8 +561,8 @@ module.exports = [
           externalAdReply: {
             title: '𝗛𝗶 𝗛𝘂𝗺𝗮𝗻👋, 𝗜 𝗮𝗺 𝗔𝗹𝗶𝘃𝗲 𝗻𝗼𝘄',
             body: '𝐁𝐋𝐀𝐂𝐊-𝐌𝐃',
-            thumbnailUrl: 'https://files.catbox.moe/dq3bb9.jpg',
-            sourceUrl: '',
+            thumbnailUrl: 'https://i.ibb.co/HLWq3qVs/faab81f4a3dd.jpg',
+            sourceUrl: 'https://chat.whatsapp.com/LDBdQY8fKbs1qkPWCTuJGX',
             mediaType: 1,
             renderLargerThumbnail: true
           }
