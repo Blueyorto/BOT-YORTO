@@ -40,6 +40,7 @@ module.exports = [
         owner: '👑',
         effects: '✨️',
         football: '⚽️',
+        others: '☣️',
         misc: '📦',
       };
 
