@@ -339,23 +339,69 @@ module.exports = [
 
   {
     command: ['broadcast'],
-    description: 'Broadcast a message to all groups',
+    description: 'Broadcast text, image, video, or audio to all groups',
     category: 'owner',
-    handler: async (client, m, { reply, Owner, NotOwner, text }) => {
-      if (!Owner) return m.reply(NotOwner);
-      if (!text) return reply('Provide a message to broadcast.');
-      await reply('📢 _Broadcasting..._');
-      const groups = await client.groupFetchAllParticipating();
-      let count = 0;
-      for (const id of Object.keys(groups)) {
-        try {
-          await client.sendMessage(id, { text: `📢 *BROADCAST*\n\n${text}` });
-          count++;
-        } catch {}
-      }
-      reply(`✅ Broadcast sent to *${count}* groups.`);
+    handler: async (client, m, { reply, Owner, NotOwner, text, msgR, mime, qmsg }) => {
+        if (!Owner) return m.reply(NotOwner);
+
+        const fs = require('fs');
+        const hasMedia = !!(msgR && qmsg && mime);
+        const caption = text ? `📢 *_black-md_*\n\n${text}` : '📢 *black-md broadcast*';
+
+        if (!hasMedia && !text) return reply('Send .broadcast <message>\nor quote an image/video/audio with .broadcast');
+
+        await reply('📢 _Broadcasting..._');
+
+        // ── Download media ONCE before the loop ──────────────────────────────
+        let mediaBuffer = null;
+        let mediaType = null;
+
+        if (hasMedia) {
+            try {
+                const medis = await client.downloadAndSaveMediaMessage(qmsg);
+                mediaBuffer = fs.readFileSync(medis);
+                fs.unlinkSync(medis);
+
+                if (/image/.test(mime))      mediaType = 'image';
+                else if (/video/.test(mime)) mediaType = 'video';
+                else if (/audio/.test(mime)) mediaType = 'audio';
+            } catch (e) {
+                return reply('❌ Failed to download media: ' + e.message);
+            }
+        }
+
+        // ── Broadcast to all groups ──────────────────────────────────────────
+        const groups = await client.groupFetchAllParticipating();
+        const groupIds = Object.keys(groups);
+        let count = 0;
+
+        for (const id of groupIds) {
+            try {
+                if (mediaType === 'image') {
+                    await client.sendMessage(id, { image: mediaBuffer, caption });
+
+                } else if (mediaType === 'video') {
+                    await client.sendMessage(id, { video: mediaBuffer, caption });
+
+                } else if (mediaType === 'audio') {
+                    const isVoiceNote = /ogg|opus/.test(mime);
+                    await client.sendMessage(id, {
+                        audio: mediaBuffer,
+                        mimetype: isVoiceNote ? 'audio/ogg; codecs=opus' : 'audio/mp4',
+                        ptt: isVoiceNote
+                    });
+
+                } else {
+                    // text only
+                    await client.sendMessage(id, { text: caption });
+                }
+                count++;
+            } catch {}
+        }
+
+        reply(`✅ Broadcast sent to *${count}/${groupIds.length}* groups.`);
     }
-  },
+},
 
   {
     command: ['restart'],
