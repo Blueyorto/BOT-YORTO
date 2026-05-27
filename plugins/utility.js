@@ -119,25 +119,6 @@ module.exports = [
   },
 
   {
-    command: ['google'],
-    description: 'Google search',
-    category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      if (!text) return reply('Provide a search query. E.g: .google what is AI');
-      await reply('🔍 _Searching..._');
-      const res = await global.axios.get(`${api}/search/google`, { params: { q: text } });
-      const results = res.data?.result || res.data?.results;
-      if (!results || !results.length) return reply('❌ No results found.');
-      let txt = `🔍 *Google: ${text}*\n\n`;
-      for (let i = 0; i < Math.min(results.length, 5); i++) {
-        const r = results[i];
-        txt += `*${i + 1}. ${r.title}*\n${r.description || ''}\n🔗 ${r.url || ''}\n\n`;
-      }
-      m.reply(txt.trim());
-    }
-  },
-
-  {
     command: ['tts', 'say'],
     description: 'Text to speech',
     category: 'utility',
@@ -235,25 +216,6 @@ module.exports = [
   },
 
   {
-    command: ['define'],
-    description: 'Define a word',
-    category: 'utility',
-    handler: async (client, m, { reply, text, from }) => {
-      if (!text) return m.reply('Please provide a word.');
-      try {
-        const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(text)}`);
-        if (!response.ok) return m.reply('Failed to fetch data. Please try again later.');
-        const data = await response.json();
-        if (!data || !data[0] || !data[0].meanings || data[0].meanings.length === 0) return m.reply('No definitions found for the provided word.');
-        const definition = data[0].meanings[0].definitions[0].definition;
-        await client.sendMessage(from, { text: definition }, { quoted: m });
-      } catch (error) {
-        m.reply('An error occurred while fetching the data. Please try again later.\n' + error);
-      }
-    }
-  },
-
-  {
     command: ['zodiac'],
     description: 'Get zodiac sign by birth month and day',
     category: 'utility',
@@ -345,7 +307,7 @@ module.exports = [
     category: 'utility',
     handler: async (client, m) => {
       const links = {
-        group: 'https://chat.whatsapp.com/CtvPN0aDdpE5HVjFLtXgAr',
+        group: 'https://chat.whatsapp.com/LDBdQY8fKbs1qkPWCTuJGX',
         channel: 'https://whatsapp.com/channel/0029VawxyHxLdQeX3kA96G3N',
         email: 'mailto:cryptoboy1649@gmail.com',
         github: 'https://github.com/black-super-bot/issues',
@@ -398,7 +360,7 @@ module.exports = [
             ` Hello 👋 *${pushname}*,\n` +
             `╔══≪ ✦ ≫══════════≪ ✦ ≫══╗\n` +
             `              𝐁𝐋𝐀𝐂𝐊-𝐌𝐃\n` +
-            ` The Ultimate WhatsApp Bot\n` +
+            `    The Ultimate WhatsApp Bot\n` +
             `╚══≪ ✦ ≫══════════≪ ✦ ≫══╝\n\n` +
             `🔷 𝐆𝐢𝐭𝐇𝐮𝐛 𝐑𝐞𝐩𝐨:\n` +
             `   ↳ ${r.html_url}\n` +
@@ -618,10 +580,21 @@ module.exports = [
     description: 'Create a fake tweet image',
     category: 'utility',
     handler: async (client, m, { reply, text }) => {
-      if (!text) return reply('Provide tweet text. E.g: .tweet Hello World');
-      await reply('🐦 _Generating tweet..._');
-      const res = await global.axios.get(`${api}/tools/tweet`, { params: { text }, responseType: 'arraybuffer' });
-      await client.sendMessage(m.chat, { image: Buffer.from(res.data), caption: '🐦 *Tweet Generated*' }, { quoted: m });
+      if (!text) return m.reply("provide some text for the tweet");
+
+const displayname = pushname;
+const username = m.sender.split('@')[0];
+const avatar = await client.profilePictureUrl(m.sender, 'image').catch(_ => 'https://i.imgur.com/vuxJCTB.jpeg');
+const replies = "246";
+const retweets = "125";
+const theme = "dark";
+
+const imageurl = `https://some-random-api.com/canvas/misc/tweet?displayname=${encodeURIComponent(displayname)}&username=${encodeURIComponent(username)}&avatar=${encodeURIComponent(avatar)}&comment=${encodeURIComponent(text)}&replies=${encodeURIComponent(replies)}&retweets=${encodeURIComponent(retweets)}&theme=${encodeURIComponent(theme)}`;
+
+
+
+await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼𝗻𝘃𝗲𝗿𝘁𝗲𝗱 𝗯𝘆 𝐁𝐋𝐀𝐂𝐊-𝐌𝐃 𝗕𝗢𝗧`}, { quoted: m}) 
+
     }
   },
 
