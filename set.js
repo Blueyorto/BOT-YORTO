@@ -1,8 +1,4 @@
-/* if you're using pannel carefully edit this part
 
-There's no need to configure this if you're deploying via Heroku — just set them in the environment variables.*/
-
-const sessionName = 'session';
 const session = process.env.SESSION || '';
 const appname = process.env.APP_NAME || '';
 const herokuapi = process.env.HEROKU_API;
@@ -18,7 +14,6 @@ const botAdmin = process.env.BOT_ADMIN_MSG || '𝗜 𝗻𝗲𝗲𝗱 𝗔𝗱�
 const NotOwner = process.env.NOT_OWNER_MSG || '𝗖𝗼𝗺𝗺𝗮𝗻𝗱 𝗺𝗲𝗮𝗻𝘁 𝗳𝗼𝗿 𝘁𝗵𝗲 𝗼𝘄𝗻𝗲𝗿!';
 const mycode = process.env.CODE || '254';
 const port = process.env.PORT || 10000;
-const antiforeign = process.env.ANTIFOREIGN || 'off';
 
 module.exports = {
   session,
@@ -36,6 +31,5 @@ module.exports = {
   mycode,
   herokuapi,
   port,
-  appname,
-  antiforeign
+  appname
 };
