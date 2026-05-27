@@ -158,65 +158,6 @@ module.exports = [
     }
   },
 
-  {
-    command: ['bkplay', 'bkmp3'],
-    description: 'Download YouTube audio via BK9 API',
-    category: 'downloads',
-    handler: async (client, m, { text }) => {
-      if (!text) return m.reply('🔎 Provide a song name or YouTube link!');
-      try {
-        await client.sendMessage(m.chat, { react: { text: '🎧', key: m.key } });
-        let msg = await client.sendMessage(m.chat, { text: `🔍 Searching *${text}*...` }, { quoted: m });
-
-        let videoUrl, videoTitle;
-        if (text.match(/(youtube\.com|youtu\.be)/i)) {
-          videoUrl = text;
-          videoTitle = 'YouTube Audio';
-        } else {
-          let search = await yts(text);
-          if (!search.all.length) return client.sendMessage(m.chat, { text: '❌ No results found.', edit: msg.key });
-          let video = search.all[0];
-          videoUrl = video.url;
-          videoTitle = video.title;
-        }
-
-        await client.sendMessage(m.chat, { text: `😍 Found: *${videoTitle}*`, edit: msg.key });
-        await client.sendMessage(m.chat, { text: `⬇️ Downloading: *${videoTitle}*...`, edit: msg.key });
-
-        let bk9res = await axios.get(`https://api.bk9.dev/download/ytmp3?url=${encodeURIComponent(videoUrl)}`, { timeout: 30000 });
-        let bk9data = bk9res.data?.BK9;
-        if (!bk9data || !bk9data.downloadUrl) {
-          return client.sendMessage(m.chat, { text: '❌ BK9 failed to get download link. Try again.', edit: msg.key });
-        }
-
-        if (!videoTitle || videoTitle === 'YouTube Audio') videoTitle = bk9data.title || 'Audio';
-        let fileName = `${videoTitle}.mp3`.replace(/[^\w\s.-]/gi, '');
-
-        let audioRes = await axios.get(bk9data.downloadUrl, {
-          responseType: 'arraybuffer',
-          timeout: 60000,
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114 Safari/537.36',
-            'Referer': 'https://www.youtube.com/'
-          }
-        });
-        let audioBuffer = Buffer.from(audioRes.data);
-        if (!audioBuffer || audioBuffer.length < 1000) {
-          return client.sendMessage(m.chat, { text: '❌ Downloaded file is empty. Try again.', edit: msg.key });
-        }
-
-        await client.sendMessage(m.chat, { audio: audioBuffer, mimetype: 'audio/mpeg', fileName }, { quoted: m });
-        await client.sendMessage(m.chat, { document: audioBuffer, mimetype: 'audio/mpeg', fileName }, { quoted: m });
-        await client.sendMessage(m.chat, {
-          text: `✅ Done! *${videoTitle}*\n⏱ Duration: ${Math.floor(bk9data.duration / 60)}:${String(bk9data.duration % 60).padStart(2, '0')}\n🎵 Quality: ${bk9data.quality}`,
-          edit: msg.key
-        });
-      } catch (err) {
-        m.reply('❌ Something went wrong: ' + (err.message || 'unknown error'));
-      }
-    }
-  },
-
   // ═══════════════════════════════════════════════════════════
   // YOUTUBE VIDEO
   // ═══════════════════════════════════════════════════════════
@@ -515,8 +456,8 @@ module.exports = [
   },
 
   {
-    command: ['facebook', 'fb', 'fbdl'],
-    description: 'Download Facebook video',
+    command: ['twitter'],
+    description: 'Download twitter video',
     category: 'downloads',
     handler: async (client, m, { text }) => {
       if (!text || !text.startsWith('http')) return m.reply('📌 Provide a valid X or twitter video link!');
@@ -638,6 +579,36 @@ module.exports = [
     }
   },
 
+      {
+    command: ['movie'],
+    description: 'Search IMDB for a movie or series',
+    category: 'downloads',
+    handler: async (client, m, { reply, text, from }) => {
+      if (!text) return reply('Provide a series or movie name.');
+      let fids = await global.axios.get(`http://www.omdbapi.com/?apikey=742b2d09&t=${encodeURIComponent(text)}&plot=full`);
+      let imdbt =
+        '⚍⚎⚎⚎⚎⚎⚎⚎⚎⚎⚎⚎⚎⚎⚎⚍\n ``` IMDB MOVIE SEARCH```\n⚎⚎⚎⚎⚎⚎⚎⚎⚎⚎⚎⚎⚎⚎⚎⚎\n' +
+        `🎬Title      : ${fids.data.Title}\n` +
+        `📅Year       : ${fids.data.Year}\n` +
+        `⭐Rated      : ${fids.data.Rated}\n` +
+        `📆Released   : ${fids.data.Released}\n` +
+        `⏳Runtime    : ${fids.data.Runtime}\n` +
+        `🌀Genre      : ${fids.data.Genre}\n` +
+        `👨🏻‍💻Director   : ${fids.data.Director}\n` +
+        `✍Writer     : ${fids.data.Writer}\n` +
+        `👨Actors     : ${fids.data.Actors}\n` +
+        `📃Plot       : ${fids.data.Plot}\n` +
+        `🌐Language   : ${fids.data.Language}\n` +
+        `🌍Country    : ${fids.data.Country}\n` +
+        `🎖️Awards     : ${fids.data.Awards}\n` +
+        `📦BoxOffice  : ${fids.data.BoxOffice}\n` +
+        `🏙️Production : ${fids.data.Production}\n` +
+        `🌟imdbRating : ${fids.data.imdbRating}\n` +
+        `❎imdbVotes  : ${fids.data.imdbVotes}`;
+      client.sendMessage(from, { image: { url: fids.data.Poster }, caption: imdbt }, { quoted: m });
+    }
+  },
+  
 {
     command: ['apk', 'app'],
     description: 'Download an APK by name',
