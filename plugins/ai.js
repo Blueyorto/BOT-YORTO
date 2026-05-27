@@ -4,7 +4,7 @@ const axios = global.axios || require('axios');
 const fetch = require('node-fetch');
 const api = 'https://apis.keithsite.top';
 const uploadToUguu = require('../lib/uugu');
-const uploadtoimgur = require('../lib/imgur');
+const uploadToCatbox = require('../lib/catbox');
 
 module.exports = [
 
@@ -357,7 +357,7 @@ module.exports = [
       let isTele = /image\/(png|jpe?g|gif)|video\/mp4/.test(mime);
       if (isTele) {
         let fta2 = await client.downloadAndSaveMediaMessage(q);
-        let link = await uploadtoimgur(fta2);
+        let link = await uploadToCatbox(fta2);
         m.reply(`Media Link:-\n\n${link}`);
       } else {
         m.reply('Error occurred...');
