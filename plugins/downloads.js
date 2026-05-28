@@ -80,7 +80,8 @@ module.exports = [
   },
 
   {
-    command: ['play2', 'yta2'],
+    command: ['play2'],
+    aliases: ['yta2'],
     description: 'Download YouTube audio via alternate API',
     category: 'downloads',
     handler: async (client, m, { text }) => {
@@ -127,6 +128,7 @@ module.exports = [
 
   {
     command: ['music'],
+    aliases: ['song'],
     description: 'Download music via xcasper API',
     category: 'downloads',
     handler: async (client, m, { text }) => {
@@ -165,7 +167,8 @@ module.exports = [
   // ═══════════════════════════════════════════════════════════
 
   {
-    command: ['video', 'ytv', 'ytmp4'],
+    command: ['video'],
+    aliases: ['ytv', 'ytmp4'],
     description: 'Download YouTube video (MP4)',
     category: 'downloads',
     handler: async (client, m, { text }) => {
@@ -223,6 +226,7 @@ module.exports = [
 
   {
     command: ['video2'],
+    aliases: ['ytv2'],
     description: 'Download YouTube video via keithsite (alternate)',
     category: 'downloads',
     handler: async (client, m, { text }) => {
@@ -348,7 +352,8 @@ module.exports = [
   // ═══════════════════════════════════════════════════════════
 
   {
-    command: ['whatsong', 'shazam'],
+    command: ['whatsong'],
+    aliases: ['shazam'],
     description: 'Identify a song from quoted audio/video',
     category: 'downloads',
     handler: async (client, m, { reply }) => {
@@ -410,7 +415,8 @@ module.exports = [
   // ═══════════════════════════════════════════════════════════
 
   {
-    command: ['instagram', 'igdl', 'ig'],
+    command: ['instagram'],
+    aliases: ['igdl', 'insta', 'ig'],
     description: 'Download Instagram video',
     category: 'downloads',
     handler: async (client, m, { text }) => {
@@ -435,7 +441,8 @@ module.exports = [
   },
 
   {
-    command: ['tiktok', 'tikdl'],
+    command: ['tiktok'],
+    aliases: ['tikdl', 'tdl'],
     description: 'Download TikTok video',
     category: 'downloads',
     handler: async (client, m, { reply, text }) => {
@@ -459,6 +466,7 @@ module.exports = [
   
 {
   command: ['twitter'],
+  aliases: ['xdl', 'tdl'],
   description: 'Download Twitter/X video or image',
   category: 'downloads',
   handler: async (client, m, { text }) => {
@@ -527,7 +535,8 @@ module.exports = [
 },
 
   {
-    command: ['facebook', 'fb', 'fbdl'],
+    command: ['facebook'],
+    aliases: ['fb', 'fbdl'],
     description: 'Download Facebook video',
     category: 'downloads',
     handler: async (client, m, { text }) => {
@@ -557,7 +566,8 @@ module.exports = [
   },
 
   {
-    command: ['pinterest', 'pin', 'pindl'],
+    command: ['pinterest'],
+    aliases: ['pin', 'pindl'],
     description: 'Download Pinterest image or video',
     category: 'downloads',
     handler: async (client, m, { text }) => {
@@ -651,7 +661,8 @@ module.exports = [
   },
   
 {
-    command: ['apk', 'app'],
+    command: ['apk'],
+    aliases: ['app'],
     description: 'Download an APK by name',
     category: 'downloads',
     handler: async (client, m, { reply, text }) => {
