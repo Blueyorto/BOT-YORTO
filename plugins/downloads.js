@@ -12,7 +12,8 @@ module.exports = [
   // ═══════════════════════════════════════════════════════════
 
   {
-    command: ['ytsearch', 'yts'],
+    command: ['ytsearch'],
+    aliases: ['yts'],
     description: 'Search YouTube',
     category: 'downloads',
     handler: async (client, m, { reply, text }) => {
@@ -34,7 +35,8 @@ module.exports = [
   // ═══════════════════════════════════════════════════════════
 
   {
-    command: ['play', 'ytmp3', 'yta'],
+    command: ['play'],
+    aliases: ['yta', 'ytmp3'],
     description: 'Download YouTube audio (MP3)',
     category: 'downloads',
     handler: async (client, m, { text }) => {
