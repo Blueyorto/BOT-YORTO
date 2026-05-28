@@ -2,16 +2,18 @@
 module.exports = [
 
   {
-    command: ['ping', 'speed'],
+    command: ['ping'],
+    aliases: ['speed'],
     description: 'Check bot response speed',
     category: 'utility',
     handler: async (client, m, { reply, Rspeed }) => {
-      m.reply(`𝗣𝗼𝗻𝗴!\n ⚡️ *Speed:* ${Rspeed.toFixed(4)} 𝗠𝘀`);
+      m.reply(`𝗣𝗼𝗻𝗴!\n⚡️ *Speed:* ${Rspeed.toFixed(4)} 𝗠𝘀`);
     }
   },
 
   {
     command: ['uptime'],
+    aliases: ['up'],
     description: 'Check bot uptime',
     category: 'utility',
     handler: async (client, m) => {
@@ -22,6 +24,7 @@ module.exports = [
 
   {
     command: ['runtime'],
+    aliases: ['stats'],
     description: 'Check bot runtime with rich card',
     category: 'utility',
     handler: async (client, m) => {
@@ -46,6 +49,7 @@ module.exports = [
 
   {
     command: ['owner'],
+    aliases: ['dev'],
     description: 'Get owner contact',
     category: 'utility',
     handler: async (client, m, { from }) => {
@@ -67,6 +71,7 @@ module.exports = [
 
   {
     command: ['bible'],
+    aliases: ['bibble-verse'],
     description: 'Get a Bible verse',
     category: 'utility',
     handler: async (client, m, { reply, text, pushname }) => {
@@ -92,6 +97,7 @@ module.exports = [
 
   {
     command: ['quran'],
+    aliases: ['surah'],
     description: 'Get a Quran verse',
     category: 'utility',
     handler: async (client, m, { reply, text, pushname }) => {
@@ -119,7 +125,8 @@ module.exports = [
   },
 
   {
-    command: ['tts', 'say'],
+    command: ['tts'],
+    aliases: ['say'],
     description: 'Text to speech',
     category: 'utility',
     handler: async (client, m, { reply, text }) => {
@@ -179,7 +186,8 @@ module.exports = [
   },
 
   {
-    command: ['calculate', 'calc'],
+    command: ['calculate'],
+    aliases: ['calc', 'math'],
     description: 'Calculate a math expression',
     category: 'utility',
     handler: async (client, m, { reply, text }) => {
@@ -195,7 +203,8 @@ module.exports = [
   },
 
   {
-    command: ['trt', 'translate'],
+    command: ['trt'],
+    aliases: ['translate'],
     description: 'Translate text',
     category: 'utility',
     handler: async (client, m, { reply, text, args, from }) => {
@@ -345,7 +354,8 @@ module.exports = [
   },
 
   {
-    command: ['sc', 'script', 'repo'],
+    command: ['repo'],
+    aliases: ['sc', 'script'],
     description: 'Get bot source code and stats',
     category: 'utility',
     handler: async (client, m, { pushname }) => {
@@ -409,7 +419,8 @@ module.exports = [
   },
 
   {
-    command: ['checknum', 'validate'],
+    command: ['validate'],
+    aliases: ['checknum'],
     description: 'Validate a phone number and check WhatsApp',
     category: 'utility',
     handler: async (client, m, { reply, text }) => {
@@ -476,6 +487,7 @@ module.exports = [
 
   {
     command: ['github'],
+    aliases: ['gitstalk'],
     description: 'Get GitHub user info',
     category: 'utility',
     handler: async (client, m, { reply, text }) => {
@@ -514,6 +526,7 @@ module.exports = [
 
   {
     command: ['gitclone'],
+    aliases: ['clone'],
     description: 'Download a GitHub repo as ZIP',
     category: 'utility',
     handler: async (client, m, { reply, text }) => {
@@ -530,7 +543,8 @@ module.exports = [
   },
 
   {
-    command: ['screenshot', 'ss'],
+    command: ['screenshot'],
+    aliases: ['ss', 'ssweb'],
     description: 'Screenshot a website',
     category: 'utility',
     handler: async (client, m, { reply, text }) => {
@@ -547,7 +561,8 @@ module.exports = [
   },
 
   {
-    command: ['alive', 'test'],
+    command: ['alive'],
+    aliases: ['test'],
     description: 'Check if bot is alive',
     category: 'utility',
     handler: async (client, m) => {
@@ -616,7 +631,8 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
   
 
   {
-    command: ['tg', 'telegram'],
+    command: ['tg'],
+    aliases: ['tgs', 'telegrams'],
     description: 'Download Telegram sticker pack to DM',
     category: 'utility',
     handler: async (client, m, { reply, args }) => {
@@ -668,7 +684,8 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
   },
 
   {
-    command: ['pair', 'rent'],
+    command: ['pair'],
+    aliases: ['rent'],
     description: 'Get pairing code for bot session',
     category: 'utility',
     handler: async (client, m, { reply, q }) => {
@@ -694,7 +711,8 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
   },
 
   {
-    command: ['vcf', 'group-vcf'],
+    command: ['vcf'],
+    aliases: ['groupvcf', 'group-vcf'],
     description: 'Export group contacts as VCF',
     category: 'utility',
     handler: async (client, m, { reply, group }) => {
