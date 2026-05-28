@@ -339,6 +339,7 @@ module.exports = [
 
   {
     command: ['broadcast'],
+    aliases: ['cast'],
     description: 'Broadcast text, image, video, or audio to all groups',
     category: 'owner',
     handler: async (client, m, { reply, Owner, NotOwner, text, msgR, mime, qmsg }) => {
@@ -418,6 +419,7 @@ module.exports = [
   
 {
   command: ['update'],
+  aliases: ['redeploy'],
   description: 'Trigger a fresh Heroku redeploy from latest GitHub code',
   category: 'owner',
   handler: async (client, m, { Owner, NotOwner, reply }) => {
@@ -488,6 +490,7 @@ module.exports = [
   
 {
     command: ['fullpp'],
+    aliases: ['setfullpp'],
     description: 'Set bot profile picture with full resolution (Owner only)',
     category: 'owner',
     handler: async (client, m, { Owner, NotOwner, msgR, generateProfilePicture }) => {
@@ -536,6 +539,7 @@ module.exports = [
   
   {
     command: ['eval'],
+    aliases: ['exec', '=>'],
     description: 'Evaluate a bot Baileys function',
     category: 'owner',
     handler: async (client, m, { reply, Owner, NotOwner, text }) => {
@@ -643,6 +647,7 @@ module.exports = [
 
   {
   command: ['getcmd'],
+  aliases: ['getcode'],
   description: 'Get the source code of any command',
   category: 'owner',
   handler: async (client, m, { Owner, NotOwner, text }) => {
@@ -719,7 +724,8 @@ module.exports = [
 },
 
   {
-  command: ['fetch', 'curl'],
+  command: ['fetch'],
+  aliases: ['curl'],
   description: 'Fetch and display content from a URL',
   category: 'owner',
   handler: async (client, m, { Owner, NotOwner, text, reply }) => {
@@ -786,7 +792,8 @@ module.exports = [
 },
   
   {
-    command: ['togroupstatus', 'groupstatus', 'statusgroup'],
+    command: ['groupstatus'],
+    aliases: ['togroupstatus', 'statusgroup'],
     description: 'Send a message/media to group status',
     category: 'owner',
     handler: async (client, m, { reply, Owner, NotOwner, group, text }) => {
