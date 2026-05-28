@@ -368,7 +368,8 @@ module.exports = [
             `   🍴 Forks: ${r.forks_count}\n` +
             `   ★ Don't forget to Fork & Star our repo!\n\n` +
             `👤 𝐃𝐞𝐯𝐞𝐥𝐨𝐩𝐞𝐫:\n` +
-            `   ↳ ${u.name || 'Blackie254'} => https://github.com/Blackie254\n\n` +
+            `   ↳ ${u.name || 'Blackie254'} => https://github.com/Blackie254\n` +
+            `   ↳ McrayNick  => https://github.com/McrayNick\n\n` +
             `🔶 𝐖𝐡𝐚𝐭𝐬𝐀𝐩𝐩 𝐏𝐚𝐢𝐫𝐢𝐧𝐠:\n` +
             `   ↳ https://blackmd-pairing.onrender.com\n` +
             `   ★ Save your Session-ID!\n\n` +
