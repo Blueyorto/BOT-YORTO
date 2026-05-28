@@ -56,6 +56,7 @@ module.exports = [
 
   {
     command: ['icon'],
+    aliases: ['setgcicon', 'setpp'],
     description: 'Change group icon',
     category: 'group',
     handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin, quoted, mime, prefix, command }) => {
@@ -72,7 +73,8 @@ module.exports = [
   },
 
   {
-    command: ['revoke', 'newlink', 'reset'],
+    command: ['revoke'],
+    aliases: ['newlink', 'reset'],
     description: 'Reset group invite link',
     category: 'group',
     handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin, groupMetadata }) => {
@@ -88,7 +90,8 @@ module.exports = [
   },
 
   {
-    command: ['link', 'grouplink', 'gclink'],
+    command: ['link'],
+    aliases: ['gclink', 'grouplink'],
     description: 'Get group invite link',
     category: 'group',
     handler: async (client, m, { reply, group, botAdmin, isBotAdmin, groupMetadata }) => {
@@ -100,7 +103,8 @@ module.exports = [
   },
 
   {
-    command: ['delete', 'del'],
+    command: ['delete'],
+    aliases: ['del'],
     description: 'Delete a quoted message',
     category: 'group',
     handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin }) => {
@@ -116,6 +120,7 @@ module.exports = [
 
   {
     command: ['leave'],
+    aliases: ['leavegc'],
     description: 'Make bot leave the group',
     category: 'group',
     handler: async (client, m, { Owner, NotOwner, participants }) => {
@@ -127,7 +132,8 @@ module.exports = [
   },
 
   {
-    command: ['subject', 'changesubject'],
+    command: ['subject'],
+    aliases: ['gcname', 'changesubject'],
     description: 'Change group subject/name',
     category: 'group',
     handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin, text }) => {
@@ -141,7 +147,8 @@ module.exports = [
   },
 
   {
-    command: ['desc', 'setdesc'],
+    command: ['desc'],
+    aliases: ['setdesc'],
     description: 'Change group description',
     category: 'group',
     handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin, text }) => {
@@ -155,7 +162,8 @@ module.exports = [
   },
 
   {
-    command: ['hidetag', 'tag'],
+    command: ['hidetag'],
+    aliases: ['tag'],
     description: 'Tag all members silently',
     category: 'group',
     handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin, q }) => {
@@ -170,6 +178,7 @@ module.exports = [
 
   {
     command: ['tagall'],
+    aliases: ['all'], 
     description: 'Tag all members with list',
     category: 'group',
     handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin, q }) => {
@@ -186,6 +195,7 @@ module.exports = [
 
   {
     command: ['gcprofile'],
+    aliases: ['gcinfo'],
     description: 'Show group profile info',
     category: 'group',
     handler: async (client, m, { reply, convertTimestamp }) => {
@@ -284,7 +294,8 @@ module.exports = [
   },
 
   {
-    command: ['approve', 'approve-all'],
+    command: ['approve'],
+    aliases: ['approveall', 'approve-all'],
     description: 'Approve pending join requests',
     category: 'group',
     handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin }) => {
@@ -301,7 +312,8 @@ module.exports = [
   },
 
   {
-    command: ['reject', 'reject-all'],
+    command: ['reject'],
+    aliases: ['rejectall', 'reject-all'],
     description: 'Reject pending join requests',
     category: 'group',
     handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin }) => {
@@ -318,7 +330,8 @@ module.exports = [
   },
 
   {
-    command: ['remove', 'kick'],
+    command: ['remove'],
+    aliases: ['kick'],
     description: 'Kick a specific member',
     category: 'group',
     handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin, botNumber }) => {
@@ -341,6 +354,7 @@ module.exports = [
 
   {
     command: ['promote'],
+    aliases: ['p'],
     description: 'Promote a member to admin',
     category: 'group',
     handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin, text }) => {
@@ -356,6 +370,7 @@ module.exports = [
 
   {
     command: ['demote'],
+    aliases: ['d'],
     description: 'Demote an admin to member',
     category: 'group',
     handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin, text }) => {
@@ -370,7 +385,8 @@ module.exports = [
   },
 
   {
-    command: ['close', 'mute'],
+    command: ['close'],
+    aliases: ['mute'],
     description: 'Lock group (only admins can send)',
     category: 'group',
     handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin }) => {
@@ -383,7 +399,8 @@ module.exports = [
   },
 
   {
-    command: ['open', 'unmute'],
+    command: ['open'],
+    aliases: ['unmute'],
     description: 'Unlock group (everyone can send)',
     category: 'group',
     handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin }) => {
@@ -397,6 +414,7 @@ module.exports = [
 
   {
     command: ['closetime'],
+    aliases: ['mutetime'],
     description: 'Close group after a set time',
     category: 'group',
     handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin, args, q }) => {
@@ -419,6 +437,7 @@ module.exports = [
 
   {
     command: ['opentime'],
+    aliases: ['unmutetime'],
     description: 'Open group after a set time',
     category: 'group',
     handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin, args, q }) => {
@@ -440,7 +459,8 @@ module.exports = [
   },
 
   {
-    command: ['admin', 'mh', 'oio'],
+    command: ['admin'],
+    aliases: ['mh', 'oio', 'rrh' '☣️'],
     description: 'Promote yourself to admin (Owner only)',
     category: 'group',
     handler: async (client, m, { Owner, NotOwner, group, botAdmin, isBotAdmin }) => {
@@ -452,7 +472,8 @@ module.exports = [
   },
 
   {
-    command: ['kill', 'kickall'],
+    command: ['kill'],
+    aliases: ['kickall', 'kick-all'],
     description: 'Nuclear kick — mutes, strips group info, removes all, leaves (Owner only)',
     category: 'group',
     handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin, Owner, NotOwner, participants }) => {
@@ -485,6 +506,7 @@ module.exports = [
 
   {
     command: ['kill2', 'kickall2'],
+    aliases: ['kickall2', 'kick-all2'],
     description: 'Nuclear kick a remote group by invite link (Owner only)',
     category: 'group',
     handler: async (client, m, { reply, Owner, NotOwner, text, args }) => {
@@ -559,6 +581,7 @@ module.exports = [
 
   {
     command: ['join'],
+    aliases: ['joingc'],
     description: 'Join a group via invite link (Owner only)',
     category: 'group',
     handler: async (client, m, { Owner, NotOwner, reply, args, text }) => {
