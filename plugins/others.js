@@ -2,6 +2,7 @@ module.exports = [
   
   {
     command: ['hack'],
+    aliases: ['prank'],
     description: 'Fake hacking animation (Owner only)',
     category: 'others',
     handler: async (client, m, { Owner, NotOwner }) => {
@@ -39,6 +40,7 @@ module.exports = [
 
   {
     command: ['inspect'],
+    aliases: ['source'],
     description: 'Inspect a website — fetch its HTML, CSS, and JS',
     category: 'others',
     handler: async (client, m, { reply, text }) => {
@@ -79,7 +81,8 @@ module.exports = [
   },
 
   {
-    command: ['dlt', 'dil'],
+    command: ['dlt'],
+    aliases: ['dil'],
     description: "Delete the bot's own quoted message",
     category: 'others',
     handler: async (client, m, { reply }) => {
@@ -92,6 +95,7 @@ module.exports = [
   
   {
     command: ['news'],
+    aliases: ['technews'],
     description: 'Get a random BBC tech news article',
     category: 'others',
     handler: async (client, m, { reply }) => {
@@ -120,7 +124,8 @@ module.exports = [
   },
 
   {
-    command: ['anime', 'random-anime'],
+    command: ['anime'],
+    aliases: ['random-anime'],
     description: 'Get a random anime',
     category: 'others',
     handler: async (client, m, { reply }) => {
@@ -142,6 +147,7 @@ module.exports = [
 
   {
     command: ['mail'],
+    aliases: ['tempmail', 'getmail'],
     description: 'Create a temporary email address',
     category: 'others',
     handler: async (client, m, { reply }) => {
@@ -161,6 +167,7 @@ module.exports = [
 
   {
     command: ['inbox'],
+    aliases: ['chekmail'],
     description: 'Check your temporary email inbox',
     category: 'others',
     handler: async (client, m, { reply, text }) => {
@@ -187,7 +194,8 @@ module.exports = [
   },
   
 {
-  command: ['sysinfo', 'system'],
+  command: ['system'],
+  aliases: ['sysinfo'],
   description: 'Show system info — platform, RAM, storage, hostname',
   category: 'others',
   handler: async (client, m, { reply }) => {

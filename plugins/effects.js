@@ -3,9 +3,6 @@
 const mumaker = require('mumaker');
 const fetch = require('node-fetch');
 
-/**
- * Text effect commands using mumaker.ephoto() + ephoto360.com
- */
 function makeEffect(command, url, label) {
   return {
     command: Array.isArray(command) ? command : [command],
@@ -95,7 +92,8 @@ module.exports = [
 
   // ── Blue/Blizzards — advertisement info ──────────────────────────────────
   {
-    command: ['blue', 'blizzards'],
+    command: ['blue'],
+    aliases: ['blizzard'],
     description: 'BlueBlizzards services info',
     category: 'effects',
     handler: async (client, m) => {

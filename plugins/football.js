@@ -34,7 +34,8 @@ module.exports = [
   // ═══════════════════════════════════════════════════════════
 
   {
-    command: ['epl', 'premierleague'],
+    command: ['epl'],
+    aliases: ['premierleague'],
     description: 'Premier League standings',
     category: 'football',
     handler: async (client, m) => {
@@ -64,6 +65,7 @@ module.exports = [
 
   {
     command: ['laliga'],
+    aliases: ['liga'],
     description: 'La Liga standings',
     category: 'football',
     handler: async (client, m) => {
@@ -78,6 +80,7 @@ module.exports = [
 
   {
     command: ['bundesliga'],
+    aliases: ['bdl'],
     description: 'Bundesliga standings',
     category: 'football',
     handler: async (client, m) => {
@@ -92,6 +95,7 @@ module.exports = [
 
   {
     command: ['ligue1'],
+    aliases: ['lg1'],
     description: 'Ligue 1 standings',
     category: 'football',
     handler: async (client, m) => {
@@ -106,6 +110,7 @@ module.exports = [
 
   {
     command: ['seriea'],
+    aliases: ['sl1'],
     description: 'Serie A standings',
     category: 'football',
     handler: async (client, m) => {
@@ -120,6 +125,7 @@ module.exports = [
 
   {
     command: ['ucl'],
+    aliases: ['uefa'],
     description: 'UEFA Champions League standings',
     category: 'football',
     handler: async (client, m) => {
@@ -134,6 +140,7 @@ module.exports = [
 
   {
     command: ['fifa'],
+    aliases: ['ffa'],
     description: 'FIFA world rankings',
     category: 'football',
     handler: async (client, m) => {
@@ -152,6 +159,7 @@ module.exports = [
 
   {
     command: ['euro'],
+    aliases: ['eu'],
     description: 'Euro standings',
     category: 'football',
     handler: async (client, m) => {
@@ -170,6 +178,7 @@ module.exports = [
 
   {
     command: ['eplscorers'],
+    aliases: ['epls', 'topscorers'],
     description: 'Premier League top scorers',
     category: 'football',
     handler: async (client, m) => {
@@ -189,6 +198,7 @@ module.exports = [
 
   {
     command: ['laligascorers'],
+    aliases: ['ligas'],
     description: 'La Liga top scorers',
     category: 'football',
     handler: async (client, m) => {
@@ -203,6 +213,7 @@ module.exports = [
 
   {
     command: ['bundesligascorers'],
+    aliases: ['bdls'],
     description: 'Bundesliga top scorers',
     category: 'football',
     handler: async (client, m) => {
@@ -217,6 +228,7 @@ module.exports = [
 
   {
     command: ['serieascorers'],
+    aliases: ['serieas'],
     description: 'Serie A top scorers',
     category: 'football',
     handler: async (client, m) => {
@@ -231,6 +243,7 @@ module.exports = [
 
   {
     command: ['ligue1scorers'],
+    aliases: ['l1s'],
     description: 'Ligue 1 top scorers',
     category: 'football',
     handler: async (client, m) => {
@@ -245,6 +258,7 @@ module.exports = [
 
   {
     command: ['uclscorers'],
+    aliases: ['ucls', 'uefas'],
     description: 'UCL top scorers',
     category: 'football',
     handler: async (client, m) => {

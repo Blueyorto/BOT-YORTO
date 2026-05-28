@@ -10,7 +10,7 @@ module.exports = [
     description: 'Show command list',
     category: 'menu',
     handler: async (client, m, { prefix, mode, menutype, pushname, Rspeed }) => {
-      const commands = handler.listCommands();
+      
 
       // Group by category
       const byCategory = {};
@@ -30,7 +30,9 @@ module.exports = [
           }
         } catch {}
       }
-
+      
+const totalCommands = Object.values(byCategory).reduce((sum, arr) => sum + arr.length, 0);
+      
       const categoryIcons = {
         group: '👥',
         media: '🎆',
@@ -52,7 +54,7 @@ module.exports = [
       menu += `🪩 *Mode:* ${mode.toUpperCase()}\n`;
       menu += `⚡️ *Speed:* ${Rspeed.toFixed(4)} Ms\n`;
       menu += `🔑 *Prefix:* ${prefix}\n`;
-      menu += `📦 *Total Commands:* ${commands.length}\n`;
+      menu += `📦 *Total Commands:* ${totalCommands}\n`;
       menu += `════════════════════\n\n`;
 
       for (const [cat, plugins] of Object.entries(byCategory)) {

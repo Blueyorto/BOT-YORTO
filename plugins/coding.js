@@ -1,7 +1,8 @@
 module.exports = [
   
   {
-    command: ['enc', 'encrypte'],
+    command: ['enc'],
+    aliases: ['encrypte'],
     description: 'Obfuscate/encrypt JavaScript code',
     category: 'coding',
     handler: async (client, m, { reply }) => {
@@ -22,7 +23,8 @@ module.exports = [
   },
 
   {
-    command: ['gpass', 'genpassword'],
+    command: ['gpass'],
+    aliases: ['genpassword'],
     description: 'Generate a strong password',
     category: 'coding',
     handler: async (client, m, { reply, text }) => {
@@ -38,6 +40,7 @@ module.exports = [
   
   {
     command: ['compile-py'],
+    aliases: ['run-py'],
     description: 'Run Python code',
     category: 'coding',
     handler: async (client, m, { reply, text }) => {
@@ -55,6 +58,7 @@ module.exports = [
 
   {
     command: ['compile-js'],
+    aliases: ['run-js'],
     description: 'Run JavaScript code',
     category: 'coding',
     handler: async (client, m, { reply, text }) => {
@@ -72,6 +76,7 @@ module.exports = [
 
   {
     command: ['compile-c'],
+    aliases: ['run-c'],
     description: 'Compile and run C code',
     category: 'coding',
     handler: async (client, m, { reply, text }) => {
@@ -89,6 +94,7 @@ module.exports = [
 
   {
     command: ['compile-c++'],
+    aliases: ['run-c++'],
     description: 'Compile and run C++ code',
     category: 'coding',
     handler: async (client, m, { reply, text }) => {

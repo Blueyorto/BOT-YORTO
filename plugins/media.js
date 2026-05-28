@@ -7,7 +7,8 @@ const uploadToUguu = require('../lib/uugu');
 module.exports = [
 
   {
-    command: ['sticker', 's'],
+    command: ['sticker'],
+    aliases: ['s'],
     description: 'Convert image/video to sticker',
     category: 'media',
     handler: async (client, m, { reply, msgR }) => {
@@ -34,6 +35,7 @@ module.exports = [
 
   {
     command: ['take'],
+    aliases: ['steal'],
     description: 'Retake/rewatermark a sticker',
     category: 'media',
     handler: async (client, m, { reply, msgR }) => {
@@ -60,6 +62,7 @@ module.exports = [
   },
 {
     command: ['mix'],
+    aliases: ['emojimix'],
     description: 'Mix two emojis into a sticker',
     category: 'media',
     handler: async (client, m, { reply, text }) => {
@@ -92,7 +95,8 @@ module.exports = [
     }
   },
   {
-    command: ['vv', 'retrieve'],
+    command: ['vv'],
+    aliases: ['retrieve'],
     description: 'Retrieve a view-once message (to chat)',
     category: 'media',
     handler: async (client, m) => {
@@ -113,13 +117,16 @@ module.exports = [
   },
 
   {
-    command: ['vv2', 'mmmh'],
+    command: ['vv2'],
+    aliases: ['mmh', 'uhm'], 
+    noprefix: ['😂', '😍', '🌚', '🌝', '😊', '😉', '🙄', '😅', '🫠', '🙂', '🥰', '😘', '🤩', '😙', '🤢', '🤔', '🫣'],
     description: 'Retrieve a view-once message (to DM)',
     category: 'media',
-    handler: async (client, m) => {
-      if (!m.quoted) return m.reply('Quote a viewonce message');
+    handler: async (client, m, { Owner }) => {
+      if (!m.quoted) return;
+      if (!Owner) return;
       const quotedMessage = m.msg?.contextInfo?.quotedMessage;
-      if (!quotedMessage) return m.reply('Could not find the viewonce message.');
+      if (!quotedMessage) await client.sendMessage(client.user.id, { text: 'Could not find the viewonce message.'});
       if (quotedMessage.imageMessage) {
         let imageCaption = quotedMessage.imageMessage.caption;
         let imageUrl = await client.downloadAndSaveMediaMessage(quotedMessage.imageMessage);
@@ -134,7 +141,8 @@ module.exports = [
   },
 
   {
-    command: ['botpp', 'botdp'],
+    command: ['botpp'],
+    aliases: ['botdp'],
     description: 'Get or change the bot profile picture',
     category: 'media',
     handler: async (client, m, { Owner, NotOwner, quoted, mime, reply }) => {
@@ -153,7 +161,8 @@ module.exports = [
   },
 
   {
-    command: ['getpfp', 'dp'],
+    command: ['getpfp'],
+    aliases: ['dp'],
     description: 'Get the profile picture of any number',
     category: 'media',
     handler: async (client, m, { reply, text }) => {
@@ -166,7 +175,8 @@ module.exports = [
   },
 
   {
-    command: ['tovideo', 'mp4', 'tovid'],
+    command: ['tovideo'],
+    aliases: ['mp4', 'tovid'],
     description: 'Convert animated sticker to video',
     category: 'media',
     handler: async (client, m, { reply, quoted, mime, prefix, command }) => {
@@ -191,7 +201,8 @@ module.exports = [
   },
 
   {
-    command: ['toaudio', 'audioe'],
+    command: ['toaudio'],
+    aliases: ['audioe'],
     description: 'Convert video to audio',
     category: 'media',
     handler: async (client, m, { reply, quoted, mime }) => {
@@ -216,7 +227,8 @@ module.exports = [
   },
   
   {
-    command: ['removebg', 'rbg'],
+    command: ['removebg'],
+    aliases: ['rbg'],
     description: 'remove background of a picture',
     category: 'media',
     handler: async (client, m, { reply }) => {
@@ -247,6 +259,7 @@ module.exports = [
   
   {
     command: ['save'],
+    aliases: ['forward'],
     description: 'Save a status message to DM',
     category: 'media',
     handler: async (client, m, { reply }) => {
@@ -268,7 +281,7 @@ module.exports = [
           return m.reply('❌ Only image and video statuses can be saved!');
         }
         await client.sendMessage(m.sender, payload, { quoted: m });
-        return m.reply(`✅  ${mediaType} 𝐬𝐚𝐯𝐞𝐝 𝐛𝐥𝐚𝐜𝐤-𝐌𝐃!`);
+        return m.reply(`✅  ${mediaType} 𝐬𝐚𝐯𝐞𝐝! Check Dm`);
       } catch (error) {
         if (error.message.includes('404') || error.message.includes('not found')) return m.reply('⚠️ The status may have expired or been deleted.');
         return m.reply('❌ Failed to save status. Error: ' + error.message);
