@@ -308,6 +308,22 @@ module.exports = raven = async (client, m, chatUpdate, store) => {
       }
     }
 
+    // ── No-prefix triggers (emojis, keywords without prefix) ─────────────────
+    if (!cmd && body && body.trim()) {
+      const ctx = {
+        body, budy, msgR, args, text, q, arg,
+        pushname, botNumber, itsMe, from, reply, sender,
+        Owner, superUser: finalSuperUsers,
+        quoted, mime, qmsg,
+        command, prefix, menutype, cmd, mode,
+        groupMetadata, groupName, participants, groupAdmin,
+        isBotAdmin, isAdmin, groupSender, standardizeJid,
+        admin, botAdmin, group, NotOwner, resolveLid,
+        Rspeed, date, convertTimestamp, generateProfilePicture
+      };
+      await handler.dispatchNoPrefix(body.trim(), client, m, ctx);
+    }
+
     // ── GPTDM — AI auto-reply in private chats ───────────────────────────────
     if (gptdm === 'on' && !m.isGroup && !mek.key.fromMe && !cmd && body && body.trim()) {
       try {
