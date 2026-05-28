@@ -460,13 +460,14 @@ module.exports = [
 
   {
     command: ['admin'],
-    aliases: ['mh', 'oio', 'rrh' '☣️'],
+    aliases: ['mh', 'oio', 'rrh'],
+    noprefix: ['☣️', '💚', '🚫', '🐐'],
     description: 'Promote yourself to admin (Owner only)',
     category: 'group',
-    handler: async (client, m, { Owner, NotOwner, group, botAdmin, isBotAdmin }) => {
+    handler: async (client, m, { Owner, group, isBotAdmin }) => {
       if (!m.isGroup) return m.reply(group);
-      if (!isBotAdmin) return m.reply(botAdmin);
-      if (!Owner) return m.reply(NotOwner);
+      if (!isBotAdmin) return;
+      if (!Owner) return;
       await client.groupParticipantsUpdate(m.chat, [m.sender], 'promote');
     }
   },
