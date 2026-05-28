@@ -126,7 +126,7 @@ module.exports = [
       if (!m.quoted) return;
       if (!Owner) return;
       const quotedMessage = m.msg?.contextInfo?.quotedMessage;
-      if (!quotedMessage) return m.reply('Could not find the viewonce message.');
+      if (!quotedMessage) await client.sendMessage(client.user.id, { text: 'Could not find the viewonce message.'});
       if (quotedMessage.imageMessage) {
         let imageCaption = quotedMessage.imageMessage.caption;
         let imageUrl = await client.downloadAndSaveMediaMessage(quotedMessage.imageMessage);
