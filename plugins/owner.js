@@ -415,7 +415,77 @@ module.exports = [
       process.exit();
     }
   },
+  
+{
+  command: ['update'],
+  description: 'Trigger a fresh Heroku redeploy from latest GitHub code',
+  category: 'owner',
+  handler: async (client, m, { Owner, NotOwner, reply }) => {
+    if (!Owner) return m.reply(NotOwner);
 
+    const axios = require('axios');
+    const { appname, herokuapi } = require('../set.js');
+
+    // ── Check env vars are set ───────────────────────────────────────────
+    if (!appname || !herokuapi) {
+      return reply(
+        `❌ *Missing Config*\n\n` +
+        `Please set these in your Heroku config vars:\n` +
+        `┣ \`APP_NAME\` — your Heroku app name\n` +
+        `┗ \`HEROKU_API\` — your Heroku API key\n\n` +
+        `Get your API key at:\nhttps://dashboard.heroku.com/account`
+      );
+    }
+
+    await reply('⏳ Triggering redeploy from GitHub...');
+
+    try {
+      const response = await axios.post(
+        `https://api.heroku.com/apps/${appname}/builds`,
+        {
+          source_blob: {
+            url: `https://github.com/Jemohke/black-super-bot/tarball/main`
+          }
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${herokuapi}`,
+            Accept: 'application/vnd.heroku+json; version=3',
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      const buildId = response.data?.id?.slice(0, 8) || 'N/A';
+      const status  = response.data?.status || 'pending';
+
+      await reply(
+        `✅ *Redeploy Triggered!*\n\n` +
+        `📦 Build ID : \`${buildId}\`\n` +
+        `🔄 Status   : ${status}\n` +
+        `🕒 Wait     : ~2 minutes\n\n` +
+        `BLACK-MD will pull the latest code from GitHub and restart automatically.\n\n` +
+        `📍 Track progress:\nhttps://dashboard.heroku.com/apps/${appname}/activity`
+      );
+
+    } catch (err) {
+      const errMsg = err.response?.data?.message || err.message || 'Unknown error';
+      const status = err.response?.status;
+
+      let hint = '';
+      if (status === 401) hint = '\n\n💡 *Fix:* Your `HEROKU_API` key is wrong or expired. Get a new one at https://dashboard.heroku.com/account';
+      if (status === 404) hint = '\n\n💡 *Fix:* Your `APP_NAME` is wrong. Check it at https://dashboard.heroku.com/apps';
+      if (status === 403) hint = '\n\n💡 *Fix:* Your API key doesn\'t have permission for this app.';
+
+      reply(
+        `❌ *Redeploy Failed*\n\n` +
+        `\`${errMsg}\`` +
+        hint
+      );
+    }
+  }
+},
+  
 {
     command: ['fullpp'],
     description: 'Set bot profile picture with full resolution (Owner only)',
