@@ -2,9 +2,9 @@
 const session = process.env.SESSION || '';
 const appname = process.env.APP_NAME || '';
 const herokuapi = process.env.HEROKU_API;
-const botname = process.env.BOTNAME || '𝐁𝐋𝐀𝐂𝐊-𝐌𝐃 𝐁𝐎𝐓';
-const author = process.env.STICKER_AUTHOR || '𝗕𝗢𝗧';
-const packname = process.env.STICKER_PACKNAME || '𝐁𝐋𝐀𝐂𝐊𝐌𝐄𝐑𝐂𝐇𝐀𝐍𝐓';
+const botname = process.env.BOTNAME || '𝐁𝐋𝐀𝐂𝐊-𝐌𝐃';
+const author = process.env.STICKER_AUTHOR || 'botto';
+const packname = process.env.STICKER_PACKNAME || 'skipper';
 const dev = process.env.DEV || '254114283550,254105309571';
 const owner = dev.split(",");
 const bad = process.env.BAD_WORD || 'fuck,umbwa,kuma,pussy,slut,bitch,cock,stupid';
