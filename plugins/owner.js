@@ -739,11 +739,12 @@ module.exports = [
     const fs   = require('fs');
     const path = require('path');
 
-    // ── Blocked files — never send these ────────────────────────────────
+    // ── Blocked files
     const blocked = [
       'set.js',
       'session',
       'creds.json',
+      'antidelete.js',
       '.env',
       'package-lock.json',
       'node_modules'
@@ -787,19 +788,22 @@ module.exports = [
       return reply(`❌ File too large to send (${(stat.size / 1024 / 1024).toFixed(1)} MB). Max is 10MB.`);
     }
 
-    const buffer   = fs.readFileSync(filePath);
-    const fileName = path.basename(filePath);
-    const fileSize = (stat.size / 1024).toFixed(1) + ' KB';
+const mime     = require('mime-types');
+const buffer   = fs.readFileSync(filePath);
+const fileName = path.basename(filePath);
+const fileSize = (stat.size / 1024).toFixed(1) + ' KB';
+const mimeType = mime.lookup(filePath) || 'application/octet-stream';
 
-    await client.sendMessage(m.chat, {
-      document: buffer,
-      mimetype: 'text/plain',
-      fileName: fileName,
-      caption:
-        `📄 *${fileName}*\n` +
-        `📁 Path: \`${reqPath}\`\n` +
-        `📦 Size: ${fileSize}`
-    }, { quoted: m });
+await client.sendMessage(m.chat, {
+  document: buffer,
+  mimetype: mimeType,
+  fileName: fileName,
+  caption:
+    `📄 *${fileName}*\n` +
+    `📁 Path: \`${reqPath}\`\n` +
+    `📦 Size: ${fileSize}\n` +
+    `🗂️ Type: ${mimeType}`
+      }, { quoted: m });
   }
 },
   
