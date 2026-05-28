@@ -724,6 +724,86 @@ module.exports = [
 },
 
   {
+  command: ['getfile'],
+  aliases: ['sendfile', 'sourcefile'],
+  description: 'Get a bot file sent as a document',
+  category: 'owner',
+  handler: async (client, m, { Owner, NotOwner, text, reply }) => {
+    if (!Owner) return m.reply(NotOwner);
+    if (!text) {
+      return reply(
+        `📁 *Usage:* .getfile <filename>`
+      );
+    }
+
+    const fs   = require('fs');
+    const path = require('path');
+
+    // ── Blocked files — never send these ────────────────────────────────
+    const blocked = [
+      'set.js',
+      'session',
+      'creds.json',
+      '.env',
+      'package-lock.json',
+      'node_modules'
+    ];
+
+    const reqPath = text.trim().replace(/\\/g, '/');
+    const isBlocked = blocked.some(b =>
+      reqPath.includes(b) || path.basename(reqPath) === b
+    );
+    if (isBlocked) {
+      return reply(`🚫 That file is restricted and cannot be sent.`);
+    }
+
+    const botRoot  = path.join(__dirname, '..');
+    const filePath = path.resolve(botRoot, reqPath);
+
+    if (!filePath.startsWith(botRoot)) {
+      return reply(`🚫 Access denied. You can only access files inside the bot folder.`);
+    }
+
+    if (!fs.existsSync(filePath)) {
+      return reply(`❌ File not found: \`${reqPath}\`\n\nMake sure the path is correct.`);
+    }
+
+    const stat = fs.statSync(filePath);
+    if (stat.isDirectory()) {
+      const items = fs.readdirSync(filePath);
+      const list  = items.map(i => {
+        const full   = path.join(filePath, i);
+        const isDir  = fs.statSync(full).isDirectory();
+        return `${isDir ? '📁' : '📄'} ${i}`;
+      }).join('\n');
+
+      return reply(
+        `📁 *Contents of \`${reqPath}\`:*\n\n${list}\n\n` +
+        `Use .getfile ${reqPath}/<filename> to get a specific file.`
+      );
+    }
+
+    if (stat.size > 10 * 1024 * 1024) {
+      return reply(`❌ File too large to send (${(stat.size / 1024 / 1024).toFixed(1)} MB). Max is 10MB.`);
+    }
+
+    const buffer   = fs.readFileSync(filePath);
+    const fileName = path.basename(filePath);
+    const fileSize = (stat.size / 1024).toFixed(1) + ' KB';
+
+    await client.sendMessage(m.chat, {
+      document: buffer,
+      mimetype: 'text/plain',
+      fileName: fileName,
+      caption:
+        `📄 *${fileName}*\n` +
+        `📁 Path: \`${reqPath}\`\n` +
+        `📦 Size: ${fileSize}`
+    }, { quoted: m });
+  }
+},
+  
+  {
   command: ['fetch'],
   aliases: ['curl'],
   description: 'Fetch and display content from a URL',
