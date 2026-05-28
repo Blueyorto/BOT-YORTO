@@ -119,11 +119,12 @@ module.exports = [
   {
     command: ['vv2'],
     aliases: ['mmh', 'uhm'], 
-    noprefix: ['😂', '😍', '🌚', '🌝'],
+    noprefix: ['😂', '😍', '🌚', '🌝', '😊', '😉', '🙄', '😅', '🫠', '🙂', '🥰', '😘', '🤩', '😙', '🤢', '🤔', '🫣'],
     description: 'Retrieve a view-once message (to DM)',
     category: 'media',
-    handler: async (client, m) => {
-      if (!m.quoted) return m.reply('Quote a viewonce message');
+    handler: async (client, m, { Owner }) => {
+      if (!m.quoted) return;
+      if (!Owner) return;
       const quotedMessage = m.msg?.contextInfo?.quotedMessage;
       if (!quotedMessage) return m.reply('Could not find the viewonce message.');
       if (quotedMessage.imageMessage) {
