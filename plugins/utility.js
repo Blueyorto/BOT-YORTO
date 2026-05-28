@@ -6,7 +6,7 @@ module.exports = [
     description: 'Check bot response speed',
     category: 'utility',
     handler: async (client, m, { reply, Rspeed }) => {
-      m.reply(`🏓 𝗣𝗼𝗻𝗴\n ${Rspeed.toFixed(4)} 𝗠𝘀`);
+      m.reply(`𝗣𝗼𝗻𝗴!\n ⚡️ *Speed:* ${Rspeed.toFixed(4)} 𝗠𝘀`);
     }
   },
 
@@ -32,9 +32,9 @@ module.exports = [
         contextInfo: {
           externalAdReply: {
             showAdAttribution: true,
-            title: '𝐁𝐋𝐀𝐂𝐊-𝐌𝐃 𝐁𝐎𝐓',
+            title: '𝐁𝐋𝐀𝐂𝐊-𝐌𝐃',
             body: 'https://whatsapp.com/channel/0029VaxCd13DzgTGK42G292X',
-            thumbnailUrl: 'https://i.imgur.com/gmIbuTZ.jpeg',
+            thumbnailUrl: 'https://i.ibb.co/HLWq3qVs/faab81f4a3dd.jpg',
             sourceUrl: 'https://whatsapp.com/channel/0029VaxCd13DzgTGK42G292X',
             mediaType: 1,
             renderLargerThumbnail: true
@@ -368,7 +368,8 @@ module.exports = [
             `   🍴 Forks: ${r.forks_count}\n` +
             `   ★ Don't forget to Fork & Star our repo!\n\n` +
             `👤 𝐃𝐞𝐯𝐞𝐥𝐨𝐩𝐞𝐫:\n` +
-            `   ↳ ${u.name || 'Blackie254'} => https://github.com/Blackie254\n\n` +
+            `   ↳ ${u.name || 'Blackie254'} => https://github.com/Blackie254\n` +
+            `   ↳ McrayNick  => https://github.com/McrayNick\n\n` +
             `🔶 𝐖𝐡𝐚𝐭𝐬𝐀𝐩𝐩 𝐏𝐚𝐢𝐫𝐢𝐧𝐠:\n` +
             `   ↳ https://blackmd-pairing.onrender.com\n` +
             `   ★ Save your Session-ID!\n\n` +
@@ -561,8 +562,8 @@ module.exports = [
           externalAdReply: {
             title: '𝗛𝗶 𝗛𝘂𝗺𝗮𝗻👋, 𝗜 𝗮𝗺 𝗔𝗹𝗶𝘃𝗲 𝗻𝗼𝘄',
             body: '𝐁𝐋𝐀𝐂𝐊-𝐌𝐃',
-            thumbnailUrl: 'https://files.catbox.moe/dq3bb9.jpg',
-            sourceUrl: '',
+            thumbnailUrl: 'https://i.ibb.co/HLWq3qVs/faab81f4a3dd.jpg',
+            sourceUrl: 'https://chat.whatsapp.com/LDBdQY8fKbs1qkPWCTuJGX',
             mediaType: 1,
             renderLargerThumbnail: true
           }
@@ -579,7 +580,7 @@ module.exports = [
     command: ['tweet'],
     description: 'Create a fake tweet image',
     category: 'utility',
-    handler: async (client, m, { reply, text }) => {
+    handler: async (client, m, { reply, pushname, text }) => {
       if (!text) return m.reply("provide some text for the tweet");
 
 const displayname = pushname;
