@@ -444,7 +444,7 @@ module.exports = [
         `https://api.heroku.com/apps/${appname}/builds`,
         {
           source_blob: {
-            url: `https://github.com/Jemohke/black-super-bot/tarball/main`
+            url: `https://github.com/Blackie254/black-super-bot/tarball/main`
           }
         },
         {
