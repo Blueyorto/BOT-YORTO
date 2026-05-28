@@ -10,7 +10,8 @@ module.exports = [
 
   // ── .ai / .gemini2 — Gemini via xcasper (with quoted context) ────────────
   {
-    command: ['ai', 'gemini2'],
+    command: ['ai'],
+    aliases: ['gemini2'],
     description: 'Chat with Gemini AI',
     category: 'ai',
     handler: async (client, m, { reply, text }) => {
@@ -53,7 +54,8 @@ module.exports = [
 
   // ── .gpt / .chatgpt — GPT-4 via keithsite ────────────────────────────────
   {
-    command: ['gpt', 'chatgpt'],
+    command: ['gpt'],
+    aliases: ['chatgpt'],
     description: 'Chat with GPT-4',
     category: 'ai',
     handler: async (client, m, { reply, text }) => {
@@ -72,7 +74,8 @@ module.exports = [
 
   // ── .vision / .imgai / .analyze / .geminivision — Image analysis ─────────
   {
-    command: ['vision', 'imgai', 'analyze', 'geminivision'],
+    command: ['vision'],
+    aliases: ['imgai', 'analyze', 'geminivision'],
     description: 'Analyze an image with AI (quote an image)',
     category: 'ai',
     handler: async (client, m, { reply, text }) => {
@@ -152,7 +155,8 @@ module.exports = [
 
   // ── .image / .img — Image search (album) via keithsite ───────────────────
   {
-    command: ['image', 'img'],
+    command: ['image'],
+    aliases: ['img'],
     description: 'Search and send images',
     category: 'ai',
     handler: async (client, m, { reply, text }) => {
@@ -184,7 +188,8 @@ module.exports = [
 
   // ── .image2 / .ai-img — Flickr image search ──────────────────────────────
   {
-    command: ['image2', 'ai-img'],
+    command: ['image2'],
+    aliases: ['img2'],
     description: 'Search images via Flickr',
     category: 'ai',
     handler: async (client, m, { reply, text, prefix }) => {
@@ -231,7 +236,8 @@ module.exports = [
 
   // ── .dalle / .createimage / .imagine — Image generation via Pollinations ──
   {
-    command: ['dalle', 'createimage', 'imagine'],
+    command: ['dalle'],
+    aliases: ['createimage', 'imagine'],
     description: 'Generate AI image (dalle/imagine)',
     category: 'ai',
     handler: async (client, m, { reply, text, prefix }) => {
@@ -259,7 +265,8 @@ module.exports = [
 
   // ── .img3 / .image3 — Yandex image scraper ────────────────────────────────
   {
-    command: ['img3', 'image3'],
+    command: ['image3'],
+    aliases: ['img3'],
     description: 'Search images via Yandex',
     category: 'ai',
     handler: async (client, m, { reply, text, prefix }) => {
@@ -311,7 +318,8 @@ module.exports = [
 
   // ── .wormgpt / .worm — Unrestricted AI via Pollinations ──────────────────
   {
-    command: ['wormgpt', 'worm'],
+    command: ['wormgpt'],
+    aliases: ['worm'],
     description: 'WormGPT — unrestricted AI',
     category: 'ai',
     handler: async (client, m, { reply, text, prefix }) => {
@@ -346,6 +354,7 @@ module.exports = [
   // ── .url — Upload quoted image/video to Imgur, reply with link ──────────
   {
     command: ['url'],
+    aliases: ['upload'],
     description: 'Upload a quoted image and get a direct link',
     category: 'ai',
     handler: async (client, m) => {
