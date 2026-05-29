@@ -133,8 +133,8 @@ module.exports = raven = async (client, m, chatUpdate, store) => {
           }
           return mek.key.participant || mek.key.remoteJid;
         })();
-
-    const command = body.replace(prefix, '').trim().split(/ +/).shift().toLowerCase();
+    
+    const command = body.slice(prefix.length).trim().split(/ +/).shift().toLowerCase();
     const args = body.trim().split(/ +/).slice(1);
     const pushname = m.pushName || 'No Name';
     const botNumber = jidNormalizedUser(client.user.id);
