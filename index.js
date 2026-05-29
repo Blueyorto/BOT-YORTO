@@ -14,6 +14,7 @@ const pino = require("pino");
 const { Boom } = require("@hapi/boom");
 const fs = require("fs");
 const path = require('path');
+require('dotenv').config({ path: './.Env' });
 const express = require("express");
 const chalk = require("chalk");
 const FileType = require("file-type");
