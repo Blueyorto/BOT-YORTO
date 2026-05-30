@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const axios = global.axios || require('axios');
-const uploadToUguu = require('../lib/uugu');
+const { uploadToUguu, Webp2mp4File } = require('../lib/uploads');
 
 module.exports = [
 
@@ -180,7 +180,6 @@ module.exports = [
     description: 'Convert animated sticker to video',
     category: 'media',
     handler: async (client, m, { reply, quoted, mime, prefix, command }) => {
-      const { webp2mp4File } = require('../lib/ravenupload');
       if (!quoted) return reply(`📎 Reply to an *animated sticker* with *${prefix + command}* to convert it to a video`);
       if (!/webp/.test(mime)) return reply(`⚠️ That's not a sticker. Reply to an animated sticker with *${prefix + command}*`);
       let media, outputPath;
