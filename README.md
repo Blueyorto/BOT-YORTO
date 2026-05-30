@@ -11,13 +11,6 @@
 <p align="center">
   <img src="https://i.imgur.com/dBaSKWF.gif" height="40" width="100%">
 </p>
-
-  [![Typing SVG](https://readme-typing-svg.herokuapp.com?font=Rockstar-ExtraBold&size=30&pause=1000&color=ff00bd&center=true&vCenter=true&width=815&height=60&lines=▭+▬+▭+▬+▭+▬+▭+▬+▭+▬+▭)](https://git.io/typing-svg)
-
-<!-- Glowing Footer -->
-<p align="center">
-  <img src="https://i.imgur.com/dBaSKWF.gif" height="40" width="100%">
-</p>
   
 <p align="center">
   
@@ -59,7 +52,32 @@ Linking/Pairing:
   <img src="https://i.imgur.com/dBaSKWF.gif" height="40" width="100%">
 </p>
 
-## DEPLOYMENT 
+## PANEL DEPLOYMENT 
+
+<p align="center">
+      <b>download zip</b><br>
+      Download latest black-md zip.
+      <br><br>
+      <a href="https://github.com/Blackie254/black-super-bot/archive/refs/heads/main.zip">
+        <img src="https://img.shields.io/badge/download-zip-blue" alt="Download zip" width="200">
+      </a>
+    </p>
+    
+ - Get your PostgreSQL database url   
+ Steps Create a free Neon database (2 minutes)
+Go to Here(neon.tech) and sign up free
+• Click New Project
+• Name it anything e.g. black-md-bot
+• Select a region closest to you
+• Click Create Project
+• You'll see a Connection String — copy it
+
+<!-- Glowing Footer -->
+<p align="center">
+  <img src="https://i.imgur.com/dBaSKWF.gif" height="40" width="100%">
+</p>
+     
+## HEROKU DEPLOYMENT 
 
 <a href="https://dashboard.heroku.com/new?template=https://github.com/Blackie254/black-super-bot" target="_blank" style="margin-right: 10px;">
     <img alt="Deploy to Heroku" src="https://www.herokucdn.com/deploy/button.svg"/>
