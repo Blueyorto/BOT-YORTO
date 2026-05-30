@@ -63,8 +63,8 @@ Linking/Pairing:
       </a>
     </p>
     
- _Get your PostgreSQL database url_
- Steps to Create a free Neon database (2 minutes)
+ _Follow the steps below to Get your PostgreSQL database url for free (2 minutes)_
+ 
 - Go to [HERE](https://neon.com) and sign up free
 - Click New Project
 - Name it anything e.g. black-md-bot
