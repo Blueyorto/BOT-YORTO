@@ -63,14 +63,15 @@ Linking/Pairing:
       </a>
     </p>
     
- # Get your PostgreSQL database url   
+ _Get your PostgreSQL database url_
  Steps to Create a free Neon database (2 minutes)
-Go to [HERE](https://neon.com) and sign up free
+- Go to [HERE](https://neon.com) and sign up free
 - Click New Project
 - Name it anything e.g. black-md-bot
 - Select a region closest to you
 - Click Create Project
 - You'll see a Connection String — copy it
+- Fill the the required variables in .Env
 
 <!-- Glowing Footer -->
 <p align="center">
