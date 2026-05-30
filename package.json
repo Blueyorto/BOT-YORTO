@@ -1,5 +1,5 @@
 {
-  "name": "BLACK MD",
+  "name": "BLACK-MD",
   "version": "2.0.0",
   "description": "WhatsApp Multi Device Bot",
   "main": "index.js",
@@ -35,6 +35,7 @@
     "jimp": "^0.16.13",
     "human-readable": "^0.2.1",
     "pg": "^8.13.3",
+    "dotenv": "^17.3.1",
     "performance-now": "^2.1.0",
     "acrcloud": "^1.4.0",
     "mumaker": "^2.0.0",

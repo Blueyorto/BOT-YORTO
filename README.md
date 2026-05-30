@@ -1,18 +1,11 @@
-# 𝐁𝐋𝐀𝐂𝐊-𝐌𝐃 𝐁𝐎𝐓
+# 𝐁𝐋𝐀𝐂𝐊-𝐌𝐃
 <!-- Glowing Footer -->
 <p align="center">
   <img src="https://i.imgur.com/dBaSKWF.gif" height="40" width="100%">
 </p>
 <div align="center">
-<a href="https://git.io/typing-svg"><img src="https://readme-typing-svg.demolab.com?font=Black+Ops+One&size=50&pause=1000&color=1BAFBAFF&center=true&width=910&height=100&lines=HI+THIS+IS+BLACK-MD;A+MULTI+DEVICE+WHATSAPP+BOT;SCRIPTED+BY+BLACKIE+TECH;STAR+AND+FORK+OUR+REPO" alt="Typing SVG" /></a>
+<a href="https://git.io/typing-svg"><img src="https://readme-typing-svg.demolab.com?font=Black+Ops+One&size=50&pause=1000&color=1BAFBAFF&center=true&width=910&height=100&lines=HELLO+THIS+IS+BLACK-MD;A+MULTI+DEVICE+WHATSAPP+BOT;SCRIPTED+BY+BLACKIE+TECH;FORK+REPO+AND+GIVE+US+A+STAR" alt="Typing SVG" /></a>
   </p>
-
-<!-- Glowing Footer -->
-<p align="center">
-  <img src="https://i.imgur.com/dBaSKWF.gif" height="40" width="100%">
-</p>
-
-  [![Typing SVG](https://readme-typing-svg.herokuapp.com?font=Rockstar-ExtraBold&size=30&pause=1000&color=ff00bd&center=true&vCenter=true&width=815&height=60&lines=▭+▬+▭+▬+▭+▬+▭+▬+▭+▬+▭)](https://git.io/typing-svg)
 
 <!-- Glowing Footer -->
 <p align="center">
@@ -24,7 +17,7 @@
 [![Black Merchant](https://github.com/Blackie254.png?lenght=50width=50)](https://github.com/Blackie254)
 </p>
 <p align="center">
-  <a href="#"><img src="http://readme-typing-svg.herokuapp.com?color=d1fa02&center=true&vCenter=true&multiline=false&lines=𝐁𝐋𝐀𝐂𝐊 𝐌𝐃" alt="">
+  <a href="#"><img src="http://readme-typing-svg.herokuapp.com?color=green&center=true&vCenter=true&multiline=false&lines=𝐁𝐋𝐀𝐂𝐊-𝐌𝐃" alt="">
 </p>
 <p align="center">
 <a href="#"><img title="Creator" src="https://img.shields.io/badge/Creator- 𝐁𝐋𝐀𝐂𝐊𝐌𝐄𝐑𝐂𝐇𝐀𝐍𝐓-blue.svg?style=for-the-badge&logo=github"></a>
@@ -59,7 +52,33 @@ Linking/Pairing:
   <img src="https://i.imgur.com/dBaSKWF.gif" height="40" width="100%">
 </p>
 
-## DEPLOYMENT 
+## PANEL DEPLOYMENT 
+
+<p align="center">
+      <b>
+     Click below to Download latest black-md zip.
+      <br><br>
+      <a href="https://github.com/Blackie254/black-super-bot/archive/refs/heads/main.zip">
+        <img src="https://img.shields.io/badge/download-zip-blue" alt="Download zip" width="200">
+      </a>
+    </p>
+    
+ _Follow the steps below to Get your PostgreSQL database url for free (2 minutes)_
+ 
+- Go to [HERE](https://neon.com) and sign up free
+- Click New Project
+- Name it anything e.g. black-md-bot
+- Select a region closest to you
+- Click Create Project
+- You'll see a Connection String — copy it
+- Fill the the required variables in .Env
+
+<!-- Glowing Footer -->
+<p align="center">
+  <img src="https://i.imgur.com/dBaSKWF.gif" height="40" width="100%">
+</p>
+     
+## HEROKU DEPLOYMENT 
 
 <a href="https://dashboard.heroku.com/new?template=https://github.com/Blackie254/black-super-bot" target="_blank" style="margin-right: 10px;">
     <img alt="Deploy to Heroku" src="https://www.herokucdn.com/deploy/button.svg"/>

@@ -2,9 +2,8 @@
 
 const axios = global.axios || require('axios');
 const fetch = require('node-fetch');
-const api = 'https://apis.keithsite.top';
-const uploadToUguu = require('../lib/uugu');
-const uploadToImgBB = require('../lib/imbb');
+const api = 'https://ravenn.site';
+const { uploadToUguu, uploadToImgBB } = require('../lib/uploads');
 
 module.exports = [
 
@@ -33,7 +32,7 @@ module.exports = [
     }
   },
 
-  // ── .gemini — GPT via keithsite ──────────────────────────────────────────
+  // ── .gemini — GPT via ravennsite ──────────────────────────────────────────
   {
     command: ['gemini'],
     description: 'AI chat (Gemini endpoint)',
@@ -52,7 +51,7 @@ module.exports = [
     }
   },
 
-  // ── .gpt / .chatgpt — GPT-4 via keithsite ────────────────────────────────
+  // ── .gpt / .chatgpt — GPT-4 via ravennsite ────────────────────────────────
   {
     command: ['gpt'],
     aliases: ['chatgpt'],
@@ -153,7 +152,7 @@ module.exports = [
   },
 
 
-  // ── .image / .img — Image search (album) via keithsite ───────────────────
+  // ── .image / .img — Image search (album) via ravvensite ───────────────────
   {
     command: ['image'],
     aliases: ['img'],
@@ -351,7 +350,7 @@ module.exports = [
     }
   },
 
-  // ── .url — Upload quoted image/video to Imgur, reply with link ──────────
+  // ── .url — Upload quoted image/video to ImBB, reply with link ──────────
   {
     command: ['url'],
     aliases: ['upload'],
