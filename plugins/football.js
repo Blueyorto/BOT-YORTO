@@ -1,9 +1,8 @@
 'use strict';
 
 const axios = global.axios || require('axios');
-const api = 'https://apis.keithsite.top';
 
-// ── Helper: render standings rows ────────────────────────────────────────────
+// ──  render standings rows ────────────────────────────────────────────
 function standingsText(title, flag, teams) {
   let text = `📊 *${title}*\n\n`;
   for (const t of teams) {
@@ -12,7 +11,7 @@ function standingsText(title, flag, teams) {
   return text;
 }
 
-// ── Helper: render scorers rows ──────────────────────────────────────────────
+// ── render scorers rows ──────────────────────────────────────────────
 function scorersText(title, scorers) {
   let text = `⚽ *${title}*\n\n`;
   scorers.slice(0, 10).forEach(s => {
@@ -38,7 +37,7 @@ module.exports = [
     aliases: ['premierleague'],
     description: 'Premier League standings',
     category: 'football',
-    handler: async (client, m) => {
+    handler: async (client, m, { api }) => {
       try {
         await client.sendMessage(m.chat, { react: { text: '📊', key: m.key } });
         const res = await axios.get(`${api}/epl/standings`);
@@ -68,7 +67,7 @@ module.exports = [
     aliases: ['liga'],
     description: 'La Liga standings',
     category: 'football',
-    handler: async (client, m) => {
+    handler: async (client, m, { api }) => {
       try {
         const res = await axios.get(`${api}/laliga/standings`);
         m.reply(standingsText('La Liga Standings', '🇪🇦', res.data.result.standings));
@@ -83,7 +82,7 @@ module.exports = [
     aliases: ['bdl'],
     description: 'Bundesliga standings',
     category: 'football',
-    handler: async (client, m) => {
+    handler: async (client, m, { api }) => {
       try {
         const res = await axios.get(`${api}/bundesliga/standings`);
         m.reply(standingsText('Bundesliga Standings', '🇩🇪', res.data.result.standings));
@@ -98,7 +97,7 @@ module.exports = [
     aliases: ['lg1'],
     description: 'Ligue 1 standings',
     category: 'football',
-    handler: async (client, m) => {
+    handler: async (client, m, { api }) => {
       try {
         const res = await axios.get(`${api}/ligue1/standings`);
         m.reply(standingsText('Ligue 1 Standings', '🇫🇷', res.data.result.standings));
@@ -113,7 +112,7 @@ module.exports = [
     aliases: ['sl1'],
     description: 'Serie A standings',
     category: 'football',
-    handler: async (client, m) => {
+    handler: async (client, m, { api }) => {
       try {
         const res = await axios.get(`${api}/seriea/standings`);
         m.reply(standingsText('Serie A Standings', '🇮🇹', res.data.result.standings));
@@ -128,7 +127,7 @@ module.exports = [
     aliases: ['uefa'],
     description: 'UEFA Champions League standings',
     category: 'football',
-    handler: async (client, m) => {
+    handler: async (client, m, { api }) => {
       try {
         const res = await axios.get(`${api}/ucl/standings`);
         m.reply(standingsText('UCL Standings', '🏆', res.data.result.standings));
@@ -143,7 +142,7 @@ module.exports = [
     aliases: ['ffa'],
     description: 'FIFA world rankings',
     category: 'football',
-    handler: async (client, m) => {
+    handler: async (client, m, { api }) => {
       try {
         const res = await axios.get(`${api}/fifa/standings`);
         let text = `🌍 *FIFA Rankings*\n\n`;
@@ -162,7 +161,7 @@ module.exports = [
     aliases: ['eu'],
     description: 'Euro standings',
     category: 'football',
-    handler: async (client, m) => {
+    handler: async (client, m, { api }) => {
       try {
         const res = await axios.get(`${api}/euros/standings`);
         m.reply(standingsText('Euro Standings', '🇪🇺', res.data.result.standings));
@@ -181,7 +180,7 @@ module.exports = [
     aliases: ['epls', 'topscorers'],
     description: 'Premier League top scorers',
     category: 'football',
-    handler: async (client, m) => {
+    handler: async (client, m, { api }) => {
       try {
         await client.sendMessage(m.chat, { react: { text: '⚽', key: m.key } });
         const res = await axios.get(`${api}/epl/scorers`);
@@ -201,7 +200,7 @@ module.exports = [
     aliases: ['ligas'],
     description: 'La Liga top scorers',
     category: 'football',
-    handler: async (client, m) => {
+    handler: async (client, m, { api }) => {
       try {
         const res = await axios.get(`${api}/laliga/scorers`);
         m.reply(scorersText('La Liga Top Scorers', res.data.result.topScorers));
@@ -216,7 +215,7 @@ module.exports = [
     aliases: ['bdls'],
     description: 'Bundesliga top scorers',
     category: 'football',
-    handler: async (client, m) => {
+    handler: async (client, m, { api }) => {
       try {
         const res = await axios.get(`${api}/bundesliga/scorers`);
         m.reply(scorersText('Bundesliga Top Scorers', res.data.result.topScorers));
@@ -231,7 +230,7 @@ module.exports = [
     aliases: ['serieas'],
     description: 'Serie A top scorers',
     category: 'football',
-    handler: async (client, m) => {
+    handler: async (client, m, { api }) => {
       try {
         const res = await axios.get(`${api}/seriea/scorers`);
         m.reply(scorersText('Serie A Top Scorers', res.data.result.topScorers));
@@ -246,7 +245,7 @@ module.exports = [
     aliases: ['l1s'],
     description: 'Ligue 1 top scorers',
     category: 'football',
-    handler: async (client, m) => {
+    handler: async (client, m, { api }) => {
       try {
         const res = await axios.get(`${api}/ligue1/scorers`);
         m.reply(scorersText('Ligue 1 Top Scorers', res.data.result.topScorers));
@@ -261,7 +260,7 @@ module.exports = [
     aliases: ['ucls', 'uefas'],
     description: 'UCL top scorers',
     category: 'football',
-    handler: async (client, m) => {
+    handler: async (client, m, { api }) => {
       try {
         const res = await axios.get(`${api}/ucl/scorers`);
         m.reply(scorersText('UCL Top Scorers', res.data.result.topScorers));
