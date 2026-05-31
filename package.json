@@ -1,6 +1,6 @@
 {
   "name": "BLACK-MD",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "WhatsApp Multi Device Bot",
   "main": "index.js",
   "type": "commonjs",
@@ -46,17 +46,5 @@
     "fs-extra": "^11.2.0",
     "mime-types": "^2.1.35",
     "ffmpeg-static": "^5.2.0"
-  },
-  "directories": {
-    "lib": "lib",
-    "src": "src"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/McrayNick/black-super-bot.git"
-  },
-  "bugs": {
-    "url": "https://github.com/McrayNick/black-super-bot/issues"
-  },
-  "homepage": "https://github.com/McrayNick/black-super-bot#readme"
+  }
 }
