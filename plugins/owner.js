@@ -439,7 +439,7 @@ module.exports = [
       );
     }
 
-    await reply('⏳ Triggering redeploy from GitHub...');
+    await reply('⏳ Triggering updates from GitHub...');
 
     try {
       const response = await axios.post(
@@ -462,7 +462,7 @@ module.exports = [
       const status  = response.data?.status || 'pending';
 
       await reply(
-        `✅ *Redeploy Triggered!*\n\n` +
+        `✅ *Updates Triggered!*\n\n` +
         `📦 Build ID : \`${buildId}\`\n` +
         `🔄 Status   : ${status}\n` +
         `🕒 Wait     : ~2 minutes\n\n` +
@@ -745,7 +745,7 @@ module.exports = [
       'session',
       'creds.json',
       'antidelete.js',
-      '.env',
+      '.Env',
       'package-lock.json',
       'node_modules'
     ];

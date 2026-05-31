@@ -3,7 +3,6 @@
 const axios = global.axios || require('axios');
 const fetch = require('node-fetch');
 const yts = require('yt-search');
-const api = 'https://apis.keithsite.top';
 
 module.exports = [
 
@@ -39,7 +38,7 @@ module.exports = [
     aliases: ['yta', 'ytmp3'],
     description: 'Download YouTube audio (MP3)',
     category: 'downloads',
-    handler: async (client, m, { text }) => {
+    handler: async (client, m, { text, api }) => {
       if (!text) return m.reply('🔎 Provide a song name or YouTube link!');
       try {
         await client.sendMessage(m.chat, { react: { text: '🎧', key: m.key } });
@@ -229,7 +228,7 @@ module.exports = [
     aliases: ['ytv2'],
     description: 'Download YouTube video via keithsite (alternate)',
     category: 'downloads',
-    handler: async (client, m, { text }) => {
+    handler: async (client, m, { text, api }) => {
       if (!text) return m.reply('🎬 Provide a video name or YouTube link!');
       try {
         await client.sendMessage(m.chat, { react: { text: '🎬', key: m.key } });
@@ -283,7 +282,7 @@ module.exports = [
     command: ['spotify'],
     description: 'Download from Spotify (name or link)',
     category: 'downloads',
-    handler: async (client, m, { reply, text, prefix }) => {
+    handler: async (client, m, { reply, text, prefix, api }) => {
       if (!text) return reply(
         `*🎵 Spotify Downloader*\n\nUsage:\n  *${prefix}spotify* _song name_\n  *${prefix}spotify* _<spotify URL>_\n\nExample: *${prefix}spotify* Shape of You Ed Sheeran`
       );
@@ -314,7 +313,7 @@ module.exports = [
 
         let downloadUrl = null;
 
-        // Primary api: keith
+        // Primary api: raven
         try {
           const r1 = await axios.get(`${api}/download/audio?url=${encodeURIComponent(videoUrl)}`, { timeout: 30000 });
           if (r1.data?.status && r1.data?.result) downloadUrl = r1.data.result;
@@ -356,7 +355,7 @@ module.exports = [
     aliases: ['shazam'],
     description: 'Identify a song from quoted audio/video',
     category: 'downloads',
-    handler: async (client, m, { reply }) => {
+    handler: async (client, m, { reply, api }) => {
       try {
         if (!m.quoted) return reply('Quote a short audio or video to identify the song.');
         let d = m.quoted;
@@ -442,7 +441,7 @@ module.exports = [
 
   {
     command: ['tiktok'],
-    aliases: ['tikdl', 'tdl'],
+    aliases: ['tikdl', 'tdl', 'tt'],
     description: 'Download TikTok video',
     category: 'downloads',
     handler: async (client, m, { reply, text }) => {
@@ -539,7 +538,7 @@ module.exports = [
     aliases: ['fb', 'fbdl'],
     description: 'Download Facebook video',
     category: 'downloads',
-    handler: async (client, m, { text }) => {
+    handler: async (client, m, { text, api }) => {
       if (!text || !text.startsWith('http')) return m.reply('📌 Provide a valid Facebook video link!');
       try {
         await m.reply('⏳ Please wait, fetching your video...');
@@ -570,7 +569,7 @@ module.exports = [
     aliases: ['pin', 'pindl'],
     description: 'Download Pinterest image or video',
     category: 'downloads',
-    handler: async (client, m, { text }) => {
+    handler: async (client, m, { text, api }) => {
       if (!text || !text.startsWith('http')) return m.reply('📌 Provide a valid Pinterest link!');
       try {
         await m.reply('⏳ Fetching Pinterest media...');
@@ -632,6 +631,7 @@ module.exports = [
 
       {
     command: ['movie'],
+    aliases: ['mv'],
     description: 'Search IMDB for a movie or series',
     category: 'downloads',
     handler: async (client, m, { reply, text, from }) => {

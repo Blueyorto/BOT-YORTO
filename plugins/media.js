@@ -94,6 +94,86 @@ module.exports = [
       }
     }
   },
+
+  {
+    command: ['toimg'],
+    aliases: ['photo'],
+    description: 'Convert a sticker to image',
+    category: 'media',
+    handler: async (client, m, { reply, mime, quoted }) => {
+      const { exec } = require('child_process');
+      if (!quoted) return m.reply('Tag a static video with the command!');
+      if (!/webp/.test(mime)) return m.reply(`Tag a sticker to convert to photo`);
+      const media = await client.downloadAndSaveMediaMessage(quoted);
+      const hikari = `./tmp_${Date.now()}.png`;
+      exec(`ffmpeg -i ${media} ${hikari}`, (err) => {
+        try { fs.unlinkSync(media); } catch {}
+        if (err) return m.reply("❌ Conversion failed.");
+        const buffer = fs.readFileSync(hikari);
+        client.sendMessage(m.chat, { image: buffer, caption: `𝗖𝗼𝗻𝘃𝗲𝗿𝘁𝗲𝗱 𝗯𝘆 𝐁𝐋𝐀𝐂𝐊-𝐌𝐃` }, { quoted: m });
+        try { fs.unlinkSync(hikari); } catch {}
+      });
+    }
+  },
+
+  {
+    command: ['smeme'],
+    aliases: ['write'],
+    description: 'Add words to a sticker',
+    category: 'media',
+    handler: async (client, m, { reply, text, mime, pushname }) => {
+                let responnd = `Quote an image with the 2 texts separated with |\nExample: smeme top text|bottom text`
+                if (!/image/.test(mime)) return reply(responnd)
+                if (!text) return reply(responnd)
+
+                atas = text.split('|')[0] ? text.split('|')[0].trim() : ''
+                bawah = text.split('|')[1] ? text.split('|')[1].trim() : ''
+
+                let dwnld = await client.downloadAndSaveMediaMessage(qmsg)
+
+                const Jimp = require('jimp')
+                const { Sticker, StickerTypes } = require('wa-sticker-formatter')
+                const image = await Jimp.read(dwnld)
+                const imgW = image.bitmap.width
+                const imgH = image.bitmap.height
+
+                const fontWhite = await Jimp.loadFont(Jimp.FONT_SANS_64_WHITE)
+                const fontBlack = await Jimp.loadFont(Jimp.FONT_SANS_64_BLACK)
+
+                const pad = 12
+                const textW = imgW - pad * 2
+                const outlineOffsets = [[-2,-2],[-2,2],[2,-2],[2,2],[-2,0],[2,0],[0,-2],[0,2]]
+
+                if (atas) {
+                    for (const [ox, oy] of outlineOffsets) {
+                        image.print(fontBlack, pad + ox, pad + oy, { text: atas, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
+                    }
+                    image.print(fontWhite, pad, pad, { text: atas, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
+                }
+
+                if (bawah) {
+                    const bottomY = imgH - 80
+                    for (const [ox, oy] of outlineOffsets) {
+                        image.print(fontBlack, pad + ox, bottomY + oy, { text: bawah, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
+                    }
+                    image.print(fontWhite, pad, bottomY, { text: bawah, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
+                }
+
+                const memeBuffer = await image.getBufferAsync(Jimp.MIME_JPEG)
+
+                const stickerMeme = new Sticker(memeBuffer, {
+                    pack: pushname,
+                    type: StickerTypes.FULL,
+                    quality: 70,
+                    background: 'transparent'
+                })
+                const stickerBuffer = await stickerMeme.toBuffer()
+                await client.sendMessage(m.chat, { sticker: stickerBuffer }, { quoted: m })
+
+                try { fs.unlinkSync(dwnld) } catch(e) {}
+            }
+       },
+                
   {
     command: ['vv'],
     aliases: ['retrieve'],
@@ -230,7 +310,7 @@ module.exports = [
     aliases: ['rbg'],
     description: 'remove background of a picture',
     category: 'media',
-    handler: async (client, m, { reply }) => {
+    handler: async (client, m, { reply, api }) => {
     try {
       const mime = m.quoted.mimetype || '';
       if (!m.quoted) return m.reply('Reply to an image to remove its background.');
@@ -242,7 +322,7 @@ module.exports = [
       const uploaded = await uploadToUguu(filePath);
       try { require('fs').unlinkSync(filePath); } catch(e) {}
 
-      const res = await axios.get(`https://apis.keithsite.top/ai/removebg?url=${encodeURIComponent(uploaded)}`);
+      const res = await axios.get(`${api}/ai/removebg?url=${encodeURIComponent(uploaded)}`);
       if (!res.data || !res.data.result) return m.reply('Failed to remove background. Try again.');
 
       await client.sendMessage(m.chat, {

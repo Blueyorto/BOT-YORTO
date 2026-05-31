@@ -2,7 +2,6 @@
 
 const axios = global.axios || require('axios');
 const fetch = require('node-fetch');
-const api = 'https://ravenn.site';
 const { uploadToUguu, uploadToImgBB } = require('../lib/uploads');
 
 module.exports = [
@@ -37,7 +36,7 @@ module.exports = [
     command: ['gemini'],
     description: 'AI chat (Gemini endpoint)',
     category: 'ai',
-    handler: async (client, m, { reply, text }) => {
+    handler: async (client, m, { reply, text, api }) => {
       if (!text) return reply('Please provide a context!');
       try {
         await m.reply('🤖 Thinking...');
@@ -57,7 +56,7 @@ module.exports = [
     aliases: ['chatgpt'],
     description: 'Chat with GPT-4',
     category: 'ai',
-    handler: async (client, m, { reply, text }) => {
+    handler: async (client, m, { reply, text, api }) => {
       if (!text) return reply('This is gemini ai Ask me something!');
       try {
         await m.reply('🤖 Thinking...');
@@ -77,7 +76,7 @@ module.exports = [
     aliases: ['imgai', 'analyze', 'geminivision'],
     description: 'Analyze an image with AI (quote an image)',
     category: 'ai',
-    handler: async (client, m, { reply, text }) => {
+    handler: async (client, m, { reply, text, api }) => {
       try {
         if (!m.quoted) return m.reply('📌 Reply to an image message to analyze it');
         if (!text) return m.reply('❌ Provide a question/instruction!');
@@ -158,7 +157,7 @@ module.exports = [
     aliases: ['img'],
     description: 'Search and send images',
     category: 'ai',
-    handler: async (client, m, { reply, text }) => {
+    handler: async (client, m, { reply, text, api }) => {
       if (!text) return reply(`📌 *Image Search*\n\n*Usage:* .image dog\n*Aliases:* .imgsearch, .photosearch`);
       await m.reply(`🔍 Searching for "${text}"...`);
       try {
