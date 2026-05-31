@@ -110,7 +110,7 @@ module.exports = [
         try { fs.unlinkSync(media); } catch {}
         if (err) return m.reply("❌ Conversion failed.");
         const buffer = fs.readFileSync(hikari);
-        client.sendMessage(m.chat, { image: buffer, caption: `𝗖𝗼𝗻𝘃𝗲𝗿𝘁𝗲𝗱 𝗯𝘆 𝐁𝐋𝐀𝐂𝐊-𝐌𝐃 𝐁𝐎𝐓` }, { quoted: m });
+        client.sendMessage(m.chat, { image: buffer, caption: `𝗖𝗼𝗻𝘃𝗲𝗿𝘁𝗲𝗱 𝗯𝘆 𝐁𝐋𝐀𝐂𝐊-𝐌𝐃` }, { quoted: m });
         try { fs.unlinkSync(hikari); } catch {}
       });
     }
@@ -122,7 +122,7 @@ module.exports = [
     description: 'Add words to a sticker',
     category: 'media',
     handler: async (client, m, { reply, text, mime, pushname }) => {
-                let responnd = `Quote an image with the 2 texts separated with |\nExample: ${prefix}smeme top text|bottom text`
+                let responnd = `Quote an image with the 2 texts separated with |\nExample: smeme top text|bottom text`
                 if (!/image/.test(mime)) return reply(responnd)
                 if (!text) return reply(responnd)
 
