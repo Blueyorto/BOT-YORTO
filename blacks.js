@@ -7,6 +7,7 @@ const util = require('util');
 global.axios = require('axios').default;
 const chalk = require('chalk');
 const speed = require('performance-now');
+const api = 'https://ravenn.site';
 const fetchSettings = require('./database/fetchSettings');
 const { antiDeleteHandler } = require('./lib/antidelete');
 const { botname, author, packname, mycode, admin, botAdmin, dev, group, bad, owner, NotOwner } = require('./set.js');
@@ -288,7 +289,7 @@ module.exports = raven = async (client, m, chatUpdate, store) => {
         body, budy, msgR, args, text, q, arg,        
         pushname, botNumber, itsMe, from, reply, sender,
         Owner, superUser: finalSuperUsers,        
-        quoted, mime, qmsg,       
+        quoted, mime, qmsg, api,      
         command, prefix, menutype, cmd, mode,    
         groupMetadata, groupName, participants, groupAdmin,
         isBotAdmin, isAdmin, groupSender, standardizeJid,
@@ -308,13 +309,13 @@ module.exports = raven = async (client, m, chatUpdate, store) => {
       }
     }
 
-    // ── No-prefix triggers (emojis, keywords without prefix) ─────────────────
+    // ── NO-PREFIX COMMAND DISPATCH ─────────────────
     if (!cmd && body && body.trim()) {
       const ctx = {
         body, budy, msgR, args, text, q, arg,
         pushname, botNumber, itsMe, from, reply, sender,
         Owner, superUser: finalSuperUsers,
-        quoted, mime, qmsg,
+        quoted, mime, qmsg, api,
         command, prefix, menutype, cmd, mode,
         groupMetadata, groupName, participants, groupAdmin,
         isBotAdmin, isAdmin, groupSender, standardizeJid,
@@ -324,7 +325,7 @@ module.exports = raven = async (client, m, chatUpdate, store) => {
       await handler.dispatchNoPrefix(body.trim(), client, m, ctx);
     }
 
-    // ── GPTDM — AI auto-reply in private chats ───────────────────────────────
+    // ── GPTDM — AI auto-reply in private chats only ───────────────────────────────
     if (gptdm === 'on' && !m.isGroup && !mek.key.fromMe && !cmd && body && body.trim()) {
       try {
         if (!global.gptConversations) global.gptConversations = new Map();
