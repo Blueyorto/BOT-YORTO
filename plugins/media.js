@@ -121,7 +121,7 @@ module.exports = [
     aliases: ['write'],
     description: 'Add words to a sticker',
     category: 'media',
-    handler: async (client, m, { reply, text, mime, pushname }) => {
+    handler: async (client, m, { reply, text, mime, pushname, qmsg }) => {
                 let responnd = `Quote an image with the 2 texts separated with |\nExample: smeme top text|bottom text`
                 if (!/image/.test(mime)) return reply(responnd)
                 if (!text) return reply(responnd)
