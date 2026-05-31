@@ -310,7 +310,7 @@ module.exports = [
     aliases: ['rbg'],
     description: 'remove background of a picture',
     category: 'media',
-    handler: async (client, m, { reply }) => {
+    handler: async (client, m, { reply, api }) => {
     try {
       const mime = m.quoted.mimetype || '';
       if (!m.quoted) return m.reply('Reply to an image to remove its background.');
@@ -322,7 +322,7 @@ module.exports = [
       const uploaded = await uploadToUguu(filePath);
       try { require('fs').unlinkSync(filePath); } catch(e) {}
 
-      const res = await axios.get(`https://apis.keithsite.top/ai/removebg?url=${encodeURIComponent(uploaded)}`);
+      const res = await axios.get(`${api}/ai/removebg?url=${encodeURIComponent(uploaded)}`);
       if (!res.data || !res.data.result) return m.reply('Failed to remove background. Try again.');
 
       await client.sendMessage(m.chat, {
