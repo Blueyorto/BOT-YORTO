@@ -126,8 +126,8 @@ module.exports = [
                 if (!/image/.test(mime)) return reply(responnd)
                 if (!text) return reply(responnd)
 
-                atas = text.split('|')[0] ? text.split('|')[0].trim() : ''
-                bawah = text.split('|')[1] ? text.split('|')[1].trim() : ''
+                const atas = text.split('|')[0] ? text.split('|')[0].trim() : ''
+                const bawah = text.split('|')[1] ? text.split('|')[1].trim() : ''
 
                 let dwnld = await client.downloadAndSaveMediaMessage(qmsg)
 
