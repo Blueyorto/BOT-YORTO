@@ -188,72 +188,82 @@ module.exports = [
     description: 'Add words to a sticker',
     category: 'media',
     handler: async (client, m, { reply, text, mime, pushname, qmsg }) => {
-                let responnd = `Quote an image with the 2 texts separated with |\nExample: smeme top text|bottom text`
-                if (!/image|webp/.test(mime)) return reply(responnd)
-                if (!text) return reply(responnd)
+    let responnd = `Quote an image or sticker with text separated by |\nExample: .smeme top text|bottom text`
+    if (!/image|webp/.test(mime)) return reply(responnd)
+    if (!text) return reply(responnd)
 
-                const atas = text.split('|')[0] ? text.split('|')[0].trim() : ''
-                const bawah = text.split('|')[1] ? text.split('|')[1].trim() : ''
+    const atas = text.split('|')[0] ? text.split('|')[0].trim() : ''
+    const bawah = text.split('|')[1] ? text.split('|')[1].trim() : ''
 
-                let dwnld = await client.downloadAndSaveMediaMessage(qmsg)
+    const Jimp = require('jimp')
+    const { Sticker, StickerTypes } = require('wa-sticker-formatter')
+    const os = require('os')
+    const path = require('path')
 
-                const Jimp = require('jimp')
-                const { Sticker, StickerTypes } = require('wa-sticker-formatter')
-                const image = await Jimp.read(dwnld)
-                const imgW = image.bitmap.width
-                const imgH = image.bitmap.height
+    let dwnld = await client.downloadAndSaveMediaMessage(qmsg)
 
-                const fontWhite = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE)
-                const fontBlack = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK)
+    let image
+    try {
+        image = await Jimp.read(dwnld)
+    } catch (e) {
+        // Try sharp as fallback for webp stickers
+        const sharp = require('sharp')
+        const id = Date.now()
+        const pngPath = path.join(os.tmpdir(), `sticker_${id}.png`)
+        await sharp(dwnld).png().toFile(pngPath)
+        image = await Jimp.read(pngPath)
+        try { fs.unlinkSync(pngPath) } catch {}
+    }
 
-                const pad = 12
-                const textW = imgW - pad * 2
-      const outlineOffsets = [
-  [-4,-4],[-4,4],[4,-4],[4,4],
-  [-4,0],[4,0],[0,-4],[0,4],
-  [-3,-3],[-3,3],[3,-3],[3,3],
-  [-2,-2],[-2,2],[2,-2],[2,2]
-]
-                if (atas) {
-                    for (const [ox, oy] of outlineOffsets) {
-                        image.print(fontBlack, pad + ox, pad + oy, { text: atas, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
-                    }
-                    image.print(fontWhite, pad, pad, { text: atas, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
-                }
+    const imgW = image.bitmap.width
+    const imgH = image.bitmap.height
 
-                if (bawah) {
-                    const bottomY = imgH - 80
-                    for (const [ox, oy] of outlineOffsets) {
-                        image.print(fontBlack, pad + ox, bottomY + oy, { text: bawah, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
-                    }
-                    image.print(fontWhite, pad, bottomY, { text: bawah, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
-                }
+    const fontWhite = await Jimp.loadFont(Jimp.FONT_SANS_64_WHITE)
+    const fontBlack = await Jimp.loadFont(Jimp.FONT_SANS_64_BLACK)
 
-                const memeBuffer = await image.getBufferAsync(Jimp.MIME_JPEG)
+    const pad = 12
+    const textW = imgW - pad * 2
+    const outlineOffsets = [
+        [-4,-4],[-4,4],[4,-4],[4,4],
+        [-4,0],[4,0],[0,-4],[0,4],
+        [-3,-3],[-3,3],[3,-3],[3,3],
+        [-2,-2],[-2,2],[2,-2],[2,2]
+    ]
 
-      // Resize image to proper sticker dimensions with padding
-const stickerSize = 512
-const padded = await image.clone()
-  .contain(stickerSize, stickerSize)
-  .background(0x00000000)
+    if (atas) {
+        for (const [ox, oy] of outlineOffsets) {
+            image.print(fontBlack, pad + ox, pad + oy, { text: atas, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
+        }
+        image.print(fontWhite, pad, pad, { text: atas, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
+    }
 
-const paddedBuffer = await padded.getBufferAsync(Jimp.MIME_PNG)
+    if (bawah) {
+        const bottomY = imgH - 80
+        for (const [ox, oy] of outlineOffsets) {
+            image.print(fontBlack, pad + ox, bottomY + oy, { text: bawah, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
+        }
+        image.print(fontWhite, pad, bottomY, { text: bawah, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
+    }
 
-const stickerMeme = new Sticker(paddedBuffer, {
-    pack: pushname,
-    author: 'BLACK-MD',
-    type: StickerTypes.DEFAULT,
-    categories: ['🤩'],
-    quality: 100,
-    background: 'transparent'
-})
- 
-                const stickerBuffer = await stickerMeme.toBuffer()
-                await client.sendMessage(m.chat, { sticker: stickerBuffer }, { quoted: m })
+    const stickerSize = 512
+    const padded = image.clone()
+        .contain(stickerSize, stickerSize)
+        .background(0x00000000)
+    const paddedBuffer = await padded.getBufferAsync(Jimp.MIME_PNG)
 
-                try { fs.unlinkSync(dwnld) } catch(e) {}
-            }
-       },
+    const stickerMeme = new Sticker(paddedBuffer, {
+        pack: pushname,
+        author: 'BLACK-MD',
+        type: StickerTypes.DEFAULT,
+        quality: 100,
+        background: 'transparent'
+    })
+    const stickerBuffer = await stickerMeme.toBuffer()
+    await client.sendMessage(m.chat, { sticker: stickerBuffer }, { quoted: m })
+
+    try { fs.unlinkSync(dwnld) } catch(e) {}
+      }
+      },
                 
   {
     command: ['vv'],
