@@ -242,42 +242,76 @@ module.exports = [
 
   {
     command: ['getpfp'],
-    aliases: ['dp'],
+    aliases: ['dp', 'getpp'],
     description: 'Get the profile picture of any number',
     category: 'media',
     handler: async (client, m, { reply, text }) => {
       let jid = text ? text.replace(/[^0-9]/g, '') + '@s.whatsapp.net' : m.quoted?.sender || m.sender;
       let pp;
       try { pp = await client.profilePictureUrl(jid, 'image'); }
-      catch { return reply('Could not fetch profile picture. The number may not exist or has hidden their picture.'); }
+      catch { return reply('Could not fetch profile picture. The number has hidden their profile picture or not registered on WhatsApp.'); }
       client.sendMessage(m.chat, { image: { url: pp }, caption: `Profile picture of @${jid.split('@')[0]}` }, { quoted: m });
     }
   },
 
   {
-    command: ['tovideo'],
-    aliases: ['mp4', 'tovid'],
-    description: 'Convert animated sticker to video',
-    category: 'media',
-    handler: async (client, m, { reply, quoted, mime, prefix, command }) => {
-      if (!quoted) return reply(`📎 Reply to an *animated sticker* with *${prefix + command}* to convert it to a video`);
-      if (!/webp/.test(mime)) return reply(`⚠️ That's not a sticker. Reply to an animated sticker with *${prefix + command}*`);
-      let media, outputPath;
-      try {
-        await m.reply('🎬 _Converting sticker to video..._');
-        media = await client.downloadMediaMessage(quoted);
-        const converted = await webp2mp4File(media);
-        outputPath = converted.result;
-        const videoBuffer = fs.readFileSync(outputPath);
-        await client.sendMessage(m.chat, { video: videoBuffer, caption: '🎬 *Sticker → Video*\n_Converted with ffmpeg_' }, { quoted: m });
-      } catch (err) {
-        m.reply('❌ Conversion failed. Make sure it is an *animated* sticker (not a static one).');
-      } finally {
-        try { if (media) fs.unlinkSync(media); } catch {}
-        try { if (outputPath) fs.unlinkSync(outputPath); } catch {}
+  command: ['tovideo'],
+  aliases: ['mp4', 'tovid'],
+  description: 'Convert animated sticker to video',
+  category: 'media',
+  handler: async (client, m, { reply, prefix, command }) => {
+    if (!m.quoted) return reply(`📎 Reply to an *animated sticker* with *${prefix + command}*`);
+    const mime = (m.quoted.msg || m.quoted).mimetype || '';
+    if (!/webp/.test(mime)) return reply(`⚠️ That's not a sticker.`);
+    try {
+      await m.reply('🎬 _Converting sticker to video..._');
+      const buf = await m.quoted.download();
+      const sharp = require('sharp');
+      const os = require('os');
+      const path = require('path');
+      const { execSync } = require('child_process');
+      const ffmpegPath = require('ffmpeg-static');
+      const id = Date.now();
+      const tmpDir = os.tmpdir();
+      const framesDir = path.join(tmpDir, `frames_${id}`);
+      const outputPath = path.join(tmpDir, `video_${id}.mp4`);
+      fs.mkdirSync(framesDir, { recursive: true });
+      
+      const image = sharp(buf, { animated: true });
+      const metadata = await image.metadata();
+      const pages = metadata.pages || 1;
+      if (pages <= 1) return reply('⚠️ This is a *static* sticker, not animated!');
+      
+      for (let i = 0; i < pages; i++) {
+        const frameBuf = await sharp(buf, { animated: false, page: i })
+          .png()
+          .toBuffer();
+        const framePath = path.join(framesDir, `frame_${String(i).padStart(4, '0')}.png`);
+        fs.writeFileSync(framePath, frameBuf);
       }
+      
+      try {
+        execSync(
+          `"${ffmpegPath}" -y -framerate 15 -i "${framesDir}/frame_%04d.png" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -pix_fmt yuv420p -movflags faststart "${outputPath}"`,
+          { timeout: 60000, stdio: 'pipe' }
+        );
+      } catch (e) {
+        return m.reply('❌ ffmpeg error: ' + e.stderr?.toString()?.slice(0, 200));
+      }
+      if (!fs.existsSync(outputPath)) return m.reply('❌ Output file not created');
+      const videoBuffer = fs.readFileSync(outputPath);
+      await client.sendMessage(m.chat, {
+        video: videoBuffer,
+        caption: '*Sticker converted successfully to Video*'
+      }, { quoted: m });
+      
+      try { fs.rmSync(framesDir, { recursive: true }); } catch {}
+      try { fs.unlinkSync(outputPath); } catch {}
+    } catch (err) {
+      m.reply('❌ Error: ' + err.message);
     }
-  },
+  }
+},
 
   {
     command: ['toaudio'],
@@ -335,6 +369,46 @@ module.exports = [
     }
   }
   },
+  
+  {
+  command: ['similarimage'],
+  aliases: ['reverseimage', 'ri'],
+  description: 'Find similar images using reverse image search',
+  category: 'media',
+  handler: async (client, m, { reply, from, api, mime }) => {
+    if (!m.quoted) return m.reply('Reply to an image only.');
+    if (!/image/.test(mime)) return reply('📌 That is not an image!');
+    try {
+      await reply('🔎 Searching for similar images...');
+      // Download the quoted image
+      const buf = await client.downloadAndSaveMediaMessage(m.quoted);
+      
+      const imageUrl = await uploadToUguu(buf);
+      // Call reverse image API
+      const res = await global.axios.get(`${api}/search/reverseimage?url=${encodeURIComponent(imageUrl)}`);
+      const data = res.data;
+      if (!data?.result?.similarImages?.length) return reply('❌ No similar images found.');
+      const similarImages = data.result.similarImages.slice(0, 10);
+      // Send as album
+      const album = [];
+      for (let i = 0; i < similarImages.length; i++) {
+        const img = similarImages[i];
+        const url = img.thumbnailUrl || img.url;
+        if (url) {
+          album.push({
+            image: { url },
+            caption: i === 0 ? `🔍 *Similar Images Found*\n📸 ${similarImages.length} results` : undefined
+          });
+        }
+      }
+      if (!album.length) return reply('❌ Failed to load similar images.');
+      await client.sendMessage(from, { album }, { quoted: m });
+    } catch (err) {
+      await reply('❌ Error: ' + err.message);
+    }
+  }
+},
+  
   
   {
     command: ['save'],

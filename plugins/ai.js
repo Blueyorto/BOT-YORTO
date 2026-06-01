@@ -15,7 +15,7 @@ module.exports = [
     handler: async (client, m, { reply, text }) => {
       if (!text) return reply(`✳️ Example: .ai What is the capital of Kenya?`);
       try {
-        await m.reply('🤖 Thinking...');
+        let msg = await client.sendMessage(m.chat, { text: `🤖 Thinking...` }, { quoted: m });
         const quotedContext = m.quoted && m.quoted.text
           ? `Context: "${m.quoted.text}"\nQuestion: ${text}`
           : text;
@@ -23,29 +23,11 @@ module.exports = [
           `https://apis.xcasper.space/api/ai/gemini?prompt=${encodeURIComponent(quotedContext)}`
         );
         const data = await apiRes.json();
-        if (!data || !data.success || !data.reply) return m.reply('❌ Gemini returned no response. Try again.');
-        await m.reply(data.reply);
+        if (!data || !data.success || !data.reply) await client.sendMessage(m.chat, { text: `❌ No response from AI`, edit: msg.key }, { quoted: m });
+        let replyText = data.reply;
+        await client.sendMessage(m.chat, { text: `*${replyText}*`, edit: msg.key }, { quoted: m });
       } catch (err) {
-        m.reply('❌ Error connecting to Gemini. Try again later.');
-      }
-    }
-  },
-
-  // ── .gemini — GPT via ravennsite ──────────────────────────────────────────
-  {
-    command: ['gemini'],
-    description: 'AI chat (Gemini endpoint)',
-    category: 'ai',
-    handler: async (client, m, { reply, text, api }) => {
-      if (!text) return reply('Please provide a context!');
-      try {
-        await m.reply('🤖 Thinking...');
-        const res = await axios.get(`${api}/ai/gpt?q=${encodeURIComponent(text)}`);
-        const data = res.data;
-        if (!data?.status || !data?.result) return m.reply('❌ No response from API.');
-        await m.reply(data.result);
-      } catch (err) {
-        m.reply('❌ Error getting AI response.');
+        m.reply('❌ Error connecting to APIs. Try again later.');
       }
     }
   },
@@ -57,20 +39,47 @@ module.exports = [
     description: 'Chat with GPT-4',
     category: 'ai',
     handler: async (client, m, { reply, text, api }) => {
-      if (!text) return reply('This is gemini ai Ask me something!');
+      if (!text) return reply('This is GPT-4 Ask me something!');
       try {
-        await m.reply('🤖 Thinking...');
+        let msg = await client.sendMessage(m.chat, { text: `🤖 Thinking...` }, { quoted: m });
         const res = await axios.get(`${api}/ai/gpt4?q=${encodeURIComponent(text)}`);
         const data = res.data;
-        if (!data?.status || !data?.result) return m.reply('❌ No response from AI.');
-        await m.reply(data.result);
+        
+        if (!data?.status || !data?.result) await client.sendMessage(m.chat, { text: `❌ No response from AI`, edit: msg.key }, { quoted: m });
+        
+        let replyText = data.result;     
+        await client.sendMessage(m.chat, { text: `*${replyText}*`, edit: msg.key }, { quoted: m });
+        
       } catch (err) {
         m.reply('❌ Error getting AI response.');
       }
     }
   },
-
-  // ── .vision / .imgai / .analyze / .geminivision — Image analysis ─────────
+  
+  // ── .gemini — GPT via ravennsite ──────────────────────────────────────────
+  {
+    command: ['gemini'],
+    aliases: ['ai2'],
+    description: 'AI chat (Gemini endpoint)',
+    category: 'ai',
+    handler: async (client, m, { reply, text, api }) => {
+      if (!text) return reply('Please provide a context!');
+      try {
+        let msg = await client.sendMessage(m.chat, { text: `🤖 Thinking...` }, { quoted: m });
+        const res = await axios.get(`${api}/ai/gpt?q=${encodeURIComponent(text)}`);
+        const data = res.data;
+        
+        if (!data?.status || !data?.result) await client.sendMessage(m.chat, { text: `❌ No response from AI`, edit: msg.key }, { quoted: m });
+let replyText = data.result;
+   await client.sendMessage(m.chat, { text: `*${replyText}*`, edit: msg.key }, { quoted: m });     
+        
+      } catch (err) {
+        m.reply('❌ Error getting AI response.');
+      }
+    }
+  },
+ 
+  // ── .vision / .imgai / .analyze / .geminivision — Image analysis via ravennsite ─────────
   {
     command: ['vision'],
     aliases: ['imgai', 'analyze', 'geminivision'],
@@ -175,9 +184,9 @@ module.exports = [
           }
         }
         if (album.length === 0) return m.reply('❌ Failed to load images.');
-        for (const item of album) {
-          await client.sendMessage(m.chat, item, { quoted: m });
-        }
+      
+          await client.sendMessage(m.chat, { album }, { quoted: m });
+        
       } catch (err) {
         m.reply('❌ Error: ' + err.message);
       }
@@ -228,35 +237,6 @@ module.exports = [
         if (sent === 0) m.reply("❌ Found results but couldn't load the images. Try again.");
       } catch (err) {
         m.reply('❌ Image search failed. Please try again.');
-      }
-    }
-  },
-
-  // ── .dalle / .createimage / .imagine — Image generation via Pollinations ──
-  {
-    command: ['dalle'],
-    aliases: ['createimage', 'imagine'],
-    description: 'Generate AI image (dalle/imagine)',
-    category: 'ai',
-    handler: async (client, m, { reply, text, prefix }) => {
-      if (!text) return reply(`Usage Example: ${prefix}imagine beautiful anime girl in a forest\n\nFlags you can add:\n  --wide   → landscape (1024×576)\n  --tall   → portrait (576×1024)\n  --turbo  → faster, less detail\n\nDefault size is square (512×512)`);
-      try {
-        await m.reply('🎨 _Generating your image, please wait..._');
-        let prompt = text;
-        let width = 512, height = 512;
-        let model = 'flux';
-        if (prompt.includes('--wide'))  { width = 1024; height = 576;  prompt = prompt.replace('--wide', '').trim(); }
-        if (prompt.includes('--tall'))  { width = 576;  height = 1024; prompt = prompt.replace('--tall', '').trim(); }
-        if (prompt.includes('--turbo')) { model = 'turbo';              prompt = prompt.replace('--turbo', '').trim(); }
-        const seed = Math.floor(Math.random() * 999999);
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?model=${model}&width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=true`;
-        const imgRes = await fetch(imageUrl, { timeout: 60000 });
-        if (!imgRes.ok) return m.reply('❌ Image generation failed. Try a different prompt.');
-        const imageBuffer = await imgRes.buffer();
-        const caption = `*Model:* ${model === 'turbo' ? 'Flux Turbo ⚡' : 'Flux ✨'}\n*Size:* ${width}×${height}px`;
-        await client.sendMessage(m.chat, { image: imageBuffer, caption }, { quoted: m });
-      } catch (err) {
-        m.reply('❌ Something went wrong generating the image. Try again later.');
       }
     }
   },
@@ -314,6 +294,35 @@ module.exports = [
     }
   },
 
+// ── .dalle / .createimage / .imagine — Image generation via Pollinations ──
+  {
+    command: ['imagine'],
+    aliases: ['createimage', 'dalle'],
+    description: 'Generate AI image (dalle/imagine)',
+    category: 'ai',
+    handler: async (client, m, { reply, text, prefix }) => {
+      if (!text) return reply(`Usage Example: ${prefix}imagine beautiful anime girl in a forest\n\nFlags you can add:\n  --wide   → landscape (1024×576)\n  --tall   → portrait (576×1024)\n  --turbo  → faster, less detail\n\nDefault size is square (512×512)`);
+      try {
+        await m.reply('🎨 _Generating your image, please wait..._');
+        let prompt = text;
+        let width = 512, height = 512;
+        let model = 'flux';
+        if (prompt.includes('--wide'))  { width = 1024; height = 576;  prompt = prompt.replace('--wide', '').trim(); }
+        if (prompt.includes('--tall'))  { width = 576;  height = 1024; prompt = prompt.replace('--tall', '').trim(); }
+        if (prompt.includes('--turbo')) { model = 'turbo';              prompt = prompt.replace('--turbo', '').trim(); }
+        const seed = Math.floor(Math.random() * 999999);
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?model=${model}&width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=true`;
+        const imgRes = await fetch(imageUrl, { timeout: 60000 });
+        if (!imgRes.ok) return m.reply('❌ Image generation failed. Try a different prompt.');
+        const imageBuffer = await imgRes.buffer();
+        const caption = `*Model:* ${model === 'turbo' ? 'Flux Turbo ⚡' : 'Flux ✨'}\n*Size:* ${width}×${height}px`;
+        await client.sendMessage(m.chat, { image: imageBuffer, caption }, { quoted: m });
+      } catch (err) {
+        m.reply('❌ Something went wrong generating the image. Try again later.');
+      }
+    }
+  },
+  
   // ── .wormgpt / .worm — Unrestricted AI via Pollinations ──────────────────
   {
     command: ['wormgpt'],
@@ -322,8 +331,10 @@ module.exports = [
     category: 'ai',
     handler: async (client, m, { reply, text, prefix }) => {
       if (!text) return reply(`🤖 *WORMGPT — Unrestricted AI*\nExample usage: ${prefix}wormgpt write a phishing email example`);
-      await reply('🧠 *WormGPT* is Thinking...');
+    
       try {
+        let msg = await client.sendMessage(m.chat, { text: `🧠 *WormGPT* is Thinking...` }, { quoted: m });
+        
         const wormRes = await axios.post('https://text.pollinations.ai/', {
           messages: [
             {
@@ -341,8 +352,10 @@ module.exports = [
         const answer = typeof wormRes.data === 'string'
           ? wormRes.data.trim()
           : (wormRes.data?.choices?.[0]?.message?.content || '').trim();
-        if (!answer) return reply('❌ No response from Api, try again later.');
-        await reply(answer);
+        if (!answer) await client.sendMessage(m.chat, { text: `❌ No response from AI`, edit: msg.key }, { quoted: m });
+        
+        await client.sendMessage(m.chat, { text: `*${answer}*`, edit: msg.key }, { quoted: m });
+        
       } catch (err) {
         reply('❌ WormGPT Error...');
       }
