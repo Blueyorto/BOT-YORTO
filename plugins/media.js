@@ -21,25 +21,58 @@ module.exports = [
       else return m.reply('That is neither an image nor a short video!');
       let result = await client.downloadAndSaveMediaMessage(media);
       const Jimp = require('jimp');
-const stickerSize = 512;
-const img = await Jimp.read(result);
-const padded = await img.clone()
-  .contain(stickerSize, stickerSize)
-  .background(0x00000000);
-const paddedBuffer = await padded.getBufferAsync(Jimp.MIME_PNG);
+const os = require('os');
+const path = require('path');
+const { execSync } = require('child_process');
+const ffmpegPath = require('ffmpeg-static');
+const mime2 = require('mime-types');
+const fileType = mime2.lookup(result) || '';
 
-let stickerResult = new Sticker(paddedBuffer, {
-    pack: pushname,
-    author: 'BLACK-MD',
-    type: StickerTypes.DEFAULT,
-    categories: ['🤩', '🎉'],
-    quality: 100,
-    background: 'transparent',
-});
-      const buf = await stickerResult.toBuffer();
-      client.sendMessage(m.chat, { sticker: buf }, { quoted: m });
+let stickerResult;
+if (/video/.test(fileType) || /video/.test(mime)) {
+    // Reshape video to 512x512 with padding using ffmpeg
+    const id = Date.now();
+    const outputPath = path.join(os.tmpdir(), `vsticker_${id}.mp4`);
+    try {
+        execSync(
+            `"${ffmpegPath}" -y -i "${result}" -vf "scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000" -pix_fmt yuva420p -movflags faststart "${outputPath}"`,
+            { timeout: 30000, stdio: 'pipe' }
+        );
+    } catch (e) {
+        return m.reply('❌ Video reshape failed: ' + e.message);
     }
-  },
+    stickerResult = new Sticker(outputPath, {
+        pack: pushname,
+        author: 'BLACK-MD',
+        type: StickerTypes.DEFAULT,
+        categories: ['🤩', '🎉'],
+        quality: 100,
+        background: 'transparent',
+    });
+    const buf = await stickerResult.toBuffer();
+    client.sendMessage(m.chat, { sticker: buf }, { quoted: m });
+    try { fs.unlinkSync(outputPath); } catch {}
+} else {
+    // Image sticker — reshape with Jimp
+    const stickerSize = 512;
+    const img = await Jimp.read(result);
+    const padded = img.clone()
+        .contain(stickerSize, stickerSize)
+        .background(0x00000000);
+    const paddedBuffer = await padded.getBufferAsync(Jimp.MIME_PNG);
+    stickerResult = new Sticker(paddedBuffer, {
+        pack: pushname,
+        author: 'BLACK-MD',
+        type: StickerTypes.DEFAULT,
+        categories: ['🤩', '🎉'],
+        quality: 100,
+        background: 'transparent',
+    });
+    const buf = await stickerResult.toBuffer();
+    client.sendMessage(m.chat, { sticker: buf }, { quoted: m });
+}
+    }
+},
 
   {
     command: ['take'],
@@ -57,25 +90,59 @@ let stickerResult = new Sticker(paddedBuffer, {
       else return m.reply('This is neither a sticker, image nor a video...');
       let result = await client.downloadAndSaveMediaMessage(media);
       const Jimp = require('jimp');
-const stickerSize = 512;
-const img = await Jimp.read(result);
-const padded = await img.clone()
-  .contain(stickerSize, stickerSize)
-  .background(0x00000000);
-const paddedBuffer = await padded.getBufferAsync(Jimp.MIME_PNG);
+const os = require('os');
+const path = require('path');
+const { execSync } = require('child_process');
+const ffmpegPath = require('ffmpeg-static');
+const mime2 = require('mime-types');
+const fileType = mime2.lookup(result) || '';
 
-let stickerResult = new Sticker(paddedBuffer, {
-    pack: pushname,
-    author: 'BLACK-MD',
-    type: StickerTypes.DEFAULT,
-    categories: ['🤩', '🎉'],
-    quality: 100,
-    background: 'transparent',
-});
-      const buf = await stickerResult.toBuffer();
-      client.sendMessage(m.chat, { sticker: buf }, { quoted: m });
+let stickerResult;
+if (/video/.test(fileType) || /video/.test(mime)) {
+    // Reshape video to 512x512 with padding using ffmpeg
+    const id = Date.now();
+    const outputPath = path.join(os.tmpdir(), `vsticker_${id}.mp4`);
+    try {
+        execSync(
+            `"${ffmpegPath}" -y -i "${result}" -vf "scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000" -pix_fmt yuva420p -movflags faststart "${outputPath}"`,
+            { timeout: 30000, stdio: 'pipe' }
+        );
+    } catch (e) {
+        return m.reply('❌ Video reshape failed: ' + e.message);
+    }
+    stickerResult = new Sticker(outputPath, {
+        pack: pushname,
+        author: 'BLACK-MD',
+        type: StickerTypes.DEFAULT,
+        categories: ['🤩', '🎉'],
+        quality: 100,
+        background: 'transparent',
+    });
+    const buf = await stickerResult.toBuffer();
+    client.sendMessage(m.chat, { sticker: buf }, { quoted: m });
+    try { fs.unlinkSync(outputPath); } catch {}
+} else {
+    // Image sticker — reshape with Jimp
+    const stickerSize = 512;
+    const img = await Jimp.read(result);
+    const padded = img.clone()
+        .contain(stickerSize, stickerSize)
+        .background(0x00000000);
+    const paddedBuffer = await padded.getBufferAsync(Jimp.MIME_PNG);
+    stickerResult = new Sticker(paddedBuffer, {
+        pack: pushname,
+        author: 'BLACK-MD',
+        type: StickerTypes.DEFAULT,
+        categories: ['🤩', '🎉'],
+        quality: 100,
+        background: 'transparent',
+    });
+    const buf = await stickerResult.toBuffer();
+    client.sendMessage(m.chat, { sticker: buf }, { quoted: m });
+      }
     }
   },
+  
 {
     command: ['mix'],
     aliases: ['emojimix'],
