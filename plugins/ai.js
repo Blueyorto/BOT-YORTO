@@ -57,13 +57,17 @@ module.exports = [
     description: 'Chat with GPT-4',
     category: 'ai',
     handler: async (client, m, { reply, text, api }) => {
-      if (!text) return reply('This is gemini ai Ask me something!');
+      if (!text) return reply('This is GPT-4 Ask me something!');
       try {
-        await m.reply('🤖 Thinking...');
+        let msg = await client.sendMessage(m.chat, { text: `🤖 Thinking...` }, { quoted: m });
         const res = await axios.get(`${api}/ai/gpt4?q=${encodeURIComponent(text)}`);
         const data = res.data;
-        if (!data?.status || !data?.result) return m.reply('❌ No response from AI.');
-        await m.reply(data.result);
+        
+        if (!data?.status || !data?.result) await client.sendMessage(m.chat, { text: `❌ No response from AI`, edit: msg.key }, { quoted: m });
+        
+        let replyText = data.result;     
+        await client.sendMessage(m.chat, { text: `*${replyText}*`, edit: msg.key }, { quoted: m });
+        
       } catch (err) {
         m.reply('❌ Error getting AI response.');
       }
