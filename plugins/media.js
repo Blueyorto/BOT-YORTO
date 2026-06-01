@@ -255,6 +255,57 @@ module.exports = [
   },
 
   {
+  command: ['tovide'],
+  aliases: ['mp', 'tovi'],
+  description: 'Convert animated sticker to video',
+  category: 'media',
+  handler: async (client, m, { reply, prefix, command }) => {
+    if (!m.quoted) return reply(`📎 Reply to an *animated sticker* with *${prefix + command}* to convert it to a video`);
+    const mime = (m.quoted.msg || m.quoted).mimetype || '';
+    if (!/webp/.test(mime)) return reply(`⚠️ That's not a sticker. Reply to an animated sticker with *${prefix + command}*`);
+    try {
+      await m.reply('🎬 _Converting sticker to video..._');
+      const buf = await client.downloadAndSaveMediaMessage(m.quoted);
+      const sharp = require('sharp');
+      const ffmpeg = require('fluent-ffmpeg');
+      const ffmpegPath = require('ffmpeg-static');
+      ffmpeg.setFfmpegPath(ffmpegPath);
+      const os = require('os');
+      const path = require('path');
+      // Extract frames from animated webp using sharp
+      const tmpDir = os.tmpdir();
+      const framePattern = path.join(tmpDir, `frame_${Date.now()}_%03d.png`);
+      const outputPath = path.join(tmpDir, `video_${Date.now()}.mp4`);
+      // Save webp buffer to temp file
+      const webpPath = path.join(tmpDir, `sticker_${Date.now()}.webp`);
+      fs.writeFileSync(webpPath, buf);
+      await new Promise((resolve, reject) => {
+        ffmpeg(webpPath)
+          .outputOptions([
+            '-movflags', 'faststart',
+            '-pix_fmt', 'yuv420p',
+            '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2'
+          ])
+          .toFormat('mp4')
+          .on('end', resolve)
+          .on('error', reject)
+          .save(outputPath);
+      });
+      const videoBuffer = fs.readFileSync(outputPath);
+      await client.sendMessage(m.chat, {
+        video: videoBuffer,
+        caption: '🎬 *Sticker → Video*'
+      }, { quoted: m });
+      // Cleanup
+      try { fs.unlinkSync(webpPath); } catch {}
+      try { fs.unlinkSync(outputPath); } catch {}
+    } catch (err) {
+      m.reply('❌ Conversion failed: ' + err.message);
+    }
+  }
+},
+
+  {
     command: ['tovideo'],
     aliases: ['mp4', 'tovid'],
     description: 'Convert animated sticker to video',
