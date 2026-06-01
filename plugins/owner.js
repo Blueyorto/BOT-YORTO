@@ -543,10 +543,22 @@ module.exports = [
     aliases: ['exec', '=>'],
     description: 'Evaluate a bot Baileys function',
     category: 'owner',
-    handler: async (client, m, { reply, Owner, NotOwner, text }) => {
+    handler: async (client, m, { body, budy, msgR, args, text, q, arg,        
+        pushname, botNumber, itsMe, from, reply, sender,
+        Owner, superUserSet, finalSuperUsers,        
+        quoted, mime, qmsg, api,      
+        command, prefix, menutype, cmd, mode,    
+        groupMetadata, groupName, participants, groupAdmin,
+        isBotAdmin, isAdmin, groupSender, standardizeJid,
+        admin, botAdmin, group, NotOwner, resolveLid,
+        Rspeed, date, convertTimestamp, generateProfilePicture }) => {
       if (!Owner) return m.reply(NotOwner);
       if (!text) return reply('Provide a valid Bot Baileys Function to evaluate');
       try {
+        
+        const store = client.store;
+        const fetchSettings = require('../database').fetchSettings;
+        
         let evaled = await eval(text);
         if (typeof evaled !== 'string') evaled = require('util').inspect(evaled);
         await reply(evaled);
