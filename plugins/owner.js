@@ -146,6 +146,7 @@ module.exports = [
 
   {
     command: ['prefix'],
+    noprefix: ['getprefix'],
     description: 'Change bot command prefix',
     category: 'owner',
     handler: async (client, m, { reply, Owner, NotOwner, args }) => {
