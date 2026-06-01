@@ -169,7 +169,7 @@ module.exports = [
 const stickerSize = 512
 const padded = await image.clone()
   .contain(stickerSize, stickerSize)
-  .background({ r: 0, g: 0, b: 0, a: 0 })
+  .background(0x00000000)
 
 const paddedBuffer = await padded.getBufferAsync(Jimp.MIME_PNG)
 
