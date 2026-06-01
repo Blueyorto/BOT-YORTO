@@ -337,6 +337,46 @@ module.exports = [
   },
   
   {
+  command: ['similarimage', 'ri'],
+  description: 'Reverse image search using a replied image',
+  category: 'media',
+  handler: async (client, m, { reply, api }) => {
+    if (!m.quoted || !m.quoted.msg) return reply('Reply to an image to reverse search it!');
+    const mime = m.quoted.msg.mimetype || '';
+    if (!mime.startsWith('image')) return reply('Reply to an *image* only!');
+    try {
+      await reply('🔍 Searching...');
+      const buf = await m.quoted.download();
+      const fetch = require('node-fetch');
+      const FormData = require('form-data');
+      const form = new FormData();
+      form.append('file', buf, { filename: 'image.jpg', contentType: mime });
+      // Upload to get a public URL first (using telegra.ph)
+      const upload = await fetch('https://telegra.ph/upload', {
+        method: 'POST',
+        body: form
+      });
+      const uploadData = await upload.json();
+      if (!uploadData || uploadData.error) return reply('Failed to upload image!');
+      const imageUrl = 'https://telegra.ph' + uploadData[0].src;
+      // Now call the reverse image API
+      const res = await fetch(`${api}/search/reverseimage?url=${encodeURIComponent(imageUrl)}`);
+      const data = await res.json();
+      if (!data || data.error) return reply('No results found!');
+      const results = data.results?.slice(0, 5) || [];
+      if (!results.length) return reply('No results found for this image!');
+      let msg = `╔══════════════════════╗\n║  🔍 REVERSE IMAGE SEARCH  \n╚══════════════════════╝\n\n`;
+      results.forEach((r, i) => {
+        msg += `*${i + 1}.* ${r.title || 'No title'}\n┣ 🌐 ${r.url || r.link || 'N/A'}\n┗ 📝 ${r.snippet || r.description || 'No description'}\n\n`;
+      });
+      await reply(msg);
+    } catch (e) {
+      await reply('Error: ' + e.message);
+    }
+  }
+},
+  
+  {
     command: ['save'],
     aliases: ['forward'],
     description: 'Save a status message to DM',
