@@ -340,13 +340,12 @@ module.exports = [
   command: ['similarimage', 'ri'],
   description: 'Reverse image search using a replied image',
   category: 'media',
-  handler: async (client, m, { reply, api }) => {
-    if (!m.quoted || !m.quoted.msg) return reply('Reply to an image to reverse search it!');
-    const mime = m.quoted.msg.mimetype || '';
-    if (!mime.startsWith('image')) return reply('Reply to an *image* only!');
+  handler: async (client, m, { reply, api, mime }) => {
+    if (!m.quoted) return reply('Reply to an image to reverse search it!');
+    if (!/image/.test(mime)) return reply('Reply to an *image* only!');
     try {
       await reply('🔍 Searching...');
-      const buf = await m.quoted.download();
+      const buf = await client.downloadAndSaveMediaMessage(m.quoted);
       const fetch = require('node-fetch');
       const FormData = require('form-data');
       const form = new FormData();
