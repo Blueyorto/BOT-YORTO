@@ -218,8 +218,8 @@ module.exports = [
     const imgW = image.bitmap.width
     const imgH = image.bitmap.height
 
-    const fontWhite = await Jimp.loadFont(Jimp.FONT_SANS_64_WHITE)
-    const fontBlack = await Jimp.loadFont(Jimp.FONT_SANS_64_BLACK)
+    const fontWhite = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE)
+    const fontBlack = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK)
 
     const pad = 12
     const textW = imgW - pad * 2
