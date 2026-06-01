@@ -6,150 +6,125 @@ const { uploadToUguu, Webp2mp4File } = require('../lib/uploads');
 
 module.exports = [
 
-  {
-    command: ['sticker'],
-    aliases: ['s'],
-    description: 'Convert image/video to sticker',
-    category: 'media',
-    handler: async (client, m, { reply, msgR, mime }) => {
-      const { Sticker, StickerTypes } = require('wa-sticker-formatter');
-      const pushname = m.pushName || 'No Name';
-      if (!msgR) return m.reply('Quote an image or a short video.');
-      let media;
-      if (msgR.imageMessage) media = msgR.imageMessage;
-      else if (msgR.videoMessage) media = msgR.videoMessage;
-      else return m.reply('That is neither an image nor a short video!');
-      let result = await client.downloadAndSaveMediaMessage(media);
-      const Jimp = require('jimp');
-const os = require('os');
-const path = require('path');
-const { execSync } = require('child_process');
-const ffmpegPath = require('ffmpeg-static');
-const mime2 = require('mime-types');
-const fileType = mime2.lookup(result) || '';
-
-let stickerResult;
-if (/video/.test(fileType) || /video/.test(mime)) {
-    // Reshape video to 512x512 with padding using ffmpeg
-    const id = Date.now();
-const outputPath = path.join(os.tmpdir(), `vsticker_${id}.webm`);
-const gifPath = path.join(os.tmpdir(), `vsticker_${id}.gif`);
+  
+{
+  command: ['sticker'],
+  aliases: ['s'],
+  description: 'Convert image/video to sticker',
+  category: 'media',
+  handler: async (client, m, { reply, msgR }) => {
+    const { Sticker, StickerTypes } = require('wa-sticker-formatter');
+    const Jimp = require('jimp');
+    const pushname = m.pushName || 'No Name';
+    if (!msgR) return m.reply('Quote an image or a short video.');
+    let media;
+    let isVideo = false;
+    if (msgR.imageMessage) media = msgR.imageMessage;
+    else if (msgR.videoMessage) { media = msgR.videoMessage; isVideo = true; }
+    else return m.reply('That is neither an image nor a short video!');
+    let result = await client.downloadAndSaveMediaMessage(media);
     try {
-       // Step 1: Convert to gif first
-execSync(
-    `"${ffmpegPath}" -y -t 3 -i "${result}" -vf "fps=10,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black" "${gifPath}"`,
-    { timeout: 30000, stdio: 'pipe' }
-);
-// Step 2: Convert gif to webm
-execSync(
-    `"${ffmpegPath}" -y -i "${gifPath}" -c:v libvpx-vp9 -b:v 256k -an -loop 0 "${outputPath}"`,
-    { timeout: 30000, stdio: 'pipe' }
-); 
+      let stickerResult;
+      if (isVideo) {
+        stickerResult = new Sticker(fs.readFileSync(result), {
+          pack: pushname,
+          author: 'BLACK-MD',
+          type: StickerTypes.DEFAULT,
+          categories: ['🤩', '🎉'],
+          quality: 100,
+          background: 'transparent',
+        });
+      } else {
+        const stickerSize = 512;
+        const img = await Jimp.read(result);
+        const padded = img.clone()
+          .contain(stickerSize, stickerSize)
+          .background(0x00000000);
+        const paddedBuffer = await padded.getBufferAsync(Jimp.MIME_PNG);
+        stickerResult = new Sticker(paddedBuffer, {
+          pack: pushname,
+          author: 'BLACK-MD',
+          type: StickerTypes.DEFAULT,
+          categories: ['🤩', '🎉'],
+          quality: 100,
+          background: 'transparent',
+        });
+      }
+      const buf = await stickerResult.toBuffer();
+      await client.sendMessage(m.chat, { sticker: buf }, { quoted: m });
     } catch (e) {
-        return m.reply('❌ Video reshape failed: ' + e.message);
+      reply('❌ Error: ' + e.message);
+    } finally {
+      try { fs.unlinkSync(result); } catch {}
     }
-    stickerResult = new Sticker(outputPath, {
-        pack: pushname,
-        author: 'BLACK-MD',
-        type: StickerTypes.DEFAULT,
-        categories: ['🤩', '🎉'],
-        quality: 100,
-        background: 'transparent',
-    });
-    const buf = await stickerResult.toBuffer();
-    client.sendMessage(m.chat, { sticker: buf }, { quoted: m });
-  try { fs.unlinkSync(outputPath); } catch {}
-try { fs.unlinkSync(gifPath); } catch {}
-} else {
-    // Image sticker — reshape with Jimp
-    const stickerSize = 512;
-    const img = await Jimp.read(result);
-    const padded = img.clone()
-        .contain(stickerSize, stickerSize)
-        .background(0x00000000);
-    const paddedBuffer = await padded.getBufferAsync(Jimp.MIME_PNG);
-    stickerResult = new Sticker(paddedBuffer, {
-        pack: pushname,
-        author: 'BLACK-MD',
-        type: StickerTypes.DEFAULT,
-        categories: ['🤩', '🎉'],
-        quality: 100,
-        background: 'transparent',
-    });
-    const buf = await stickerResult.toBuffer();
-    client.sendMessage(m.chat, { sticker: buf }, { quoted: m });
-}
-    }
+  }
 },
 
-  {
-    command: ['take'],
-    aliases: ['steal'],
-    description: 'Retake/rewatermark a sticker',
-    category: 'media',
-    handler: async (client, m, { reply, msgR, mime }) => {
-      const { Sticker, StickerTypes } = require('wa-sticker-formatter');
-      const pushname = m.pushName || 'No Name';
-      if (!msgR) return m.reply('Quote an image, a short video or a sticker to change watermark.');
-      let media;
-      if (msgR.imageMessage) media = msgR.imageMessage;
-      else if (msgR.videoMessage) media = msgR.videoMessage;
-      else if (msgR.stickerMessage) media = msgR.stickerMessage;
-      else return m.reply('This is neither a sticker, image nor a video...');
-      let result = await client.downloadAndSaveMediaMessage(media);
-      const Jimp = require('jimp');
-const os = require('os');
-const path = require('path');
-const { execSync } = require('child_process');
-const ffmpegPath = require('ffmpeg-static');
-const mime2 = require('mime-types');
-const fileType = mime2.lookup(result) || '';
-
-let stickerResult;
-if (/video/.test(fileType) || /video/.test(mime)) {
-    // Reshape video to 512x512 with padding using ffmpeg
-    const id = Date.now();
-    const outputPath = path.join(os.tmpdir(), `vsticker_${id}.mp4`);
+{
+  command: ['take'],
+  aliases: ['steal'],
+  description: 'Retake/rewatermark a sticker',
+  category: 'media',
+  handler: async (client, m, { reply, msgR }) => {
+    const { Sticker, StickerTypes } = require('wa-sticker-formatter');
+    const Jimp = require('jimp');
+    const pushname = m.pushName || 'No Name';
+    if (!msgR) return m.reply('Quote an image, a short video or a sticker to change watermark.');
+    let media;
+    let isVideo = false;
+    if (msgR.imageMessage) media = msgR.imageMessage;
+    else if (msgR.videoMessage) { media = msgR.videoMessage; isVideo = true; }
+    else if (msgR.stickerMessage) media = msgR.stickerMessage;
+    else return m.reply('This is neither a sticker, image nor a video...');
+    let result = await client.downloadAndSaveMediaMessage(media);
     try {
-        execSync(
-            `"${ffmpegPath}" -y -i "${result}" -vf "scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000" -pix_fmt yuva420p -movflags faststart "${outputPath}"`,
-            { timeout: 30000, stdio: 'pipe' }
-        );
-    } catch (e) {
-        return m.reply('❌ Video reshape failed: ' + e.message);
-    }
-    stickerResult = new Sticker(outputPath, {
-        pack: pushname,
-        author: 'BLACK-MD',
-        type: StickerTypes.DEFAULT,
-        categories: ['🤩', '🎉'],
-        quality: 100,
-        background: 'transparent',
-    });
-    const buf = await stickerResult.toBuffer();
-    client.sendMessage(m.chat, { sticker: buf }, { quoted: m });
-    try { fs.unlinkSync(outputPath); } catch {}
-} else {
-    // Image sticker — reshape with Jimp
-    const stickerSize = 512;
-    const img = await Jimp.read(result);
-    const padded = img.clone()
-        .contain(stickerSize, stickerSize)
-        .background(0x00000000);
-    const paddedBuffer = await padded.getBufferAsync(Jimp.MIME_PNG);
-    stickerResult = new Sticker(paddedBuffer, {
-        pack: pushname,
-        author: 'BLACK-MD',
-        type: StickerTypes.DEFAULT,
-        categories: ['🤩', '🎉'],
-        quality: 100,
-        background: 'transparent',
-    });
-    const buf = await stickerResult.toBuffer();
-    client.sendMessage(m.chat, { sticker: buf }, { quoted: m });
+      let stickerResult;
+      if (isVideo) {
+        stickerResult = new Sticker(fs.readFileSync(result), {
+          pack: pushname,
+          author: 'BLACK-MD',
+          type: StickerTypes.DEFAULT,
+          categories: ['🤩', '🎉'],
+          quality: 100,
+          background: 'transparent',
+        });
+      } else {
+        const sharp = require('sharp');
+        const os = require('os');
+        const path = require('path');
+        const stickerSize = 512;
+        let img;
+        try {
+          img = await Jimp.read(result);
+        } catch (e) {
+          const id = Date.now();
+          const pngPath = path.join(os.tmpdir(), `sticker_${id}.png`);
+          await sharp(result).png().toFile(pngPath);
+          img = await Jimp.read(pngPath);
+          try { fs.unlinkSync(pngPath); } catch {}
+        }
+        const padded = img.clone()
+          .contain(stickerSize, stickerSize)
+          .background(0x00000000);
+        const paddedBuffer = await padded.getBufferAsync(Jimp.MIME_PNG);
+        stickerResult = new Sticker(paddedBuffer, {
+          pack: pushname,
+          author: 'BLACK-MD',
+          type: StickerTypes.DEFAULT,
+          categories: ['🤩', '🎉'],
+          quality: 100,
+          background: 'transparent',
+        });
       }
+      const buf = await stickerResult.toBuffer();
+      await client.sendMessage(m.chat, { sticker: buf }, { quoted: m });
+    } catch (e) {
+      reply('❌ Error: ' + e.message);
+    } finally {
+      try { fs.unlinkSync(result); } catch {}
     }
-  },
+  }
+},
   
 {
     command: ['mix'],
@@ -214,7 +189,7 @@ if (/video/.test(fileType) || /video/.test(mime)) {
     category: 'media',
     handler: async (client, m, { reply, text, mime, pushname, qmsg }) => {
                 let responnd = `Quote an image with the 2 texts separated with |\nExample: smeme top text|bottom text`
-                if (!/image/.test(mime)) return reply(responnd)
+                if (!/image|webp/.test(mime)) return reply(responnd)
                 if (!text) return reply(responnd)
 
                 const atas = text.split('|')[0] ? text.split('|')[0].trim() : ''
