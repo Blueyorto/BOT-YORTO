@@ -242,14 +242,14 @@ module.exports = [
 
   {
     command: ['getpfp'],
-    aliases: ['dp'],
+    aliases: ['dp', 'getpp'],
     description: 'Get the profile picture of any number',
     category: 'media',
     handler: async (client, m, { reply, text }) => {
       let jid = text ? text.replace(/[^0-9]/g, '') + '@s.whatsapp.net' : m.quoted?.sender || m.sender;
       let pp;
       try { pp = await client.profilePictureUrl(jid, 'image'); }
-      catch { return reply('Could not fetch profile picture. The number may not exist or has hidden their picture.'); }
+      catch { return reply('Could not fetch profile picture. The number has hidden their profile picture or not registered on WhatsApp.'); }
       client.sendMessage(m.chat, { image: { url: pp }, caption: `Profile picture of @${jid.split('@')[0]}` }, { quoted: m });
     }
   },
