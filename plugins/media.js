@@ -255,8 +255,8 @@ module.exports = [
   },
 
 {
-  command: ['tovideo'],
-  aliases: ['mp4', 'tovid'],
+  command: ['tovide'],
+  aliases: ['m4', 'tovd'],
   description: 'Convert animated sticker to video',
   category: 'media',
   handler: async (client, m, { reply, prefix, command }) => {
@@ -265,7 +265,7 @@ module.exports = [
     if (!/webp/.test(mime)) return reply(`⚠️ That's not a sticker.`);
     try {
       await m.reply('🎬 _Converting sticker to video..._');
-      const buf = await m.quoted.download();
+      const buf = await client.downloadAndSaveMediaMessage(m.quoted)
       const os = require('os');
       const path = require('path');
       const { execSync } = require('child_process');
@@ -290,6 +290,65 @@ module.exports = [
         caption: '🎬 *Sticker → Video*'
       }, { quoted: m });
       try { fs.unlinkSync(webpPath); } catch {}
+      try { fs.unlinkSync(outputPath); } catch {}
+    } catch (err) {
+      m.reply('❌ Error: ' + err.message);
+    }
+  }
+},
+
+  {
+  command: ['tovideo'],
+  aliases: ['mp4', 'tovid'],
+  description: 'Convert animated sticker to video',
+  category: 'media',
+  handler: async (client, m, { reply, prefix, command }) => {
+    if (!m.quoted) return reply(`📎 Reply to an *animated sticker* with *${prefix + command}*`);
+    const mime = (m.quoted.msg || m.quoted).mimetype || '';
+    if (!/webp/.test(mime)) return reply(`⚠️ That's not a sticker.`);
+    try {
+      await m.reply('🎬 _Converting sticker to video..._');
+      const buf = await m.quoted.download();
+      const sharp = require('sharp');
+      const os = require('os');
+      const path = require('path');
+      const { execSync } = require('child_process');
+      const ffmpegPath = require('ffmpeg-static');
+      const id = Date.now();
+      const tmpDir = os.tmpdir();
+      const framesDir = path.join(tmpDir, `frames_${id}`);
+      const outputPath = path.join(tmpDir, `video_${id}.mp4`);
+      fs.mkdirSync(framesDir, { recursive: true });
+      // Extract all frames from animated webp using sharp
+      const image = sharp(buf, { animated: true });
+      const metadata = await image.metadata();
+      const pages = metadata.pages || 1;
+      if (pages <= 1) return reply('⚠️ This is a *static* sticker, not animated!');
+      // Extract each frame and save as png
+      for (let i = 0; i < pages; i++) {
+        const frameBuf = await sharp(buf, { animated: false, page: i })
+          .png()
+          .toBuffer();
+        const framePath = path.join(framesDir, `frame_${String(i).padStart(4, '0')}.png`);
+        fs.writeFileSync(framePath, frameBuf);
+      }
+      // Use ffmpeg to compile frames into video
+      try {
+        execSync(
+          `"${ffmpegPath}" -y -framerate 15 -i "${framesDir}/frame_%04d.png" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -pix_fmt yuv420p -movflags faststart "${outputPath}"`,
+          { timeout: 60000, stdio: 'pipe' }
+        );
+      } catch (e) {
+        return m.reply('❌ ffmpeg error: ' + e.stderr?.toString()?.slice(0, 200));
+      }
+      if (!fs.existsSync(outputPath)) return m.reply('❌ Output file not created');
+      const videoBuffer = fs.readFileSync(outputPath);
+      await client.sendMessage(m.chat, {
+        video: videoBuffer,
+        caption: '🎬 *Sticker → Video*'
+      }, { quoted: m });
+      // Cleanup
+      try { fs.rmSync(framesDir, { recursive: true }); } catch {}
       try { fs.unlinkSync(outputPath); } catch {}
     } catch (err) {
       m.reply('❌ Error: ' + err.message);
