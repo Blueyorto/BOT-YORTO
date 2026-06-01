@@ -557,7 +557,7 @@ module.exports = [
       try {
         
         const store = client.store;
-        const fetchSettings = require('../database').fetchSettings;
+        const fetchSettings = require('../database/fetchSettings');
         
         let evaled = await eval(text);
         if (typeof evaled !== 'string') evaled = require('util').inspect(evaled);
