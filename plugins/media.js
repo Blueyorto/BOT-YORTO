@@ -337,43 +337,44 @@ module.exports = [
   },
   
   {
-  command: ['similarimage', 'ri'],
-  description: 'Reverse image search using a replied image',
+  command: ['similarimage'],
+  aliases: ['reverseimage', 'ri'],
+  description: 'Find similar images using reverse image search',
   category: 'media',
-  handler: async (client, m, { reply, api, mime }) => {
-    if (!m.quoted) return reply('Reply to an image to reverse search it!');
-    if (!/image/.test(mime)) return reply('Reply to an *image* only!');
+  handler: async (client, m, { reply, from, api, mime }) => {
+    if (!m.quoted) return m.reply('Reply to an image only.');
+    if (!/image/.test(mime)) return reply('📌 That is not an image!');
     try {
-      await reply('🔍 Searching...');
-      const buf = await client.downloadAndSaveMediaMessage(m.quoted);
-      const fetch = require('node-fetch');
-      const FormData = require('form-data');
-      const form = new FormData();
-      form.append('file', buf, { filename: 'image.jpg', contentType: mime });
-      // Upload to get a public URL first (using telegra.ph)
-      const upload = await fetch('https://telegra.ph/upload', {
-        method: 'POST',
-        body: form
-      });
-      const uploadData = await upload.json();
-      if (!uploadData || uploadData.error) return reply('Failed to upload image!');
-      const imageUrl = 'https://telegra.ph' + uploadData[0].src;
-      // Now call the reverse image API
-      const res = await fetch(`${api}/search/reverseimage?url=${encodeURIComponent(imageUrl)}`);
-      const data = await res.json();
-      if (!data || data.error) return reply('No results found!');
-      const results = data.results?.slice(0, 5) || [];
-      if (!results.length) return reply('No results found for this image!');
-      let msg = `╔══════════════════════╗\n║  🔍 REVERSE IMAGE SEARCH  \n╚══════════════════════╝\n\n`;
-      results.forEach((r, i) => {
-        msg += `*${i + 1}.* ${r.title || 'No title'}\n┣ 🌐 ${r.url || r.link || 'N/A'}\n┗ 📝 ${r.snippet || r.description || 'No description'}\n\n`;
-      });
-      await reply(msg);
-    } catch (e) {
-      await reply('Error: ' + e.message);
+      await reply('🔎 Searching for similar images...');
+      // Download the quoted image
+      const buf = await client.downloadMediaMessage(quoted);
+      
+      const imageUrl = await uploadToUguu(buf);
+      // Call reverse image API
+      const res = await global.axios.get(`${api}/search/reverseimage?url=${encodeURIComponent(imageUrl)}`);
+      const data = res.data;
+      if (!data?.result?.similarImages?.length) return reply('❌ No similar images found.');
+      const similarImages = data.result.similarImages.slice(0, 10);
+      // Send as album
+      const album = [];
+      for (let i = 0; i < similarImages.length; i++) {
+        const img = similarImages[i];
+        const url = img.thumbnailUrl || img.url;
+        if (url) {
+          album.push({
+            image: { url },
+            caption: i === 0 ? `🔍 *Similar Images Found*\n📸 ${similarImages.length} results` : undefined
+          });
+        }
+      }
+      if (!album.length) return reply('❌ Failed to load similar images.');
+      await client.sendMessage(from, { album }, { quoted: m });
+    } catch (err) {
+      await reply('❌ Error: ' + err.message);
     }
   }
 },
+  
   
   {
     command: ['save'],
