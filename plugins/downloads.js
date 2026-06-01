@@ -669,22 +669,28 @@ module.exports = [
     if (!text) return reply(`📽️ *Movie Search*\n\n*Usage:* .movie Black Panther`);
     await m.reply(`🔍 Searching for "*${text}*"...`);
     try {
-      const { data } = await global.axios.get(`https://movieapi.giftedtech.co.ke/api/search/${encodeURIComponent(text)}`);
+      // Step 1: Search movie
+      const { data } = await global.axios.get(`https://movies.gifted.co.ke/api/search/${encodeURIComponent(text)}`);
       if (!data?.results?.subject) return reply('❌ No results found!');
       const movie = data.results.subject;
-      const downloads = data.results.downloadLinks || data.results.downloads || [];
+      const subjectId = movie.subjectId;
+      // Step 2: Get download links
+      const dlRes = await global.axios.get(`https://movies.gifted.co.ke/api/download/${subjectId}`);
+      const links = dlRes.data?.results || [];
       let msg = `🎬 *${movie.title}*\n`;
       msg += `📅 *Release:* ${movie.releaseDate || 'N/A'}\n`;
       msg += `🎭 *Genre:* ${movie.genre || 'N/A'}\n`;
       msg += `⏱️ *Duration:* ${movie.duration ? Math.floor(movie.duration / 60) + ' mins' : 'N/A'}\n`;
-      msg += `📖 *Description:* ${movie.description || 'N/A'}\n\n`;
+      msg += `⭐ *Rating:* ${movie.imdbRatingValue || 'N/A'}\n`;
+      msg += `📖 *Plot:* ${movie.description || 'N/A'}\n\n`;
       msg += `*📥 Download Links:*\n`;
-      if (downloads.length) {
-        for (const link of downloads) {
-          msg += `▸ *${link.quality || link.label || 'HD'}* → ${link.url || link.link || link.downloadUrl}\n`;
+      if (links.length) {
+        for (const link of links) {
+          const size = link.size ? (parseInt(link.size) / 1024 / 1024).toFixed(0) + ' MB' : 'N/A';
+          msg += `▸ *${link.quality}* (${size}) → ${link.download_url}\n`;
         }
       } else {
-        msg += `_No download links found_`;
+        msg += `_No download links available_`;
       }
       if (movie.cover?.url) {
         await client.sendMessage(m.chat, {
