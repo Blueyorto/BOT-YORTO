@@ -20,14 +20,22 @@ module.exports = [
       else if (msgR.videoMessage) media = msgR.videoMessage;
       else return m.reply('That is neither an image nor a short video!');
       let result = await client.downloadAndSaveMediaMessage(media);
-      let stickerResult = new Sticker(result, {
-        pack: pushname,
-        type: StickerTypes.FULL,
-        categories: ['🤩', '🎉'],
-        id: '12345',
-        quality: 70,
-        background: 'transparent',
-      });
+      const Jimp = require('jimp');
+const stickerSize = 512;
+const img = await Jimp.read(result);
+const padded = await img.clone()
+  .contain(stickerSize, stickerSize)
+  .background(0x00000000);
+const paddedBuffer = await padded.getBufferAsync(Jimp.MIME_PNG);
+
+let stickerResult = new Sticker(paddedBuffer, {
+    pack: pushname,
+    author: 'BLACK-MD',
+    type: StickerTypes.DEFAULT,
+    categories: ['🤩', '🎉'],
+    quality: 100,
+    background: 'transparent',
+});
       const buf = await stickerResult.toBuffer();
       client.sendMessage(m.chat, { sticker: buf }, { quoted: m });
     }
@@ -48,14 +56,22 @@ module.exports = [
       else if (msgR.stickerMessage) media = msgR.stickerMessage;
       else return m.reply('This is neither a sticker, image nor a video...');
       let result = await client.downloadAndSaveMediaMessage(media);
-      let stickerResult = new Sticker(result, {
-        pack: pushname,
-        type: StickerTypes.FULL,
-        categories: ['🤩', '🎉'],
-        id: '12345',
-        quality: 70,
-        background: 'transparent',
-      });
+      const Jimp = require('jimp');
+const stickerSize = 512;
+const img = await Jimp.read(result);
+const padded = await img.clone()
+  .contain(stickerSize, stickerSize)
+  .background(0x00000000);
+const paddedBuffer = await padded.getBufferAsync(Jimp.MIME_PNG);
+
+let stickerResult = new Sticker(paddedBuffer, {
+    pack: pushname,
+    author: 'BLACK-MD',
+    type: StickerTypes.DEFAULT,
+    categories: ['🤩', '🎉'],
+    quality: 100,
+    background: 'transparent',
+});
       const buf = await stickerResult.toBuffer();
       client.sendMessage(m.chat, { sticker: buf }, { quoted: m });
     }
