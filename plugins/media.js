@@ -347,7 +347,7 @@ module.exports = [
     try {
       await reply('🔎 Searching for similar images...');
       // Download the quoted image
-      const buf = await client.downloadMediaMessage(m.quoted);
+      const buf = await client.downloadAndSaveMediaMessage(m.quoted);
       
       const imageUrl = await uploadToUguu(buf);
       // Call reverse image API
