@@ -260,53 +260,39 @@ module.exports = [
   description: 'Convert animated sticker to video',
   category: 'media',
   handler: async (client, m, { reply, prefix, command }) => {
-    if (!m.quoted) return reply(`📎 Reply to an *animated sticker* with *${prefix + command}* to convert it to a video`);
+    if (!m.quoted) return reply(`📎 Reply to an *animated sticker* with *${prefix + command}*`);
     const mime = (m.quoted.msg || m.quoted).mimetype || '';
-    if (!/webp/.test(mime)) return reply(`⚠️ That's not a sticker. Reply to an animated sticker with *${prefix + command}*`);
+    if (!/webp/.test(mime)) return reply(`⚠️ That's not a sticker.`);
     try {
       await m.reply('🎬 _Converting sticker to video..._');
-      const buf = await client.downloadAndSaveMediaMessage(m.quoted);
+      const buf = await m.quoted.download();
       const os = require('os');
       const path = require('path');
-      const { exec } = require('child_process');
+      const { execSync } = require('child_process');
       const ffmpegPath = require('ffmpeg-static');
-      const tmpDir = os.tmpdir();
       const id = Date.now();
+      const tmpDir = os.tmpdir();
       const webpPath = path.join(tmpDir, `sticker_${id}.webp`);
-      const framesDir = path.join(tmpDir, `frames_${id}`);
       const outputPath = path.join(tmpDir, `video_${id}.mp4`);
-      // Save webp buffer to disk
       fs.writeFileSync(webpPath, buf);
-      fs.mkdirSync(framesDir, { recursive: true });
-      // Use ffmpeg to extract frames from webp then re-encode
-      await new Promise((resolve, reject) => {
-        exec(
-          `"${ffmpegPath}" -i "${webpPath}" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -pix_fmt yuv420p -movflags faststart "${outputPath}"`,
-          (err, stdout, stderr) => {
-            if (err) {
-              // Try with format flag if direct fails
-              exec(
-                `"${ffmpegPath}" -f webp_pipe -i "${webpPath}" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -pix_fmt yuv420p -movflags faststart "${outputPath}"`,
-                (err2) => {
-                  if (err2) reject(new Error(stderr || err2.message));
-                  else resolve();
-                }
-              );
-            } else resolve();
-          }
-        );
-      });
+      try {
+        execSync(`"${ffmpegPath}" -y -i "${webpPath}" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -pix_fmt yuv420p -movflags faststart "${outputPath}"`, {
+          timeout: 30000,
+          stdio: 'pipe'
+        });
+      } catch (e) {
+        return m.reply('❌ ffmpeg error: ' + e.stderr?.toString() || e.message);
+      }
+      if (!fs.existsSync(outputPath)) return m.reply('❌ Output file not created');
       const videoBuffer = fs.readFileSync(outputPath);
       await client.sendMessage(m.chat, {
         video: videoBuffer,
         caption: '🎬 *Sticker → Video*'
       }, { quoted: m });
-      // Cleanup
       try { fs.unlinkSync(webpPath); } catch {}
       try { fs.unlinkSync(outputPath); } catch {}
-      try { fs.rmdirSync(framesDir); } catch {}
     } catch (err) {
-      m.reply('❌ Conversion failed: ' + err.message);
+      m.reply('❌ Error: ' + err.message);
     }
   }
 },
