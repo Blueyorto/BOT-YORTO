@@ -142,8 +142,12 @@ module.exports = [
 
                 const pad = 12
                 const textW = imgW - pad * 2
-                const outlineOffsets = [[-2,-2],[-2,2],[2,-2],[2,2],[-2,0],[2,0],[0,-2],[0,2]]
-
+      const outlineOffsets = [
+  [-4,-4],[-4,4],[4,-4],[4,4],
+  [-4,0],[4,0],[0,-4],[0,4],
+  [-3,-3],[-3,3],[3,-3],[3,3],
+  [-2,-2],[-2,2],[2,-2],[2,2]
+]
                 if (atas) {
                     for (const [ox, oy] of outlineOffsets) {
                         image.print(fontBlack, pad + ox, pad + oy, { text: atas, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
@@ -161,12 +165,23 @@ module.exports = [
 
                 const memeBuffer = await image.getBufferAsync(Jimp.MIME_JPEG)
 
-                const stickerMeme = new Sticker(memeBuffer, {
-                    pack: pushname,
-                    type: StickerTypes.FULL,
-                    quality: 70,
-                    background: 'transparent'
-                })
+      // Resize image to proper sticker dimensions with padding
+const stickerSize = 512
+const padded = await image.clone()
+  .contain(stickerSize, stickerSize)
+  .background({ r: 0, g: 0, b: 0, a: 0 })
+
+const paddedBuffer = await padded.getBufferAsync(Jimp.MIME_PNG)
+
+const stickerMeme = new Sticker(paddedBuffer, {
+    pack: pushname,
+    author: 'BLACK-MD',
+    type: StickerTypes.DEFAULT,
+    categories: ['🤩'],
+    quality: 100,
+    background: 'transparent'
+})
+ 
                 const stickerBuffer = await stickerMeme.toBuffer()
                 await client.sendMessage(m.chat, { sticker: stickerBuffer }, { quoted: m })
 
