@@ -32,12 +32,19 @@ let stickerResult;
 if (/video/.test(fileType) || /video/.test(mime)) {
     // Reshape video to 512x512 with padding using ffmpeg
     const id = Date.now();
-    const outputPath = path.join(os.tmpdir(), `vsticker_${id}.webm`);
+const outputPath = path.join(os.tmpdir(), `vsticker_${id}.webm`);
+const gifPath = path.join(os.tmpdir(), `vsticker_${id}.gif`);
     try {
-        execSync(
-    `"${ffmpegPath}" -y -t 3 -i "${result}" -vf "fps=15,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black" -c:v libvpx-vp9 -b:v 256k -an -loop 0 "${outputPath.replace('.mp4', '.webm')}"`,
+       // Step 1: Convert to gif first
+execSync(
+    `"${ffmpegPath}" -y -t 3 -i "${result}" -vf "fps=10,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black" "${gifPath}"`,
     { timeout: 30000, stdio: 'pipe' }
 );
+// Step 2: Convert gif to webm
+execSync(
+    `"${ffmpegPath}" -y -i "${gifPath}" -c:v libvpx-vp9 -b:v 256k -an -loop 0 "${outputPath}"`,
+    { timeout: 30000, stdio: 'pipe' }
+); 
     } catch (e) {
         return m.reply('❌ Video reshape failed: ' + e.message);
     }
@@ -51,7 +58,8 @@ if (/video/.test(fileType) || /video/.test(mime)) {
     });
     const buf = await stickerResult.toBuffer();
     client.sendMessage(m.chat, { sticker: buf }, { quoted: m });
-    try { fs.unlinkSync(outputPath); } catch {}
+  try { fs.unlinkSync(outputPath); } catch {}
+try { fs.unlinkSync(gifPath); } catch {}
 } else {
     // Image sticker — reshape with Jimp
     const stickerSize = 512;
