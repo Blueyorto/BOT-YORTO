@@ -123,7 +123,7 @@ module.exports = [
     category: 'media',
     handler: async (client, m, { reply, text, mime, pushname, qmsg }) => {
                 let responnd = `Quote an image with the 2 texts separated with |\nExample: smeme top text|bottom text`
-                if (!/image/.test(mime)) return reply(responnd)
+                if (!/image/.test(mime) || !/webp/.test(mime)) return reply(responnd)
                 if (!text) return reply(responnd)
 
                 const atas = text.split('|')[0] ? text.split('|')[0].trim() : ''
@@ -254,9 +254,9 @@ module.exports = [
     }
   },
 
-  {
-  command: ['tovide'],
-  aliases: ['mp', 'tovi'],
+{
+  command: ['tovideo'],
+  aliases: ['mp4', 'tovid'],
   description: 'Convert animated sticker to video',
   category: 'media',
   handler: async (client, m, { reply, prefix, command }) => {
@@ -266,30 +266,35 @@ module.exports = [
     try {
       await m.reply('🎬 _Converting sticker to video..._');
       const buf = await client.downloadAndSaveMediaMessage(m.quoted);
-      const sharp = require('sharp');
-      const ffmpeg = require('fluent-ffmpeg');
-      const ffmpegPath = require('ffmpeg-static');
-      ffmpeg.setFfmpegPath(ffmpegPath);
       const os = require('os');
       const path = require('path');
-      // Extract frames from animated webp using sharp
+      const { exec } = require('child_process');
+      const ffmpegPath = require('ffmpeg-static');
       const tmpDir = os.tmpdir();
-      const framePattern = path.join(tmpDir, `frame_${Date.now()}_%03d.png`);
-      const outputPath = path.join(tmpDir, `video_${Date.now()}.mp4`);
-      // Save webp buffer to temp file
-      const webpPath = path.join(tmpDir, `sticker_${Date.now()}.webp`);
+      const id = Date.now();
+      const webpPath = path.join(tmpDir, `sticker_${id}.webp`);
+      const framesDir = path.join(tmpDir, `frames_${id}`);
+      const outputPath = path.join(tmpDir, `video_${id}.mp4`);
+      // Save webp buffer to disk
       fs.writeFileSync(webpPath, buf);
+      fs.mkdirSync(framesDir, { recursive: true });
+      // Use ffmpeg to extract frames from webp then re-encode
       await new Promise((resolve, reject) => {
-        ffmpeg(webpPath)
-          .outputOptions([
-            '-movflags', 'faststart',
-            '-pix_fmt', 'yuv420p',
-            '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2'
-          ])
-          .toFormat('mp4')
-          .on('end', resolve)
-          .on('error', reject)
-          .save(outputPath);
+        exec(
+          `"${ffmpegPath}" -i "${webpPath}" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -pix_fmt yuv420p -movflags faststart "${outputPath}"`,
+          (err, stdout, stderr) => {
+            if (err) {
+              // Try with format flag if direct fails
+              exec(
+                `"${ffmpegPath}" -f webp_pipe -i "${webpPath}" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -pix_fmt yuv420p -movflags faststart "${outputPath}"`,
+                (err2) => {
+                  if (err2) reject(new Error(stderr || err2.message));
+                  else resolve();
+                }
+              );
+            } else resolve();
+          }
+        );
       });
       const videoBuffer = fs.readFileSync(outputPath);
       await client.sendMessage(m.chat, {
@@ -299,36 +304,12 @@ module.exports = [
       // Cleanup
       try { fs.unlinkSync(webpPath); } catch {}
       try { fs.unlinkSync(outputPath); } catch {}
+      try { fs.rmdirSync(framesDir); } catch {}
     } catch (err) {
       m.reply('❌ Conversion failed: ' + err.message);
     }
   }
 },
-
-  {
-    command: ['tovideo'],
-    aliases: ['mp4', 'tovid'],
-    description: 'Convert animated sticker to video',
-    category: 'media',
-    handler: async (client, m, { reply, quoted, mime, prefix, command }) => {
-      if (!quoted) return reply(`📎 Reply to an *animated sticker* with *${prefix + command}* to convert it to a video`);
-      if (!/webp/.test(mime)) return reply(`⚠️ That's not a sticker. Reply to an animated sticker with *${prefix + command}*`);
-      let media, outputPath;
-      try {
-        await m.reply('🎬 _Converting sticker to video..._');
-        media = await client.downloadMediaMessage(quoted);
-        const converted = await webp2mp4File(media);
-        outputPath = converted.result;
-        const videoBuffer = fs.readFileSync(outputPath);
-        await client.sendMessage(m.chat, { video: videoBuffer, caption: '🎬 *Sticker → Video*\n_Converted with ffmpeg_' }, { quoted: m });
-      } catch (err) {
-        m.reply('❌ Conversion failed. Make sure it is an *animated* sticker (not a static one).');
-      } finally {
-        try { if (media) fs.unlinkSync(media); } catch {}
-        try { if (outputPath) fs.unlinkSync(outputPath); } catch {}
-      }
-    }
-  },
 
   {
     command: ['toaudio'],
