@@ -184,9 +184,9 @@ let replyText = data.result;
           }
         }
         if (album.length === 0) return m.reply('❌ Failed to load images.');
-        for (const item of album) {
-          await client.sendMessage(m.chat, item, { quoted: m });
-        }
+      
+          await client.sendMessage(m.chat, { album }, { quoted: m });
+        
       } catch (err) {
         m.reply('❌ Error: ' + err.message);
       }
