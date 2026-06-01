@@ -121,13 +121,13 @@ module.exports = [
     aliases: ['write'],
     description: 'Add words to a sticker',
     category: 'media',
-    handler: async (client, m, { reply, text, mime, pushname }) => {
+    handler: async (client, m, { reply, text, mime, pushname, qmsg }) => {
                 let responnd = `Quote an image with the 2 texts separated with |\nExample: smeme top text|bottom text`
                 if (!/image/.test(mime)) return reply(responnd)
                 if (!text) return reply(responnd)
 
-                atas = text.split('|')[0] ? text.split('|')[0].trim() : ''
-                bawah = text.split('|')[1] ? text.split('|')[1].trim() : ''
+                const atas = text.split('|')[0] ? text.split('|')[0].trim() : ''
+                const bawah = text.split('|')[1] ? text.split('|')[1].trim() : ''
 
                 let dwnld = await client.downloadAndSaveMediaMessage(qmsg)
 
