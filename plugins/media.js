@@ -11,7 +11,7 @@ module.exports = [
     aliases: ['s'],
     description: 'Convert image/video to sticker',
     category: 'media',
-    handler: async (client, m, { reply, msgR }) => {
+    handler: async (client, m, { reply, msgR, mime }) => {
       const { Sticker, StickerTypes } = require('wa-sticker-formatter');
       const pushname = m.pushName || 'No Name';
       if (!msgR) return m.reply('Quote an image or a short video.');
@@ -32,12 +32,12 @@ let stickerResult;
 if (/video/.test(fileType) || /video/.test(mime)) {
     // Reshape video to 512x512 with padding using ffmpeg
     const id = Date.now();
-    const outputPath = path.join(os.tmpdir(), `vsticker_${id}.mp4`);
+    const outputPath = path.join(os.tmpdir(), `vsticker_${id}.webm`);
     try {
         execSync(
-            `"${ffmpegPath}" -y -i "${result}" -vf "scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000" -pix_fmt yuva420p -movflags faststart "${outputPath}"`,
-            { timeout: 30000, stdio: 'pipe' }
-        );
+    `"${ffmpegPath}" -y -t 3 -i "${result}" -vf "fps=15,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black" -c:v libvpx-vp9 -b:v 256k -an -loop 0 "${outputPath.replace('.mp4', '.webm')}"`,
+    { timeout: 30000, stdio: 'pipe' }
+);
     } catch (e) {
         return m.reply('❌ Video reshape failed: ' + e.message);
     }
@@ -79,7 +79,7 @@ if (/video/.test(fileType) || /video/.test(mime)) {
     aliases: ['steal'],
     description: 'Retake/rewatermark a sticker',
     category: 'media',
-    handler: async (client, m, { reply, msgR }) => {
+    handler: async (client, m, { reply, msgR, mime }) => {
       const { Sticker, StickerTypes } = require('wa-sticker-formatter');
       const pushname = m.pushName || 'No Name';
       if (!msgR) return m.reply('Quote an image, a short video or a sticker to change watermark.');
