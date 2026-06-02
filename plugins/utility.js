@@ -561,27 +561,62 @@ module.exports = [
   },
 
   
-  {
+    {
     command: ['alive'],
     aliases: ['test'],
     description: 'Check if bot is alive',
     category: 'utility',
     handler: async (client, m) => {
-      const os = require('os');
+      const os   = require('os');
+      const fs   = require('fs');
       const { execSync } = require('child_process');
       const { runtime } = require('../lib/ravenfunc');
       const { botname } = require('../set');
 
-      // ── Bot uptime ──────────────────────────────────────────────────────
-      const botUptime = runtime(process.uptime());
+      // ── Hosting platform detection ───────────────────────────────────────
+      let platform = 'Unknown / VPS';
+      if (process.env.KOYEB_SERVICE_NAME || process.env.KOYEB_APP_NAME || process.env.KOYEB) {
+        platform = '🟢 Koyeb';
+      } else if (process.env.DYNO) {
+        platform = `🟣 Heroku (${process.env.DYNO})`;
+      } else if (process.env.RAILWAY_SERVICE_NAME || process.env.RAILWAY_ENVIRONMENT) {
+        platform = '🚂 Railway';
+      } else if (process.env.RENDER_SERVICE_NAME || process.env.RENDER) {
+        platform = '🔵 Render';
+      } else if (process.env.FLY_APP_NAME) {
+        platform = '🪁 Fly.io';
+      } else if (process.env.REPL_ID || process.env.REPLIT_DB_URL) {
+        platform = '🔷 Replit';
+      } else if ((os.release() || '').toLowerCase().includes('aws') || (os.hostname() || '').includes('koyeb')) {
+        platform = '🟢 Koyeb (AWS)';
+      }
 
-      // ── Memory ──────────────────────────────────────────────────────────
-      const totalRam = os.totalmem();
-      const freeRam  = os.freemem();
-      const usedRam  = totalRam - freeRam;
+      // ── Container/allocated RAM (cgroup) ────────────────────────────────
       const toMB = (b) => (b / 1024 / 1024).toFixed(1) + ' MB';
       const toGB = (b) => (b / 1024 / 1024 / 1024).toFixed(2) + ' GB';
-      const ramPct = ((usedRam / totalRam) * 100).toFixed(1);
+
+      let allocatedRam = null;
+      try {
+        // cgroup v2
+        const raw = fs.readFileSync('/sys/fs/cgroup/memory.max', 'utf8').trim();
+        if (raw !== 'max') allocatedRam = parseInt(raw);
+      } catch (_) {}
+      if (!allocatedRam) {
+        try {
+          // cgroup v1
+          const raw = fs.readFileSync('/sys/fs/cgroup/memory/memory.limit_in_bytes', 'utf8').trim();
+          const val = parseInt(raw);
+          // ignore unreasonably large values (means no limit set)
+          if (val < 256 * 1024 * 1024 * 1024) allocatedRam = val;
+        } catch (_) {}
+      }
+
+      const usedRam  = os.totalmem() - os.freemem();
+      const botMem   = process.memoryUsage();
+      const ramPct   = allocatedRam
+        ? ((usedRam / allocatedRam) * 100).toFixed(1)
+        : ((usedRam / os.totalmem()) * 100).toFixed(1);
+      const ramTotal = allocatedRam ? toGB(allocatedRam) : toGB(os.totalmem());
 
       // ── Storage ─────────────────────────────────────────────────────────
       let totalDisk = 'N/A', usedDisk = 'N/A', freeDisk = 'N/A';
@@ -592,34 +627,30 @@ module.exports = [
         freeDisk  = toGB(parseInt(df[3]) * 1024);
       } catch (_) {}
 
-      // ── Platform ────────────────────────────────────────────────────────
-      const platform = `${os.platform()} ${os.arch()} (${os.release()})`;
-      const nodeVer  = process.version;
-
-      // ── Bot process memory ───────────────────────────────────────────────
-      const botMem = process.memoryUsage();
+      // ── Bot uptime ───────────────────────────────────────────────────────
+      const botUptime = runtime(process.uptime());
 
       const msg =
         `╔══════════════════════╗\n` +
-        `║  𝗛𝗶 𝗛𝘂𝗺𝗮𝗻👋, 𝗜 𝗮𝗺 𝗔𝗹𝗶𝘃𝗲 𝗻𝗼𝘄   \n` +
+        `║   𝗛𝗶 𝗛𝘂𝗺𝗮𝗻👋, 𝗜 𝗮𝗺 𝗔𝗹𝗶𝘃𝗲 𝗻𝗼𝘄  \n` +
         `╚══════════════════════╝\n\n` +
         `✅ *Bot is Online and Running!*\n\n` +
         `*⏱️ Uptime*\n` +
         `┗ ${botUptime}\n\n` +
-        `*🖥️ Platform*\n` +
-        `┣ OS      : ${platform}\n` +
-        `┗ Node.js : ${nodeVer}\n\n` +
+        `*🌐 Hosting*\n` +
+        `┣ Platform : ${platform}\n` +
+        `┗ Node.js  : ${process.version}\n\n` +
         `*🧠 Memory*\n` +
-        `┣ RAM Used  : ${toMB(usedRam)} / ${toGB(totalRam)} (${ramPct}%)\n` +
-        `┗ Bot Heap  : ${toMB(botMem.heapUsed)}\n\n` +
+        `┣ RAM Used : ${toMB(usedRam)} / ${ramTotal} (${ramPct}%)\n` +
+        `┗ Bot Heap : ${toMB(botMem.heapUsed)}\n\n` +
         `*💾 Storage*\n` +
         `┣ Total : ${totalDisk}\n` +
         `┣ Used  : ${usedDisk}\n` +
         `┗ Free  : ${freeDisk}\n\n` +
         `*👨‍💻 Developers*\n` +
         `┣ Blackie254  : https://github.com/Blackie254\n` +
-        `┣ McrayNick  : https://github.com/McrayNick\n` +
-        `┗ Repo       : https://github.com/Blackie254/black-super-bot/fork\n\n` +
+        `┣ McrayNick   : https://github.com/McrayNick\n` +
+        `┗ Repo        : https://github.com/Blackie254/black-super-bot\n\n` +
         `_Powered by ${botname} • Stay Connected_ 🖤`;
 
       m.reply(msg);
