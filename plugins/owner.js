@@ -956,7 +956,7 @@ await client.sendMessage(m.chat, {
       }
 
       const list = sudos
-        .map((jid, i) => `${i + 1}. +${jid.replace('@s.whatsapp.net', '')}`)
+        .map((jid, i) => `${i + 1}. +${jid.split('@')[0]}`)
         .join('\n');
 
       reply(
@@ -965,6 +965,27 @@ await client.sendMessage(m.chat, {
         `╚══════════════════════╝\n\n` +
         `${list}\n\n` +
         `Total: *${sudos.length}* sudo user(s)`
+      );
+    }
+  },
+
+  {
+    command: ['clearsudos'],
+    aliases: ['removeallsudos', 'rallsudos', 'rsudos'],
+    description: 'Remove all sudo users at once (Owner only)',
+    category: 'owner',
+    handler: async (client, m, { Owner, NotOwner, reply }) => {
+      if (!Owner) return m.reply(NotOwner);
+
+      const { clearAllSudos } = require('../database/config');
+      const count = await clearAllSudos();
+
+      if (count === -1) return reply('❌ Failed to clear sudos. Check database connection.');
+      if (count === 0) return reply('📋 No sudo users to remove.');
+
+      reply(
+        `✅ All sudo users have been removed.\n` +
+        `🗑️ *${count}* user(s) cleared.`
       );
     }
   },
