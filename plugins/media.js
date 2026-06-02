@@ -238,7 +238,7 @@ module.exports = [
     }
 
     if (bawah) {
-        const bottomY = imgH - 80
+        const bottomY = imgH - 50
         for (const [ox, oy] of outlineOffsets) {
             image.print(fontBlack, pad + ox, bottomY + oy, { text: bawah, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
         }
