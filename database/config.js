@@ -38,6 +38,13 @@ async function initializeDatabase() {
       );
     `);
 
+await client.query(`
+  CREATE TABLE IF NOT EXISTS sudo_users (
+    id SERIAL PRIMARY KEY,
+    jid TEXT UNIQUE NOT NULL
+  );
+`);
+
     for (const [key, value] of Object.entries(defaultSettings)) {
       await client.query(
         `INSERT INTO bot_settings (key, value)
@@ -104,8 +111,56 @@ async function updateSetting(key, value) {
   }
 }
 
+async function addSudo(jid) {
+  const client = await pool.connect();
+  try {
+    await client.query(
+      `INSERT INTO sudo_users (jid) VALUES ($1) ON CONFLICT (jid) DO NOTHING;`,
+      [jid]
+    );
+    return true;
+  } catch (err) {
+    console.error('❌ Failed to add sudo:', err);
+    return false;
+  } finally {
+    client.release();
+  }
+}
+
+async function removeSudo(jid) {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      `DELETE FROM sudo_users WHERE jid = $1 RETURNING jid;`,
+      [jid]
+    );
+    return result.rowCount > 0;
+  } catch (err) {
+    console.error('❌ Failed to remove sudo:', err);
+    return false;
+  } finally {
+    client.release();
+  }
+}
+
+async function getSudos() {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(`SELECT jid FROM sudo_users;`);
+    return result.rows.map(r => r.jid);
+  } catch (err) {
+    console.error('❌ Failed to get sudos:', err);
+    return [];
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   initializeDatabase,
   getSettings,
-  updateSetting
+  updateSetting,
+  addSudo,
+  removeSudo,
+  getSudos
 };
