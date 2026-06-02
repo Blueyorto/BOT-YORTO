@@ -816,6 +816,113 @@ await client.sendMessage(m.chat, {
       }, { quoted: m });
   }
 },
+
+  {
+    command: ['addsudo'],
+    aliases: ['asudo'],
+    description: 'Add a user as sudo (Owner only)',
+    category: 'owner',
+    handler: async (client, m, { Owner, NotOwner, args, reply, standardizeJid, resolveLid }) => {
+      if (!Owner) return m.reply(NotOwner);
+
+      const { addSudo } = require('../database/config');
+
+      let target = null;
+
+      if (m.mentionedJid && m.mentionedJid.length > 0) {
+        target = m.mentionedJid[0];
+      } else if (m.quoted && m.quoted.sender) {
+        target = m.quoted.sender;
+      } else if (args[0]) {
+        const num = args[0].replace(/[^0-9]/g, '');
+        if (num) target = num + '@s.whatsapp.net';
+      }
+
+      if (!target) return reply('❌ Tag someone, reply to their message, or provide a number.\nUsage: .addsudo @user / .addsudo 2547xxxxxxxx');
+
+      target = await resolveLid(target, client, null);
+      target = standardizeJid(target);
+
+      if (!target) return reply('❌ Could not resolve that user\'s JID.');
+
+      const done = await addSudo(target);
+      const display = target.replace('@s.whatsapp.net', '');
+
+      if (done) {
+        reply(`✅ *+${display}* has been added as sudo.`);
+      } else {
+        reply(`⚠️ *+${display}* is already a sudo user.`);
+      }
+    }
+  },
+
+  {
+    command: ['removesudo'],
+    aliases: ['rsudo'],
+    description: 'Remove a sudo user (Owner only)',
+    category: 'owner',
+    handler: async (client, m, { Owner, NotOwner, args, reply, standardizeJid, resolveLid }) => {
+      if (!Owner) return m.reply(NotOwner);
+
+      const { removeSudo } = require('../database/config');
+
+      let target = null;
+
+      if (m.mentionedJid && m.mentionedJid.length > 0) {
+        target = m.mentionedJid[0];
+      } else if (m.quoted && m.quoted.sender) {
+        target = m.quoted.sender;
+      } else if (args[0]) {
+        const num = args[0].replace(/[^0-9]/g, '');
+        if (num) target = num + '@s.whatsapp.net';
+      }
+
+      if (!target) return reply('❌ Tag someone, reply to their message, or provide a number.\nUsage: .removesudo @user / .removesudo 2547xxxxxxxx');
+
+      target = await resolveLid(target, client, null);
+      target = standardizeJid(target);
+
+      if (!target) return reply('❌ Could not resolve that user\'s JID.');
+
+      const done = await removeSudo(target);
+      const display = target.replace('@s.whatsapp.net', '');
+
+      if (done) {
+        reply(`✅ *+${display}* has been removed from sudo.`);
+      } else {
+        reply(`⚠️ *+${display}* was not a sudo user.`);
+      }
+    }
+  },
+
+  {
+    command: ['checksudo'],
+    aliases: ['sudos'],
+    description: 'List all current sudo users (Owner only)',
+    category: 'owner',
+    handler: async (client, m, { Owner, NotOwner, reply }) => {
+      if (!Owner) return m.reply(NotOwner);
+
+      const { getSudos } = require('../database/config');
+      const sudos = await getSudos();
+
+      if (sudos.length === 0) {
+        return reply('📋 No sudo users set.\n\nUse .addsudo @user to add one.');
+      }
+
+      const list = sudos
+        .map((jid, i) => `${i + 1}. +${jid.replace('@s.whatsapp.net', '')}`)
+        .join('\n');
+
+      reply(
+        `╔══════════════════════╗\n` +
+        `║     👑  SUDO USERS      \n` +
+        `╚══════════════════════╝\n\n` +
+        `${list}\n\n` +
+        `Total: *${sudos.length}* sudo user(s)`
+      );
+    }
+  },
   
   {
   command: ['fetch'],
