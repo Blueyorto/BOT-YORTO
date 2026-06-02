@@ -597,41 +597,24 @@ module.exports = [
 
       let allocatedRam = null;
       try {
-        // cgroup v2
+        
         const raw = fs.readFileSync('/sys/fs/cgroup/memory.max', 'utf8').trim();
         if (raw !== 'max') allocatedRam = parseInt(raw);
       } catch (_) {}
       if (!allocatedRam) {
         try {
-          // cgroup v1
           const raw = fs.readFileSync('/sys/fs/cgroup/memory/memory.limit_in_bytes', 'utf8').trim();
           const val = parseInt(raw);
-          // ignore unreasonably large values (means no limit set)
+          
           if (val < 256 * 1024 * 1024 * 1024) allocatedRam = val;
         } catch (_) {}
       }
 
-            // ── Container used RAM (cgroup) ──────────────────────────────────────
-      let containerUsed = null;
-      try {
-        // cgroup v2
-        const raw = fs.readFileSync('/sys/fs/cgroup/memory.current', 'utf8').trim();
-        containerUsed = parseInt(raw);
-      } catch (_) {}
-      if (!containerUsed) {
-        try {
-          // cgroup v1
-          const raw = fs.readFileSync('/sys/fs/cgroup/memory/memory.usage_in_bytes', 'utf8').trim();
-          containerUsed = parseInt(raw);
-        } catch (_) {}
-      }
-
-      const botMem  = process.memoryUsage();
-      // Use container stats if available, otherwise fall back to host stats
-      const usedRam  = containerUsed || (os.totalmem() - os.freemem());
-      const totalRam = allocatedRam  || os.totalmem();
+      const botMem   = process.memoryUsage();
+      const usedRam  = botMem.rss;                        
+      const totalRam = allocatedRam || os.totalmem();  
       const ramPct   = ((usedRam / totalRam) * 100).toFixed(1);
-      const ramTotal = toGB(totalRam);
+      const ramTotal = toGB(totalRam); 
 
       // ── Storage ─────────────────────────────────────────────────────────
       let totalDisk = 'N/A', usedDisk = 'N/A', freeDisk = 'N/A';
@@ -649,7 +632,7 @@ module.exports = [
         `╔══════════════════════╗\n` +
         `║   𝗛𝗶 𝗛𝘂𝗺𝗮𝗻👋, 𝗜 𝗮𝗺 𝗔𝗹𝗶𝘃𝗲 𝗻𝗼𝘄  \n` +
         `╚══════════════════════╝\n\n` +
-        `✅ *Bot is Online and Running!*\n\n` +
+        `✅ *BLACK-MD is Online and Running!*\n\n` +
         `*⏱️ Uptime*\n` +
         `┗ ${botUptime}\n\n` +
         `*🌐 Hosting*\n` +
