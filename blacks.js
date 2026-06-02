@@ -339,8 +339,8 @@ module.exports = raven = async (client, m, chatUpdate, store) => {
           contextPrompt = `Previous conversation:\n${historyText}\n\nUser: ${body.trim()}`;
         }
         await client.sendPresenceUpdate('composing', m.chat);
-        const gptRes = await global.axios.get('https://apis.xcasper.space/api/ai/chatgpt4o', { params: { q: contextPrompt }, timeout: 30000 });
-        const replyText = gptRes.data?.reply;
+        const gptRes = await global.axios.get('https://ravenn.site/ai/chatgpt4', { params: { q: contextPrompt }, timeout: 30000 });
+        const replyText = gptRes.data?.result;
         if (!replyText) throw new Error('Empty AI response');
         history.push({ role: 'user', content: body.trim() });
         history.push({ role: 'assistant', content: replyText });
