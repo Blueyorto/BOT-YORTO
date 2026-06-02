@@ -114,11 +114,11 @@ async function updateSetting(key, value) {
 async function addSudo(jid) {
   const client = await pool.connect();
   try {
-    await client.query(
+    const result = await client.query(
       `INSERT INTO sudo_users (jid) VALUES ($1) ON CONFLICT (jid) DO NOTHING;`,
       [jid]
     );
-    return true;
+    return result.rowCount > 0;
   } catch (err) {
     console.error('❌ Failed to add sudo:', err);
     return false;
