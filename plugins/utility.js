@@ -560,34 +560,97 @@ module.exports = [
     }
   },
 
-  {
+  
+    {
     command: ['alive'],
     aliases: ['test'],
     description: 'Check if bot is alive',
     category: 'utility',
-    handler: async (client, m) => {
-      const fs = require('fs');
-      const dooc = {
-        audio: fs.readFileSync('./Media/kv.ogg'),
-        mimetype: 'audio/ogg; codecs=opus',
-        ptt: true,
-        waveform: [100, 0, 100, 0, 100, 0, 100],
-        contextInfo: {
-          mentionedJid: [m.sender],
-          externalAdReply: {
-            title: '𝗛𝗶 𝗛𝘂𝗺𝗮𝗻👋, 𝗜 𝗮𝗺 𝗔𝗹𝗶𝘃𝗲 𝗻𝗼𝘄',
-            body: '𝐁𝐋𝐀𝐂𝐊-𝐌𝐃',
-            thumbnailUrl: 'https://i.ibb.co/HLWq3qVs/faab81f4a3dd.jpg',
-            sourceUrl: 'https://chat.whatsapp.com/LDBdQY8fKbs1qkPWCTuJGX',
-            mediaType: 1,
-            renderLargerThumbnail: true
-          }
-        }
-      };
-      await client.sendMessage(m.chat, dooc, { quoted: m });
+    handler: async (client, m, { pushname }) => {
+      const os   = require('os');
+      const fs   = require('fs');
+      const { execSync } = require('child_process');
+      const { runtime } = require('../lib/ravenfunc');
+      const { botname } = require('../set');
+
+  // ── Hosting platform detection ───────────────────────────────────────
+      let platform = 'Unknown / VPS';
+      if (process.env.KOYEB_SERVICE_NAME || process.env.KOYEB_APP_NAME || process.env.KOYEB) {
+        platform = '🟢 Koyeb';
+      } else if (process.env.DYNO) {
+        platform = '🟣 Heroku';
+      } else if (process.env.RAILWAY_SERVICE_NAME || process.env.RAILWAY_ENVIRONMENT) {
+        platform = '🚂 Railway';
+      } else if (process.env.RENDER_SERVICE_NAME || process.env.RENDER) {
+        platform = '🔵 Render';
+      } else if (process.env.FLY_APP_NAME) {
+        platform = '🪁 Fly.io';
+      } else if (process.env.REPL_ID || process.env.REPLIT_DB_URL) {
+        platform = '🔷 Replit';
+      } else if ((os.release() || '').toLowerCase().includes('aws') || (os.hostname() || '').includes('koyeb')) {
+        platform = '🟢 Koyeb (AWS)';
+      }
+
+// ── Container/allocated RAM (cgroup) ────────────────────────────────
+      const toMB = (b) => (b / 1024 / 1024).toFixed(1) + ' MB';
+      const toGB = (b) => (b / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+
+      let allocatedRam = null;
+      try {
+        const raw = fs.readFileSync('/sys/fs/cgroup/memory.max', 'utf8').trim();
+        if (raw !== 'max') allocatedRam = parseInt(raw);
+      } catch (_) {}
+      if (!allocatedRam) {
+        try {
+          const raw = fs.readFileSync('/sys/fs/cgroup/memory/memory.limit_in_bytes', 'utf8').trim();
+          const val = parseInt(raw);
+          
+          if (val < 256 * 1024 * 1024 * 1024) allocatedRam = val;
+        } catch (_) {}
+      }
+
+      const botMem   = process.memoryUsage();
+      const usedRam  = botMem.rss;                        
+      const totalRam = allocatedRam || os.totalmem();  
+      const ramPct   = ((usedRam / totalRam) * 100).toFixed(1);
+      const ramTotal = toGB(totalRam); 
+
+// ── Storage ─────────────────────────────────────────────────────────
+      let totalDisk = 'N/A', usedDisk = 'N/A', freeDisk = 'N/A';
+      try {
+        const df = execSync("df -k / | tail -1").toString().trim().split(/\s+/);
+        totalDisk = toGB(parseInt(df[1]) * 1024);
+        usedDisk  = toGB(parseInt(df[2]) * 1024);
+        freeDisk  = toGB(parseInt(df[3]) * 1024);
+      } catch (_) {}
+
+// ── Bot uptime ───────────────────────────────────────────────────────
+      const botUptime = runtime(process.uptime());
+
+      const msg =
+        `════════════════════════\n` +
+        `   𝗛𝗶 ${pushname}👋  \n` +
+        `════════════════════════\n\n` +
+        `✅ *BLACK-MD is Online and Running!*\n\n` +
+        `*⏱️ Uptime*\n` +
+        `┗ ${botUptime}\n\n` +
+        `*🌐 Hosting*\n` +
+        `┣ Platform : ${platform}\n` +
+        `┗ Node.js  : ${process.version}\n\n` +
+        `*🧠 Memory*\n` +
+        `┣ RAM Used : ${toMB(usedRam)} / ${ramTotal} (${ramPct}%)\n` +
+        `┗ Bot Heap : ${toMB(botMem.heapUsed)}\n\n` +
+        `*💾 Storage*\n` +
+        `┣ Total : ${totalDisk}\n` +
+        `┣ Used  : ${usedDisk}\n` +
+        `┗ Free  : ${freeDisk}\n\n` + 
+        `════════════════════════\n` +
+        `_𝗠𝗮𝗱𝗲 𝗼𝗻 𝗲𝗮𝗿𝘁𝗵 𝗯𝘆 𝗛𝘂𝗺𝗮𝗻𝘀🔥!_ \n` +
+        `════════════════════════`;
+
+      m.reply(msg);
     }
   },
-
 
   
 
@@ -723,15 +786,22 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
         const participants = metadata.participants || [];
         let vcard = '';
         let no = 0;
-        for (const p of participants) {
-          const num = p.id.split('@')[0];
+                for (const p of participants) {
+          let num = null;
+          if (p.pn) {
+            num = p.pn.replace(/[^0-9]/g, '');
+          } else if (p.id && !p.id.includes('@lid')) {
+            num = p.id.split('@')[0].split(':')[0].replace(/[^0-9]/g, '');
+          }
+          if (!num) continue;
+
           vcard +=
             `BEGIN:VCARD\n` +
             `VERSION:3.0\n` +
             `FN:[${no++}] +${num}\n` +
             `TEL;type=CELL;type=VOICE;waid=${num}:+${num}\n` +
             `END:VCARD\n`;
-        }
+                }
         const filePath = './contacts.vcf';
         await m.reply(`⏳ Compiling ${participants.length} contacts...`);
         fs.writeFileSync(filePath, vcard.trim());
@@ -739,7 +809,7 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
           document: fs.readFileSync(filePath),
           mimetype: 'text/vcard',
           fileName: 'Group Contacts.vcf',
-          caption: `VCF for ${metadata.subject}\n${participants.length} contacts`
+                    caption: `📋 VCF for *${metadata.subject}*\n✅ ${no} contacts exported`
         }, { quoted: m });
         fs.unlinkSync(filePath);
       } catch (err) {
