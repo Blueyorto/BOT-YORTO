@@ -156,11 +156,25 @@ async function getSudos() {
   }
 }
 
+async function clearAllSudos() {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(`DELETE FROM sudo_users RETURNING jid;`);
+    return result.rowCount;
+  } catch (err) {
+    console.error('❌ Failed to clear sudos:', err);
+    return -1;
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   initializeDatabase,
   getSettings,
   updateSetting,
   addSudo,
   removeSudo,
-  getSudos
+  getSudos,
+  clearAllSudos
 };
