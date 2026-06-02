@@ -785,15 +785,23 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
         const participants = metadata.participants || [];
         let vcard = '';
         let no = 0;
-        for (const p of participants) {
-          const num = p.id.split('@')[0];
+                for (const p of participants) {
+          // p.pn is the real phone number; p.id may be a LID on newer WhatsApp
+          let num = null;
+          if (p.pn) {
+            num = p.pn.replace(/[^0-9]/g, '');
+          } else if (p.id && !p.id.includes('@lid')) {
+            num = p.id.split('@')[0].split(':')[0].replace(/[^0-9]/g, '');
+          }
+          if (!num) continue; // skip if we can't resolve a real number
+
           vcard +=
             `BEGIN:VCARD\n` +
             `VERSION:3.0\n` +
             `FN:[${no++}] +${num}\n` +
             `TEL;type=CELL;type=VOICE;waid=${num}:+${num}\n` +
             `END:VCARD\n`;
-        }
+                }
         const filePath = './contacts.vcf';
         await m.reply(`⏳ Compiling ${participants.length} contacts...`);
         fs.writeFileSync(filePath, vcard.trim());
@@ -801,7 +809,7 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
           document: fs.readFileSync(filePath),
           mimetype: 'text/vcard',
           fileName: 'Group Contacts.vcf',
-          caption: `VCF for ${metadata.subject}\n${participants.length} contacts`
+                    caption: `📋 VCF for *${metadata.subject}*\n✅ ${no} contacts exported`
         }, { quoted: m });
         fs.unlinkSync(filePath);
       } catch (err) {
