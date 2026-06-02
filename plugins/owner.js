@@ -876,7 +876,9 @@ await client.sendMessage(m.chat, {
   } else {
     reply(`⚠️ *+${display}* is already a sudo user.`);
   }
-                    }
+  }
+  },
+    
   {
     command: ['removesudo'],
     aliases: ['rsudo'],
