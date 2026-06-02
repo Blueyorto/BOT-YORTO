@@ -560,34 +560,71 @@ module.exports = [
     }
   },
 
+  
   {
     command: ['alive'],
     aliases: ['test'],
     description: 'Check if bot is alive',
     category: 'utility',
     handler: async (client, m) => {
-      const fs = require('fs');
-      const dooc = {
-        audio: fs.readFileSync('./Media/kv.ogg'),
-        mimetype: 'audio/ogg; codecs=opus',
-        ptt: true,
-        waveform: [100, 0, 100, 0, 100, 0, 100],
-        contextInfo: {
-          mentionedJid: [m.sender],
-          externalAdReply: {
-            title: '𝗛𝗶 𝗛𝘂𝗺𝗮𝗻👋, 𝗜 𝗮𝗺 𝗔𝗹𝗶𝘃𝗲 𝗻𝗼𝘄',
-            body: '𝐁𝐋𝐀𝐂𝐊-𝐌𝐃',
-            thumbnailUrl: 'https://i.ibb.co/HLWq3qVs/faab81f4a3dd.jpg',
-            sourceUrl: 'https://chat.whatsapp.com/LDBdQY8fKbs1qkPWCTuJGX',
-            mediaType: 1,
-            renderLargerThumbnail: true
-          }
-        }
-      };
-      await client.sendMessage(m.chat, dooc, { quoted: m });
+      const os = require('os');
+      const { execSync } = require('child_process');
+      const { runtime } = require('../lib/ravenfunc');
+      const { botname } = require('../set');
+
+      // ── Bot uptime ──────────────────────────────────────────────────────
+      const botUptime = runtime(process.uptime());
+
+      // ── Memory ──────────────────────────────────────────────────────────
+      const totalRam = os.totalmem();
+      const freeRam  = os.freemem();
+      const usedRam  = totalRam - freeRam;
+      const toMB = (b) => (b / 1024 / 1024).toFixed(1) + ' MB';
+      const toGB = (b) => (b / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+      const ramPct = ((usedRam / totalRam) * 100).toFixed(1);
+
+      // ── Storage ─────────────────────────────────────────────────────────
+      let totalDisk = 'N/A', usedDisk = 'N/A', freeDisk = 'N/A';
+      try {
+        const df = execSync("df -k / | tail -1").toString().trim().split(/\s+/);
+        totalDisk = toGB(parseInt(df[1]) * 1024);
+        usedDisk  = toGB(parseInt(df[2]) * 1024);
+        freeDisk  = toGB(parseInt(df[3]) * 1024);
+      } catch (_) {}
+
+      // ── Platform ────────────────────────────────────────────────────────
+      const platform = `${os.platform()} ${os.arch()} (${os.release()})`;
+      const nodeVer  = process.version;
+
+      // ── Bot process memory ───────────────────────────────────────────────
+      const botMem = process.memoryUsage();
+
+      const msg =
+        `╔══════════════════════╗\n` +
+        `║  𝗛𝗶 𝗛𝘂𝗺𝗮𝗻👋, 𝗜 𝗮𝗺 𝗔𝗹𝗶𝘃𝗲 𝗻𝗼𝘄   \n` +
+        `╚══════════════════════╝\n\n` +
+        `✅ *Bot is Online and Running!*\n\n` +
+        `*⏱️ Uptime*\n` +
+        `┗ ${botUptime}\n\n` +
+        `*🖥️ Platform*\n` +
+        `┣ OS      : ${platform}\n` +
+        `┗ Node.js : ${nodeVer}\n\n` +
+        `*🧠 Memory*\n` +
+        `┣ RAM Used  : ${toMB(usedRam)} / ${toGB(totalRam)} (${ramPct}%)\n` +
+        `┗ Bot Heap  : ${toMB(botMem.heapUsed)}\n\n` +
+        `*💾 Storage*\n` +
+        `┣ Total : ${totalDisk}\n` +
+        `┣ Used  : ${usedDisk}\n` +
+        `┗ Free  : ${freeDisk}\n\n` +
+        `*👨‍💻 Developers*\n` +
+        `┣ Blackie254  : https://github.com/Blackie254\n` +
+        `┣ McrayNick  : https://github.com/McrayNick\n` +
+        `┗ Repo       : https://github.com/Blackie254/black-super-bot/fork\n\n` +
+        `_Powered by ${botname} • Stay Connected_ 🖤`;
+
+      m.reply(msg);
     }
   },
-
 
   
 
