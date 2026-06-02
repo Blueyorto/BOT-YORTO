@@ -155,8 +155,12 @@ module.exports = raven = async (client, m, chatUpdate, store) => {
     const finalSuperUsers = Array.from(superUserSet);
     let senderForOwner = await resolveLid(sender, client, store);
     senderForOwner = standardizeJid(senderForOwner);
-    const Owner = finalSuperUsers.includes(standardizeJid(senderForOwner));
-
+    
+    const { getSudos } = require('./database/config');
+const sudoList = await getSudos();
+const isSudoUser = sudoList.map(j => j.toLowerCase()).includes(senderForOwner.toLowerCase());
+    
+const Owner = finalSuperUsers.includes(standardizeJid(senderForOwner)) || isSudoUser;
     // ── Quoted message ───────────────────────────────────────────────────────
     const nicki = (m.quoted || m);
     const quoted = (nicki.mtype == 'buttonsMessage') ? nicki[Object.keys(nicki)[1]]
