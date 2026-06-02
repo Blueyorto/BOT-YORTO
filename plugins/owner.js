@@ -819,7 +819,7 @@ await client.sendMessage(m.chat, {
 
   {
     command: ['addsudo'],
-    alises: ['asudo'],
+    aliases: ['asudo'],
     description: 'Add a user as sudo (Owner only)',
     category: 'owner',
     handler: async (client, m, { Owner, NotOwner, args, reply, standardizeJid }) => {
@@ -875,66 +875,63 @@ await client.sendMessage(m.chat, {
       }
     }
   },
-    
-  {
+
+
+    {
     command: ['removesudo'],
     aliases: ['rsudo'],
     description: 'Remove a sudo user (Owner only)',
     category: 'owner',
-    handler: async (client, m, { Owner, NotOwner, args, reply, standardizeJid, resolveLid, groupMetadata }) => {
-  if (!Owner) return m.reply(NotOwner);
+    handler: async (client, m, { Owner, NotOwner, args, reply, standardizeJid }) => {
+      if (!Owner) return m.reply(NotOwner);
 
-  const { removeSudo } = require('../database/config');
+      const { removeSudo } = require('../database/config');
 
-  let target = null;
-  if (m.mentionedJid && m.mentionedJid.length > 0) {
-    target = m.mentionedJid[0];
-  } else if (m.quoted && m.quoted.sender) {
-    target = m.quoted.sender;
-  } else if (args[0]) {
-    const num = args[0].replace(/[^0-9]/g, '');
-    if (num) target = num + '@s.whatsapp.net';
-  }
-
-  if (!target) return reply('❌ Tag someone, reply to their message, or provide a number.\nUsage: .removesudo @user / .removesudo 2547xxxxxxxx');
-
-  // ── Resolve LID → real JID via group participants ──────────────────────
-  const isLid = target.includes('@lid') || (/^\d{10,}@/.test(target) && !target.includes('@s.whatsapp.net'));
-  if (isLid && m.isGroup && groupMetadata && groupMetadata.participants) {
-    const tNum = target.split('@')[0].split(':')[0];
-    const found = groupMetadata.participants.find(p =>
-      (p.id && (p.id.split('@')[0].split(':')[0] === tNum)) ||
-      (p.lid && p.lid.split('@')[0].split(':')[0] === tNum)
-    );
-    if (found) {
-      if (found.pn) {
-        target = found.pn + '@s.whatsapp.net';
-      } else if (found.id && !found.id.includes('@lid')) {
-        target = standardizeJid(found.id);
-      } else {
-        target = await resolveLid(target, client, null);
-        target = standardizeJid(target);
+      let target = null;
+      if (m.mentionedJid && m.mentionedJid.length > 0) {
+        target = m.mentionedJid[0];
+      } else if (m.quoted && m.quoted.sender) {
+        target = m.quoted.sender;
+      } else if (args[0]) {
+        const num = args[0].replace(/[^0-9]/g, '');
+        if (num) target = num + '@s.whatsapp.net';
       }
-    } else {
-      target = await resolveLid(target, client, null);
+
+      if (!target) return reply('❌ Tag someone, reply to their message, or provide a number.\nUsage: .removesudo @user / .removesudo 2547xxxxxxxx');
+
+      // ── Resolve LID → real phone JID ──────────────────────────────────────
+      const isLid = target.includes('@lid') || (!target.includes('@s.whatsapp.net') && /^\d{12,}@/.test(target));
+      if (isLid && m.isGroup) {
+        try {
+          const meta = await client.groupMetadata(m.chat);
+          const tNum = target.split('@')[0].split(':')[0];
+          let found = null;
+
+          found = meta.participants.find(p => p.lid && p.lid.split(':')[0].split('@')[0] === tNum);
+          if (!found) found = meta.participants.find(p => p.id && p.id.split(':')[0].split('@')[0] === tNum);
+
+          if (found) {
+            if (found.pn) {
+              target = found.pn + '@s.whatsapp.net';
+            } else if (found.id && !found.id.includes('@lid')) {
+              target = standardizeJid(found.id);
+            }
+          }
+        } catch (e) {}
+      }
+
       target = standardizeJid(target);
+      if (!target) return reply('❌ Could not resolve that user\'s JID.');
+
+      const done = await removeSudo(target);
+      const display = target.split('@')[0];
+
+      if (done) {
+        reply(`✅ *+${display}* has been removed from sudo.`);
+      } else {
+        reply(`⚠️ *+${display}* was not a sudo user.`);
+      }
     }
-  } else {
-    target = standardizeJid(target);
-  }
-  // ───────────────────────────────────────────────────────────────────────
-
-  if (!target) return reply('❌ Could not resolve that user\'s JID.');
-
-  const done = await removeSudo(target);
-  const display = target.split('@')[0];
-
-  if (done) {
-    reply(`✅ *+${display}* has been removed from sudo.`);
-  } else {
-    reply(`⚠️ *+${display}* was not a sudo user.`);
-    }
-   }
   },
 
   {
