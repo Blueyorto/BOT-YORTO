@@ -578,7 +578,7 @@ module.exports = [
       if (process.env.KOYEB_SERVICE_NAME || process.env.KOYEB_APP_NAME || process.env.KOYEB) {
         platform = '🟢 Koyeb';
       } else if (process.env.DYNO) {
-        platform = `🟣 Heroku (${process.env.DYNO})`;
+        platform = '🟣 Heroku';
       } else if (process.env.RAILWAY_SERVICE_NAME || process.env.RAILWAY_ENVIRONMENT) {
         platform = '🚂 Railway';
       } else if (process.env.RENDER_SERVICE_NAME || process.env.RENDER) {
@@ -611,12 +611,27 @@ module.exports = [
         } catch (_) {}
       }
 
-      const usedRam  = os.totalmem() - os.freemem();
-      const botMem   = process.memoryUsage();
-      const ramPct   = allocatedRam
-        ? ((usedRam / allocatedRam) * 100).toFixed(1)
-        : ((usedRam / os.totalmem()) * 100).toFixed(1);
-      const ramTotal = allocatedRam ? toGB(allocatedRam) : toGB(os.totalmem());
+            // ── Container used RAM (cgroup) ──────────────────────────────────────
+      let containerUsed = null;
+      try {
+        // cgroup v2
+        const raw = fs.readFileSync('/sys/fs/cgroup/memory.current', 'utf8').trim();
+        containerUsed = parseInt(raw);
+      } catch (_) {}
+      if (!containerUsed) {
+        try {
+          // cgroup v1
+          const raw = fs.readFileSync('/sys/fs/cgroup/memory/memory.usage_in_bytes', 'utf8').trim();
+          containerUsed = parseInt(raw);
+        } catch (_) {}
+      }
+
+      const botMem  = process.memoryUsage();
+      // Use container stats if available, otherwise fall back to host stats
+      const usedRam  = containerUsed || (os.totalmem() - os.freemem());
+      const totalRam = allocatedRam  || os.totalmem();
+      const ramPct   = ((usedRam / totalRam) * 100).toFixed(1);
+      const ramTotal = toGB(totalRam);
 
       // ── Storage ─────────────────────────────────────────────────────────
       let totalDisk = 'N/A', usedDisk = 'N/A', freeDisk = 'N/A';
@@ -646,11 +661,7 @@ module.exports = [
         `*💾 Storage*\n` +
         `┣ Total : ${totalDisk}\n` +
         `┣ Used  : ${usedDisk}\n` +
-        `┗ Free  : ${freeDisk}\n\n` +
-        `*👨‍💻 Developers*\n` +
-        `┣ Blackie254  : https://github.com/Blackie254\n` +
-        `┣ McrayNick   : https://github.com/McrayNick\n` +
-        `┗ Repo        : https://github.com/Blackie254/black-super-bot\n\n` +
+        `┗ Free  : ${freeDisk}\n\n` + 
         `_Powered by ${botname} • Stay Connected_ 🖤`;
 
       m.reply(msg);
