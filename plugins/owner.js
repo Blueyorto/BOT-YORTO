@@ -565,11 +565,11 @@ module.exports = [
     }
   },
 
-   {
+  {
     command: ['block'],
     description: 'Block a user',
     category: 'owner',
-    handler: async (client, m, { Owner, NotOwner, standardizeJid, resolveLid, store }) => {
+    handler: async (client, m, { Owner, NotOwner }) => {
       if (!Owner) return m.reply(NotOwner);
       if (!m.quoted) return m.reply('Reply to a message to block that user.');
 
@@ -577,29 +577,23 @@ module.exports = [
       const { owner } = require('../set');
 
       try {
-        let target = m.quoted.sender;
-        const botJid = standardizeJid(jidNormalizedUser(client.user.id));
+        const raw = m.quoted.sender; // may be LID or real JID
+        const botJid = jidNormalizedUser(client.user.id);
         const ownerJids = owner.map(n => `${n}@s.whatsapp.net`);
 
-        const isLid = target.includes('@lid') || (!target.includes('@s.whatsapp.net') && /^\d{12,}@/.test(target));
-        if (isLid) {
-          if (m.isGroup) {
-            const meta = await client.groupMetadata(m.chat);
-            const tNum = target.split('@')[0].split(':')[0];
-            let found = meta.participants.find(p => p.lid && p.lid.split(':')[0].split('@')[0] === tNum);
-            if (!found) found = meta.participants.find(p => p.id && p.id.split(':')[0].split('@')[0] === tNum);
-            if (found && found.pn) target = found.pn + '@s.whatsapp.net';
-            else if (found && found.id && !found.id.includes('@lid')) target = standardizeJid(found.id);
-          } else {
-            const resolved = await resolveLid(target, client, store);
-            if (resolved && !resolved.includes('@lid')) target = resolved;
-          }
+        let target = raw;
+
+        // If it's a LID, resolve via group metadata pn field
+        if (raw.includes('@lid')) {
+          if (!m.isGroup) return m.reply('❌ Cannot resolve this LID outside a group. Try using the command in a group where that person is a member.');
+          const meta = await client.groupMetadata(m.chat);
+          const found = meta.participants.find(p => p.id === raw || p.lid === raw);
+          if (!found || !found.pn) return m.reply('❌ Could not resolve real JID for that user.');
+          target = found.pn.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
         }
 
-        target = standardizeJid(target);
-        if (!target) return m.reply('❌ Could not resolve that user\'s JID.');
         if (ownerJids.includes(target)) return m.reply('I cannot block my Owner 😡');
-        if (target === botJid) return m.reply('I cannot block myself 😡');
+        if (jidNormalizedUser(target) === botJid) return m.reply('I cannot block myself 😡');
 
         await client.updateBlockStatus(target, 'block');
         m.reply(`✅ *+${target.split('@')[0]}* has been blocked.`);
@@ -613,30 +607,21 @@ module.exports = [
     command: ['unblock'],
     description: 'Unblock a user',
     category: 'owner',
-    handler: async (client, m, { Owner, NotOwner, standardizeJid, resolveLid, store }) => {
+    handler: async (client, m, { Owner, NotOwner }) => {
       if (!Owner) return m.reply(NotOwner);
       if (!m.quoted) return m.reply('Reply to a message to unblock that user.');
 
       try {
-        let target = m.quoted.sender;
-        
-        const isLid = target.includes('@lid') || (!target.includes('@s.whatsapp.net') && /^\d{12,}@/.test(target));
-        if (isLid) {
-          if (m.isGroup) {
-            const meta = await client.groupMetadata(m.chat);
-            const tNum = target.split('@')[0].split(':')[0];
-            let found = meta.participants.find(p => p.lid && p.lid.split(':')[0].split('@')[0] === tNum);
-            if (!found) found = meta.participants.find(p => p.id && p.id.split(':')[0].split('@')[0] === tNum);
-            if (found && found.pn) target = found.pn + '@s.whatsapp.net';
-            else if (found && found.id && !found.id.includes('@lid')) target = standardizeJid(found.id);
-          } else {
-            const resolved = await resolveLid(target, client, store);
-            if (resolved && !resolved.includes('@lid')) target = resolved;
-          }
-        }
+        const raw = m.quoted.sender;
+        let target = raw;
 
-        target = standardizeJid(target);
-        if (!target) return m.reply('❌ Could not resolve that user\'s JID.');
+        if (raw.includes('@lid')) {
+          if (!m.isGroup) return m.reply('❌ Cannot resolve this LID outside a group. Try using the command in a group where that person is a member.');
+          const meta = await client.groupMetadata(m.chat);
+          const found = meta.participants.find(p => p.id === raw || p.lid === raw);
+          if (!found || !found.pn) return m.reply('❌ Could not resolve real JID for that user.');
+          target = found.pn.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+        }
 
         await client.updateBlockStatus(target, 'unblock');
         m.reply(`✅ *+${target.split('@')[0]}* has been unblocked.`);
@@ -857,9 +842,8 @@ await client.sendMessage(m.chat, {
           const tNum = target.split('@')[0].split(':')[0];
           let found = null;
 
-          // 1. Exact lid match
           found = meta.participants.find(p => p.lid && p.lid.split(':')[0].split('@')[0] === tNum);
-          // 2. Exact id match (in case id is a lid)
+          
           if (!found) found = meta.participants.find(p => p.id && p.id.split(':')[0].split('@')[0] === tNum);
 
           if (found) {
@@ -889,7 +873,7 @@ await client.sendMessage(m.chat, {
 
     {
     command: ['removesudo'],
-    aliases: ['rsudo'],
+    aliases: ['rsudo', 'delsudo'],
     description: 'Remove a sudo user (Owner only)',
     category: 'owner',
     handler: async (client, m, { Owner, NotOwner, args, reply, standardizeJid }) => {
@@ -964,10 +948,10 @@ await client.sendMessage(m.chat, {
         .join('\n');
 
       reply(
-        `╔══════════════════════╗\n` +
-        `║     👑  CURRENT SUDO USERS      \n` +
-        `╚══════════════════════╝\n\n` +
-        `${list}\n\n` +
+        `═════════════════════\n` +
+        `    CURRENT SUDO USERS      \n` +
+        `═════════════════════\n\n` +
+        `♤ ${list}\n\n` +
         `Total: *${sudos.length}* sudo user(s)`
       );
     }
@@ -975,7 +959,7 @@ await client.sendMessage(m.chat, {
 
   {
     command: ['clearsudos'],
-    aliases: ['removeallsudos', 'rallsudos', 'rsudos'],
+    aliases: ['removeallsudos', 'delsudos', 'rsudos'],
     description: 'Remove all sudo users at once (Owner only)',
     category: 'owner',
     handler: async (client, m, { Owner, NotOwner, reply }) => {
