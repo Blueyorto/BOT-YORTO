@@ -693,55 +693,84 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
 
   
 
-  {
+{
     command: ['tg'],
     aliases: ['tgs', 'telegrams'],
-    description: 'Download Telegram sticker pack to DM',
+    description: 'Download Telegram sticker pack',
     category: 'utility',
     handler: async (client, m, { reply, args }) => {
-      if (!args[0]) return m.reply('⚠️ Please provide a Telegram sticker URL!\n\nExample: .tg https://t.me/addstickers/Porcientoreal');
-      if (!args[0].match(/(https:\/\/t.me\/addstickers\/)/gi)) return m.reply('❌ Invalid URL! Make sure it\'s a Telegram sticker pack URL.\nExample: https://t.me/addstickers/YourPackName');
+      if (!args[0]) return m.reply('⚠️ Please provide a Telegram sticker URL!\n\nExample: .tg https://t.me/addstickers/HellsParadise_S2');
+      if (!args[0].match(/(https:\/\/t.me\/addstickers\/)/gi)) return m.reply('❌ Invalid URL!');
+      
       const packName = args[0].replace('https://t.me/addstickers/', '').trim();
       const botToken = '8103143873:AAHDq1PpwJaN2f22ASvCWTuDXX-DQ1_ad4U';
-      await m.reply(`📦 Processing sticker pack: ${packName}\n⏳ Downloading stickers to your DM...`);
+      
+      // Send status to current chat (where command was used)
+      await m.reply(`📦 Processing: ${packName}\n⏳ Downloading...`);
+      
       try {
-        const response = await fetch(`https://api.telegram.org/bot${botToken}/getStickerSet?name=${encodeURIComponent(packName)}`, {
-          method: 'GET', headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' }
-        });
-        if (!response.ok) {
-          if (response.status === 404) return m.reply('❌ Sticker pack not found. Make sure:\n1. The URL is correct\n2. The sticker pack is public\n3. The pack name is exact');
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        const response = await fetch(`https://api.telegram.org/bot${botToken}/getStickerSet?name=${encodeURIComponent(packName)}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
         const stickerSet = await response.json();
-        if (!stickerSet.ok || !stickerSet.result) return m.reply('❌ Invalid sticker pack. The pack might be private or doesn\'t exist.');
+        if (!stickerSet.ok) return m.reply('❌ Sticker pack not found or private');
+        
         let successCount = 0;
-        const totalStickers = stickerSet.result.stickers.length;
-        const maxStickers = Math.min(totalStickers, 30);
-        for (let i = 0; i < maxStickers; i++) {
+        let failCount = 0;
+        const totalStickers = Math.min(stickerSet.result.stickers.length, 30);
+        
+        for (let i = 0; i < totalStickers; i++) {
           try {
             const sticker = stickerSet.result.stickers[i];
-            const fileInfoResponse = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${sticker.file_id}`);
-            if (!fileInfoResponse.ok) continue;
-            const fileData = await fileInfoResponse.json();
-            if (!fileData.ok || !fileData.result.file_path) continue;
+            const isVideo = sticker.is_video === true;
+            
+            // Get file path
+            const fileInfo = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${sticker.file_id}`);
+            const fileData = await fileInfo.json();
+            if (!fileData.ok) throw new Error('File not found');
+            
+            // Download file
             const fileUrl = `https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`;
-            const imageResponse = await fetch(fileUrl);
-            if (!imageResponse.ok) continue;
-            const arrayBuffer = await imageResponse.arrayBuffer();
-            const imageBuffer = Buffer.from(arrayBuffer);
-            await client.sendMessage(m.sender, { sticker: imageBuffer }, { quoted: m });
-            successCount++;
-            await new Promise(resolve => setTimeout(resolve, 800));
-          } catch (err) { continue; }
+            const fileRes = await fetch(fileUrl);
+            const buffer = Buffer.from(await fileRes.arrayBuffer());
+            
+            if (isVideo) {
+              // Send as video with GIF playback
+              await client.sendMessage(m.chat, { 
+                video: buffer,
+                mimetype: 'video/webm',
+                gifPlayback: true,
+                caption: `🎬 Sticker ${i + 1}/${totalStickers}`
+              }, { quoted: m });
+              successCount++;
+            } else {
+              // Static stickers
+              try {
+                const sharp = require('sharp');
+                const processed = await sharp(buffer)
+                  .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+                  .webp()
+                  .toBuffer();
+                await client.sendMessage(m.chat, { sticker: processed }, { quoted: m });
+                successCount++;
+              } catch (e) {
+                await client.sendMessage(m.chat, { sticker: buffer }, { quoted: m });
+                successCount++;
+              }
+            }
+            
+            await new Promise(r => setTimeout(r, 500));
+          } catch (err) {
+            failCount++;
+            console.log(`Failed sticker ${i + 1}:`, err.message);
+          }
         }
-        if (successCount > 0) {
-          await client.sendMessage(m.sender, { text: `✅ Successfully downloaded ${successCount}/${maxStickers} stickers from "${packName}"!` });
-          await m.reply(`📨 Sent ${successCount} stickers to your DM! Check your private messages.`);
-        } else {
-          await m.reply('❌ Failed to download any stickers. The pack might be private or contain unsupported formats.');
-        }
+        
+        await m.reply(`✅ Done!\n📊 Success: ${successCount} | Failed: ${failCount}\n📍 Sent to this chat`);
+        
       } catch (error) {
-        await m.reply('❌ Failed to download Telegram stickers!\n\nPossible reasons:\n• Invalid sticker pack URL\n• Sticker pack is private\n• Network error\n• Daily API limit reached\n• Bot token issues');
+        console.error(error);
+        await m.reply('❌ Failed: ' + error.message);
       }
     }
   },
