@@ -77,11 +77,19 @@ module.exports = raven = async (client, m, chatUpdate, store) => {
       const isLid = jid.includes('@lid') || /^\d{10,}\.0$/.test(jid);
       if (!isLid) return jid;
       const lidKey = jid.includes('@lid') ? jid : jid + '@lid';
-      if (store && store.contacts) {
+            if (store && store.contacts) {
         const contact = store.contacts[lidKey];
-        if (contact && contact.id && !contact.id.includes('@lid')) return jidNormalizedUser(contact.id);
-        for (const [id, c] of Object.entries(store.contacts)) {
-          if (c.lid === lidKey || c.lid === jid) return jidNormalizedUser(id);
+        if (contact) {
+  
+          if (contact.pn) return contact.pn + '@s.whatsapp.net';
+          
+          if (contact.id && !contact.id.includes('@lid')) return jidNormalizedUser(contact.id);
+        }
+      
+        for (const c of Object.values(store.contacts)) {
+          if (c.pn && (c.lid === lidKey || c.id === lidKey)) {
+            return c.pn + '@s.whatsapp.net';
+          }
         }
       }
       try {
@@ -293,7 +301,7 @@ const Owner = finalSuperUsers.includes(standardizeJid(senderForOwner)) || isSudo
         body, budy, msgR, args, text, q, arg,        
         pushname, botNumber, itsMe, from, reply, sender,
         Owner, superUser: finalSuperUsers,        
-        quoted, mime, qmsg, api,      
+        quoted, mime, qmsg, api, store,    
         command, prefix, menutype, cmd, mode,    
         groupMetadata, groupName, participants, groupAdmin,
         isBotAdmin, isAdmin, groupSender, standardizeJid,
@@ -319,7 +327,7 @@ const Owner = finalSuperUsers.includes(standardizeJid(senderForOwner)) || isSudo
         body, budy, msgR, args, text, q, arg,
         pushname, botNumber, itsMe, from, reply, sender,
         Owner, superUser: finalSuperUsers,
-        quoted, mime, qmsg, api,
+        quoted, mime, qmsg, api, store,
         command, prefix, menutype, cmd, mode,
         groupMetadata, groupName, participants, groupAdmin,
         isBotAdmin, isAdmin, groupSender, standardizeJid,
