@@ -705,12 +705,9 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
       const packName = args[0].replace('https://t.me/addstickers/', '').trim();
       const botToken = '8103143873:AAHDq1PpwJaN2f22ASvCWTuDXX-DQ1_ad4U';
       
-      // Get sender's number correctly
-      const senderNumber = m.sender || m.key.remoteJid;
-      const isGroup = m.isGroup || m.key.remoteJid.endsWith('@g.us');
-      
-      // If in group, send to user's DM
-      const targetJid = isGroup ? m.sender : m.key.remoteJid;
+      const senderNumber = m.sender;
+      const isGroup = m.isGroup;
+      const targetJid = isGroup ? senderNumber : m.key.remoteJid;
       
       await m.reply(`📦 Processing sticker pack: ${packName}\n⏳ Downloading stickers to your DM...`);
       
@@ -721,34 +718,27 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
         });
         
         if (!response.ok) {
-          if (response.status === 404) return m.reply('❌ Sticker pack not found. Make sure:\n1. The URL is correct\n2. The sticker pack is public\n3. The pack name is exact');
+          if (response.status === 404) return m.reply('❌ Sticker pack not found.');
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const stickerSet = await response.json();
-        if (!stickerSet.ok || !stickerSet.result) return m.reply('❌ Invalid sticker pack. The pack might be private or doesn\'t exist.');
+        if (!stickerSet.ok || !stickerSet.result) return m.reply('❌ Invalid sticker pack.');
         
         let successCount = 0;
         let failedCount = 0;
         const totalStickers = stickerSet.result.stickers.length;
         const maxStickers = Math.min(totalStickers, 50);
         
-        await m.reply(`🎨 Found ${totalStickers} stickers. Sending to your DM...`);
+        await m.reply(`🎨 Found ${totalStickers} stickers. Sending ${maxStickers} stickers to your DM...`);
         
-        // Send a test message to DM first
-        try {
-          await client.sendMessage(targetJid, { text: `📦 Starting download of "${packName}"\n🎨 Total stickers: ${maxStickers}\n⏳ Please wait...` });
-        } catch (err) {
-          console.log('Cannot send to DM, user might have DM disabled');
-          await m.reply(`⚠️ Couldn't send to your DM. Make sure you haven't blocked the bot and have "Receive messages" enabled.`);
-          return;
-        }
+        // Store stickers to send in batches
+        const stickerBatch = [];
         
         for (let i = 0; i < maxStickers; i++) {
           try {
             const sticker = stickerSet.result.stickers[i];
             
-            // Get file info
             const fileInfoResponse = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${sticker.file_id}`);
             if (!fileInfoResponse.ok) {
               failedCount++;
@@ -762,9 +752,8 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
             }
             
             const fileUrl = `https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`;
-            
-            // Download the file
             const imageResponse = await fetch(fileUrl);
+            
             if (!imageResponse.ok) {
               failedCount++;
               continue;
@@ -773,74 +762,90 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
             const arrayBuffer = await imageResponse.arrayBuffer();
             const fileBuffer = Buffer.from(arrayBuffer);
             
-            // Determine sticker type and send accordingly
             const isAnimated = sticker.is_animated || false;
             const isVideo = sticker.is_video || false;
             
-            try {
-              // Send to DM (targetJid)
-              if (isVideo) {
-                // Video stickers (WEBM format)
+            // CRITICAL FIX: Different sending method for each type
+            if (isVideo) {
+              // Send as video with proper parameters
+              await client.sendMessage(targetJid, { 
+                video: fileBuffer, 
+                caption: `Sticker ${i+1}/${maxStickers}`,
+                gifPlayback: true 
+              });
+              successCount++;
+            } else if (isAnimated) {
+              // Convert TGS to buffer and send as sticker if supported
+              // If not, send as document
+              try {
+                // Try sending as animated sticker first
                 await client.sendMessage(targetJid, { 
-                  video: fileBuffer, 
-                  mimetype: 'video/webm',
-                  gifPlayback: true 
+                  sticker: fileBuffer,
+                  mimetype: 'image/webp'
                 });
-              } else if (isAnimated) {
-                // Animated stickers (TGS format)
+                successCount++;
+              } catch (e) {
+                // Fallback to document
                 await client.sendMessage(targetJid, { 
                   document: fileBuffer, 
-                  mimetype: 'application/x-tgsticker',
-                  fileName: `sticker_${i+1}.tgs`
+                  fileName: `animated_${i+1}.tgs`,
+                  mimetype: 'application/x-tgsticker'
                 });
-              } else {
-                // Static stickers (WEBP)
+                successCount++;
+              }
+            } else {
+              // FOR STATIC STICKERS - The main issue
+              // Must ensure proper webp format
+              try {
+                // Method 1: Direct sticker send
                 await client.sendMessage(targetJid, { 
                   sticker: fileBuffer 
                 });
-              }
-              successCount++;
-              
-              // Send progress update every 10 stickers
-              if ((i + 1) % 10 === 0) {
-                await client.sendMessage(targetJid, { text: `📥 Progress: ${i+1}/${maxStickers} stickers downloaded...` });
-              }
-              
-            } catch (sendError) {
-              // Fallback: send as document
-              try {
-                await client.sendMessage(targetJid, {
-                  document: fileBuffer,
-                  fileName: `sticker_${i+1}.${isVideo ? 'webm' : (isAnimated ? 'tgs' : 'webp')}`,
-                  mimetype: isVideo ? 'video/webm' : (isAnimated ? 'application/x-tgsticker' : 'image/webp')
-                });
                 successCount++;
-              } catch (fallbackError) {
-                failedCount++;
+              } catch (stickerError) {
+                // Method 2: Try with explicit mimetype
+                try {
+                  await client.sendMessage(targetJid, { 
+                    sticker: fileBuffer,
+                    mimetype: 'image/webp'
+                  });
+                  successCount++;
+                } catch (fallbackError) {
+                  // Method 3: Send as image (last resort)
+                  await client.sendMessage(targetJid, { 
+                    image: fileBuffer,
+                    caption: `Sticker ${i+1}/${maxStickers} (converted to image)`
+                  });
+                  successCount++;
+                }
               }
             }
             
-            // Add delay
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Progress update in group (not DM)
+            if ((i + 1) % 10 === 0) {
+              await m.reply(`📥 Progress: ${i+1}/${maxStickers} stickers sent to DM`);
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 300));
             
           } catch (err) {
             failedCount++;
-            continue;
+            console.error(`Sticker ${i+1} failed:`, err);
           }
         }
         
-        const summary = `✅ Download Complete!\n\n📦 Pack: ${packName}\n✅ Success: ${successCount}/${maxStickers}\n❌ Failed: ${failedCount}`;
+        const summary = `✅ Complete!\n📦 ${packName}\n✅ ${successCount}/${maxStickers}\n❌ Failed: ${failedCount}`;
         
         if (successCount > 0) {
-          await client.sendMessage(targetJid, { text: summary + `\n\n💾 All stickers have been sent to this DM!` });
-          await m.reply(`✅ Success! ${successCount} stickers have been sent to your DM.`);
+          await client.sendMessage(targetJid, { text: summary });
+          await m.reply(`✅ Successfully sent ${successCount} stickers to your DM!\n${failedCount > 0 ? `⚠️ ${failedCount} failed.` : ''}`);
         } else {
-          await m.reply('❌ Failed to download any stickers.\n\nCheck:\n• Your DM is open to the bot\n• Pack contains valid stickers\n• Try again in a few minutes');
+          await m.reply('❌ Failed to download any stickers. The bot might need to be updated.');
         }
         
       } catch (error) {
-        console.error('Telegram sticker download error:', error);
-        await m.reply('❌ Failed to download Telegram stickers!\n\nPossible reasons:\n• Invalid sticker pack URL\n• Sticker pack is private\n• Network error\n• Bot token issues\n• You might have blocked the bot');
+        console.error('Error:', error);
+        await m.reply('❌ Failed to download. Check if the sticker pack exists and is public.');
       }
     }
   },
