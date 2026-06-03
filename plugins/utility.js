@@ -778,7 +778,7 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
     aliases: ['groupvcf', 'group-vcf'],
     description: 'Export group contacts as VCF',
     category: 'utility',
-    handler: async (client, m, { reply, group }) => {
+        handler: async (client, m, { reply, group, store }) => {
       if (!m.isGroup) return m.reply('Command meant for groups');
       const fs = require('fs');
       try {
@@ -786,7 +786,8 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
         const participants = metadata.participants || [];
         let vcard = '';
         let no = 0;
-                for (const p of participants) {
+        for (const p of participants) {
+          // Resolve real phone number (pn field avoids LID issues)
           let num = null;
           if (p.pn) {
             num = p.pn.replace(/[^0-9]/g, '');
@@ -795,13 +796,19 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
           }
           if (!num) continue;
 
+          // Resolve display name from store contacts
+          const jidKey  = num + '@s.whatsapp.net';
+          const contact = store?.contacts?.[jidKey] || store?.contacts?.[p.id] || {};
+          const name    = contact.name || contact.notify || `+${num}`;
+
           vcard +=
             `BEGIN:VCARD\n` +
             `VERSION:3.0\n` +
-            `FN:[${no++}] +${num}\n` +
+            `FN:${name}\n` +
             `TEL;type=CELL;type=VOICE;waid=${num}:+${num}\n` +
             `END:VCARD\n`;
-                }
+          no++;
+        }
         const filePath = './contacts.vcf';
         await m.reply(`⏳ Compiling ${participants.length} contacts...`);
         fs.writeFileSync(filePath, vcard.trim());
@@ -815,7 +822,7 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
       } catch (err) {
         m.reply('❌ Failed to generate VCF.');
       }
-    }
+     }
   },
 
 ];
