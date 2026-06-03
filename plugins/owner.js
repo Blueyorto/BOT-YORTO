@@ -575,7 +575,6 @@ module.exports = [
       const { jidNormalizedUser } = require('@whiskeysockets/baileys');
       const { owner } = require('../set');
 
-      // ── Resolve target (mention / reply / typed number) ─────────────────
       let target = null;
       if (m.mentionedJid && m.mentionedJid.length > 0) {
         target = m.mentionedJid[0];
@@ -588,7 +587,6 @@ module.exports = [
 
       if (!target) return reply('❌ Tag someone, reply to their message, or provide a number.\nUsage: .block @user / .block 2547xxxxxxxx');
 
-      // ── Resolve LID → real JID ───────────────────────────────────────────
       const isLid = target.includes('@lid') || (!target.includes('@s.whatsapp.net') && /^\d{12,}@/.test(target));
       if (isLid && m.isGroup) {
         try {
@@ -606,7 +604,7 @@ module.exports = [
       target = standardizeJid(target);
       if (!target || target.includes('@lid')) return reply('❌ Could not resolve that user\'s real JID. Try typing their number directly.\nExample: .block 2547xxxxxxxx');
 
-      // ── Safety checks ────────────────────────────────────────────────────
+      // ──────────────────────────────────────────────────────
       const botJid = jidNormalizedUser(client.user.id);
       const ownerJids = owner.map(n => `${n}@s.whatsapp.net`);
       if (ownerJids.includes(target)) return reply('I cannot block my Owner 😡');
@@ -639,8 +637,7 @@ module.exports = [
       }
 
       if (!target) return reply('❌ Tag someone, reply to their message, or provide a number.\nUsage: .unblock @user / .unblock 2547xxxxxxxx');
-
-      // ── Resolve LID → real JID ───────────────────────────────────────────
+      
       const isLid = target.includes('@lid') || (!target.includes('@s.whatsapp.net') && /^\d{12,}@/.test(target));
       if (isLid && m.isGroup) {
         try {
@@ -870,7 +867,6 @@ await client.sendMessage(m.chat, {
 
       if (!target) return reply('❌ Tag someone, reply to their message, or provide a number.\nUsage: .addsudo @user / .addsudo 2547xxxxxxxx');
 
-      // ── Resolve LID → real phone JID ──────────────────────────────────────
       const isLid = target.includes('@lid') || (!target.includes('@s.whatsapp.net') && /^\d{12,}@/.test(target));
       if (isLid && m.isGroup) {
         try {
@@ -929,7 +925,6 @@ await client.sendMessage(m.chat, {
 
       if (!target) return reply('❌ Tag someone, reply to their message, or provide a number.\nUsage: .removesudo @user / .removesudo 2547xxxxxxxx');
 
-      // ── Resolve LID → real phone JID ──────────────────────────────────────
       const isLid = target.includes('@lid') || (!target.includes('@s.whatsapp.net') && /^\d{12,}@/.test(target));
       if (isLid && m.isGroup) {
         try {
@@ -984,10 +979,10 @@ await client.sendMessage(m.chat, {
         .join('\n');
 
       reply(
-        `═════════════════════\n` +
+        `═══════════════════\n` +
         `    CURRENT SUDO USERS      \n` +
-        `═════════════════════\n\n` +
-        `♤ ${list}\n\n` +
+        `═══════════════════\n\n` +
+        `    ${list}\n\n` +
         `Total: *${sudos.length}* sudo user(s)`
       );
     }
