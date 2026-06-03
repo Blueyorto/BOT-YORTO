@@ -726,28 +726,32 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
         if (!stickerSet.ok || !stickerSet.result) return m.reply('❌ Invalid sticker pack.');
         
         let successCount = 0;
-        let failedCount = 0;
+        let skippedCount = 0;
         const totalStickers = stickerSet.result.stickers.length;
-        const maxStickers = Math.min(totalStickers, 50);
         
-        await m.reply(`🎨 Found ${totalStickers} stickers. Sending ${maxStickers} stickers to your DM...`);
+        // Filter out animated and video stickers (only take static webp stickers)
+        const staticStickers = stickerSet.result.stickers.filter(sticker => !sticker.is_animated && !sticker.is_video);
+        const maxStickers = Math.min(staticStickers.length, 30);
         
-        // Store stickers to send in batches
-        const stickerBatch = [];
+        if (staticStickers.length === 0) {
+          return m.reply('❌ This pack contains only animated/video stickers which cannot be converted to static WhatsApp stickers.\n\nTry a different sticker pack with static images.');
+        }
+        
+        await m.reply(`🎨 Found ${staticStickers.length} static stickers. Sending ${maxStickers} to your DM...`);
         
         for (let i = 0; i < maxStickers; i++) {
           try {
-            const sticker = stickerSet.result.stickers[i];
+            const sticker = staticStickers[i];
             
             const fileInfoResponse = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${sticker.file_id}`);
             if (!fileInfoResponse.ok) {
-              failedCount++;
+              skippedCount++;
               continue;
             }
             
             const fileData = await fileInfoResponse.json();
             if (!fileData.ok || !fileData.result.file_path) {
-              failedCount++;
+              skippedCount++;
               continue;
             }
             
@@ -755,92 +759,59 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
             const imageResponse = await fetch(fileUrl);
             
             if (!imageResponse.ok) {
-              failedCount++;
+              skippedCount++;
               continue;
             }
             
             const arrayBuffer = await imageResponse.arrayBuffer();
-            const fileBuffer = Buffer.from(arrayBuffer);
+            let stickerBuffer = Buffer.from(arrayBuffer);
             
-            const isAnimated = sticker.is_animated || false;
-            const isVideo = sticker.is_video || false;
-            
-            // CRITICAL FIX: Different sending method for each type
-            if (isVideo) {
-              // Send as video with proper parameters
+            // Convert to proper WebP format for WhatsApp
+            // Telegram stickers are already WebP, but ensure they're valid
+            try {
+              // Send as sticker directly
               await client.sendMessage(targetJid, { 
-                video: fileBuffer, 
-                caption: `Sticker ${i+1}/${maxStickers}`,
-                gifPlayback: true 
+                sticker: stickerBuffer
               });
               successCount++;
-            } else if (isAnimated) {
-              // Convert TGS to buffer and send as sticker if supported
-              // If not, send as document
+            } catch (sendError) {
+              // If direct send fails, try to re-encode
               try {
-                // Try sending as animated sticker first
+                // Use sharp if available to ensure WebP format
+                const sharp = require('sharp');
+                const webpBuffer = await sharp(stickerBuffer)
+                  .webp()
+                  .toBuffer();
+                
                 await client.sendMessage(targetJid, { 
-                  sticker: fileBuffer,
-                  mimetype: 'image/webp'
+                  sticker: webpBuffer
                 });
                 successCount++;
-              } catch (e) {
-                // Fallback to document
-                await client.sendMessage(targetJid, { 
-                  document: fileBuffer, 
-                  fileName: `animated_${i+1}.tgs`,
-                  mimetype: 'application/x-tgsticker'
-                });
-                successCount++;
-              }
-            } else {
-              // FOR STATIC STICKERS - The main issue
-              // Must ensure proper webp format
-              try {
-                // Method 1: Direct sticker send
-                await client.sendMessage(targetJid, { 
-                  sticker: fileBuffer 
-                });
-                successCount++;
-              } catch (stickerError) {
-                // Method 2: Try with explicit mimetype
-                try {
-                  await client.sendMessage(targetJid, { 
-                    sticker: fileBuffer,
-                    mimetype: 'image/webp'
-                  });
-                  successCount++;
-                } catch (fallbackError) {
-                  // Method 3: Send as image (last resort)
-                  await client.sendMessage(targetJid, { 
-                    image: fileBuffer,
-                    caption: `Sticker ${i+1}/${maxStickers} (converted to image)`
-                  });
-                  successCount++;
-                }
+              } catch (sharpError) {
+                skippedCount++;
               }
             }
             
-            // Progress update in group (not DM)
-            if ((i + 1) % 10 === 0) {
+            // Progress update
+            if ((i + 1) % 5 === 0) {
               await m.reply(`📥 Progress: ${i+1}/${maxStickers} stickers sent to DM`);
             }
             
             await new Promise(resolve => setTimeout(resolve, 300));
             
           } catch (err) {
-            failedCount++;
+            skippedCount++;
             console.error(`Sticker ${i+1} failed:`, err);
           }
         }
         
-        const summary = `✅ Complete!\n📦 ${packName}\n✅ ${successCount}/${maxStickers}\n❌ Failed: ${failedCount}`;
-        
         if (successCount > 0) {
-          await client.sendMessage(targetJid, { text: summary });
-          await m.reply(`✅ Successfully sent ${successCount} stickers to your DM!\n${failedCount > 0 ? `⚠️ ${failedCount} failed.` : ''}`);
+          await client.sendMessage(targetJid, { 
+            text: `✅ Sticker pack download complete!\n\n📦 Pack: ${packName}\n✅ Downloaded: ${successCount}/${maxStickers} stickers\n⚠️ Skipped: ${skippedCount}\n\n💾 All stickers saved to your stickers!` 
+          });
+          await m.reply(`✅ Successfully sent ${successCount} working stickers to your DM!\n${skippedCount > 0 ? `⚠️ ${skippedCount} stickers couldn't be converted.` : ''}\n\n📌 Check your DM and tap the + icon to add them to your stickers!`);
         } else {
-          await m.reply('❌ Failed to download any stickers. The bot might need to be updated.');
+          await m.reply('❌ Failed to download any static stickers.\n\nThis pack may contain only animated/video stickers which cannot be converted to normal WhatsApp stickers.');
         }
         
       } catch (error) {
@@ -849,7 +820,7 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
       }
     }
   },
-
+  
   {
     command: ['pair'],
     aliases: ['rent'],
