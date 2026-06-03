@@ -342,23 +342,35 @@ const Owner = finalSuperUsers.includes(standardizeJid(senderForOwner)) || isSudo
       try {
         if (!global.gptConversations) global.gptConversations = new Map();
         const userJid = m.sender;
-        const maxHistory = 10;
+        const maxHistory = 20;
         if (!global.gptConversations.has(userJid)) global.gptConversations.set(userJid, []);
+        
         const history = global.gptConversations.get(userJid);
+        
         let contextPrompt = body.trim();
+        
         if (history.length > 0) {
           const historyText = history.slice(-maxHistory).map(h => `${h.role === 'user' ? 'User' : 'Assistant'}: ${h.content}`).join('\n');
           contextPrompt = `Previous conversation:\n${historyText}\n\nUser: ${body.trim()}`;
         }
         await client.sendPresenceUpdate('composing', m.chat);
-        const gptRes = await global.axios.get('https://ravenn.site/ai/chatgpt4', { params: { q: contextPrompt }, timeout: 30000 });
-        const replyText = gptRes.data?.result;
+        
+        const gptRes = await global.axios.get(`https://ravenn.site/ai/gpt4?q=${encodeURIComponent(contextPrompt)}`, { timeout: 30000 });
+        
+const replyText = gptRes.data?.result || gptRes.data?.reply || gptRes.data?.message || gptRes.data?.response;
+        
         if (!replyText) throw new Error('Empty AI response');
+        
         history.push({ role: 'user', content: body.trim() });
+        
         history.push({ role: 'assistant', content: replyText });
+        
         if (history.length > maxHistory * 2) global.gptConversations.set(userJid, history.slice(-(maxHistory * 2)));
+        
         await client.sendPresenceUpdate('paused', m.chat);
+        
         await client.sendMessage(m.chat, { text: replyText }, { quoted: m });
+        
       } catch (gptErr) {
         console.error('gptdm error:', gptErr.message);
         await client.sendPresenceUpdate('paused', m.chat).catch(() => {});
