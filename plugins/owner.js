@@ -565,68 +565,104 @@ module.exports = [
     }
   },
 
-  {
+ {
     command: ['block'],
     description: 'Block a user',
     category: 'owner',
-    handler: async (client, m, { Owner, NotOwner }) => {
+    handler: async (client, m, { Owner, NotOwner, args, reply, standardizeJid }) => {
       if (!Owner) return m.reply(NotOwner);
-      if (!m.quoted) return m.reply('Reply to a message to block that user.');
 
       const { jidNormalizedUser } = require('@whiskeysockets/baileys');
       const { owner } = require('../set');
 
-      try {
-        const raw = m.quoted.sender; // may be LID or real JID
-        const botJid = jidNormalizedUser(client.user.id);
-        const ownerJids = owner.map(n => `${n}@s.whatsapp.net`);
+      // ── Resolve target (mention / reply / typed number) ─────────────────
+      let target = null;
+      if (m.mentionedJid && m.mentionedJid.length > 0) {
+        target = m.mentionedJid[0];
+      } else if (m.quoted && m.quoted.sender) {
+        target = m.quoted.sender;
+      } else if (args[0]) {
+        const num = args[0].replace(/[^0-9]/g, '');
+        if (num) target = num + '@s.whatsapp.net';
+      }
 
-        let target = raw;
+      if (!target) return reply('❌ Tag someone, reply to their message, or provide a number.\nUsage: .block @user / .block 2547xxxxxxxx');
 
-        // If it's a LID, resolve via group metadata pn field
-        if (raw.includes('@lid')) {
-          if (!m.isGroup) return m.reply('❌ Cannot resolve this LID outside a group. Try using the command in a group where that person is a member.');
+      // ── Resolve LID → real JID ───────────────────────────────────────────
+      const isLid = target.includes('@lid') || (!target.includes('@s.whatsapp.net') && /^\d{12,}@/.test(target));
+      if (isLid && m.isGroup) {
+        try {
           const meta = await client.groupMetadata(m.chat);
-          const found = meta.participants.find(p => p.id === raw || p.lid === raw);
-          if (!found || !found.pn) return m.reply('❌ Could not resolve real JID for that user.');
-          target = found.pn.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
-        }
+          const tNum = target.split('@')[0].split(':')[0];
+          let found = meta.participants.find(p => p.lid && p.lid.split(':')[0].split('@')[0] === tNum);
+          if (!found) found = meta.participants.find(p => p.id && p.id.split(':')[0].split('@')[0] === tNum);
+          if (found) {
+            if (found.pn) target = found.pn + '@s.whatsapp.net';
+            else if (found.id && !found.id.includes('@lid')) target = standardizeJid(found.id);
+          }
+        } catch (e) {}
+      }
 
-        if (ownerJids.includes(target)) return m.reply('I cannot block my Owner 😡');
-        if (jidNormalizedUser(target) === botJid) return m.reply('I cannot block myself 😡');
+      target = standardizeJid(target);
+      if (!target || target.includes('@lid')) return reply('❌ Could not resolve that user\'s real JID. Try typing their number directly.\nExample: .block 2547xxxxxxxx');
 
+      // ── Safety checks ────────────────────────────────────────────────────
+      const botJid = jidNormalizedUser(client.user.id);
+      const ownerJids = owner.map(n => `${n}@s.whatsapp.net`);
+      if (ownerJids.includes(target)) return reply('I cannot block my Owner 😡');
+      if (target === botJid) return reply('I cannot block myself 😡');
+
+      try {
         await client.updateBlockStatus(target, 'block');
-        m.reply(`✅ *+${target.split('@')[0]}* has been blocked.`);
+        reply(`✅ *+${target.split('@')[0]}* has been blocked.`);
       } catch (err) {
-        m.reply('❌ Error: ' + err.message);
+        reply('❌ Error: ' + err.message);
       }
     }
   },
 
-    {
+{
     command: ['unblock'],
     description: 'Unblock a user',
     category: 'owner',
-    handler: async (client, m, { Owner, NotOwner }) => {
+    handler: async (client, m, { Owner, NotOwner, args, reply, standardizeJid }) => {
       if (!Owner) return m.reply(NotOwner);
-      if (!m.quoted) return m.reply('Reply to a message to unblock that user.');
+      
+      let target = null;
+      if (m.mentionedJid && m.mentionedJid.length > 0) {
+        target = m.mentionedJid[0];
+      } else if (m.quoted && m.quoted.sender) {
+        target = m.quoted.sender;
+      } else if (args[0]) {
+        const num = args[0].replace(/[^0-9]/g, '');
+        if (num) target = num + '@s.whatsapp.net';
+      }
+
+      if (!target) return reply('❌ Tag someone, reply to their message, or provide a number.\nUsage: .unblock @user / .unblock 2547xxxxxxxx');
+
+      // ── Resolve LID → real JID ───────────────────────────────────────────
+      const isLid = target.includes('@lid') || (!target.includes('@s.whatsapp.net') && /^\d{12,}@/.test(target));
+      if (isLid && m.isGroup) {
+        try {
+          const meta = await client.groupMetadata(m.chat);
+          const tNum = target.split('@')[0].split(':')[0];
+          let found = meta.participants.find(p => p.lid && p.lid.split(':')[0].split('@')[0] === tNum);
+          if (!found) found = meta.participants.find(p => p.id && p.id.split(':')[0].split('@')[0] === tNum);
+          if (found) {
+            if (found.pn) target = found.pn + '@s.whatsapp.net';
+            else if (found.id && !found.id.includes('@lid')) target = standardizeJid(found.id);
+          }
+        } catch (e) {}
+      }
+
+      target = standardizeJid(target);
+      if (!target || target.includes('@lid')) return reply('❌ Could not resolve that user\'s real JID. Try typing their number directly.\nExample: .unblock 2547xxxxxxxx');
 
       try {
-        const raw = m.quoted.sender;
-        let target = raw;
-
-        if (raw.includes('@lid')) {
-          if (!m.isGroup) return m.reply('❌ Cannot resolve this LID outside a group. Try using the command in a group where that person is a member.');
-          const meta = await client.groupMetadata(m.chat);
-          const found = meta.participants.find(p => p.id === raw || p.lid === raw);
-          if (!found || !found.pn) return m.reply('❌ Could not resolve real JID for that user.');
-          target = found.pn.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
-        }
-
         await client.updateBlockStatus(target, 'unblock');
-        m.reply(`✅ *+${target.split('@')[0]}* has been unblocked.`);
+        reply(`✅ *+${target.split('@')[0]}* has been unblocked.`);
       } catch (err) {
-        m.reply('❌ Error: ' + err.message);
+        reply('❌ Error: ' + err.message);
       }
     }
   },
