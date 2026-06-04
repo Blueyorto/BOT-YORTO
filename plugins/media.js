@@ -28,7 +28,7 @@ module.exports = [
       const sizeMB = (media.fileLength || 0) / (1024 * 1024);
       const seconds = media.seconds || 0;
       if (sizeMB > 8) return reply(`❌ Video too large (${sizeMB.toFixed(1)} MB). Max is 8 MB.`);
-      if (seconds > 8) return reply(`❌ Video too long (${seconds}s). Max is 8 seconds.`);
+      if (seconds > 10) return reply(`❌ Video too long (${seconds}s). Max is 10 seconds.`);
     }
 
     const result = await client.downloadAndSaveMediaMessage(media);
@@ -140,7 +140,6 @@ module.exports = [
       let buf;
 
       if (isVideo) {
-        // Video → animated WebP sticker (must be < 1 MB for WhatsApp)
         const { execSync } = require('child_process');
         const os = require('os');
         const path = require('path');
@@ -190,8 +189,6 @@ module.exports = [
         }
 
       } else if (isAnimatedSticker) {
-        // ── Animated sticker → re-pack with new watermark (keep animation) ──
-        // wa-sticker-formatter handles animated WebP natively — no ffmpeg needed
         const sticker = new Sticker(fs.readFileSync(result), {
           pack: pushname,
           author: 'BLACK-MD',
@@ -210,7 +207,6 @@ module.exports = [
         }
 
       } else {
-        // ── Static image or static sticker → Jimp path ──────────────────
         const sharp = require('sharp');
         const os = require('os');
         const path = require('path');
