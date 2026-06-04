@@ -302,90 +302,6 @@ module.exports = [
     }
   },
 
-  /*
-  {
-    command: ['smeme'],
-    aliases: ['write'],
-    description: 'Add words to a sticker',
-    category: 'media',
-    handler: async (client, m, { reply, text, mime, pushname, qmsg }) => {
-    let responnd = `Quote an image or sticker with text separated by |\nExample: .smeme top text|bottom text`
-    if (!/image|webp/.test(mime)) return reply(responnd)
-    if (!text) return reply(responnd)
-
-    const atas = text.split('|')[0] ? text.split('|')[0].trim() : ''
-    const bawah = text.split('|')[1] ? text.split('|')[1].trim() : ''
-
-    const Jimp = require('jimp')
-    const { Sticker, StickerTypes } = require('wa-sticker-formatter')
-    const os = require('os')
-    const path = require('path')
-
-    let dwnld = await client.downloadAndSaveMediaMessage(qmsg)
-
-    let image
-    try {
-        image = await Jimp.read(dwnld)
-    } catch (e) {
-        // Try sharp as fallback for webp stickers
-        const sharp = require('sharp')
-        const id = Date.now()
-        const pngPath = path.join(os.tmpdir(), `sticker_${id}.png`)
-        await sharp(dwnld).png().toFile(pngPath)
-        image = await Jimp.read(pngPath)
-        try { fs.unlinkSync(pngPath) } catch {}
-    }
-
-    const imgW = image.bitmap.width
-    const imgH = image.bitmap.height
-
-    const fontWhite = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE)
-    const fontBlack = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK)
-
-    const pad = 12
-    const textW = imgW - pad * 2
-    const outlineOffsets = [
-        [-4,-4],[-4,4],[4,-4],[4,4],
-        [-4,0],[4,0],[0,-4],[0,4],
-        [-3,-3],[-3,3],[3,-3],[3,3],
-        [-2,-2],[-2,2],[2,-2],[2,2]
-    ]
-
-    if (atas) {
-        for (const [ox, oy] of outlineOffsets) {
-            image.print(fontBlack, pad + ox, pad + oy, { text: atas, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
-        }
-        image.print(fontWhite, pad, pad, { text: atas, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
-    }
-
-    if (bawah) {
-        const bottomY = imgH - 50
-        for (const [ox, oy] of outlineOffsets) {
-            image.print(fontBlack, pad + ox, bottomY + oy, { text: bawah, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
-        }
-        image.print(fontWhite, pad, bottomY, { text: bawah, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
-    }
-
-    const stickerSize = 512
-    const padded = image.clone()
-        .contain(stickerSize, stickerSize)
-        .background(0x00000000)
-    const paddedBuffer = await padded.getBufferAsync(Jimp.MIME_PNG)
-
-    const stickerMeme = new Sticker(paddedBuffer, {
-        pack: pushname,
-        author: 'BLACK-MD',
-        type: StickerTypes.DEFAULT,
-        quality: 100,
-        background: 'transparent'
-    })
-    const stickerBuffer = await stickerMeme.toBuffer()
-    await client.sendMessage(m.chat, { sticker: stickerBuffer }, { quoted: m })
-
-    try { fs.unlinkSync(dwnld) } catch(e) {}
-      }
-      }, */
-
   {
   command: ['smeme'],
   aliases: ['write'],
@@ -406,7 +322,6 @@ module.exports = [
     let dwnld = await client.downloadAndSaveMediaMessage(qmsg);
 
     try {
-      // Read image — convert webp stickers to png first
       let imgBuf;
       try {
         imgBuf = await sharp(dwnld).png().toBuffer();
@@ -418,14 +333,18 @@ module.exports = [
       const w = meta.width || 512;
       const h = meta.height || 512;
 
-      // ── Bold meme font settings ────────────────────────────────────────
-      const fontSize = Math.max(36, Math.floor(w / 9));
-      const lineHeight = Math.floor(fontSize * 1.15);
-      const strokeW = Math.max(4, Math.floor(fontSize / 8));
-      // Approx chars per line based on Impact width (~0.5em per char)
-      const maxChars = Math.max(10, Math.floor(w / (fontSize * 0.52)));
+      // ── Font sizing ────────────────────────────────────────────────────
+      // w/12 gives breathing room; floor at 28 for tiny images
+      const fontSize = Math.max(28, Math.floor(w / 12));
+      const lineHeight = Math.floor(fontSize * 1.2);
+      const strokeW = Math.max(3, Math.floor(fontSize / 9));
+      const maxW = Math.floor(w * 0.92);  // hard max line width in px
 
-      // Word-wrap helper
+      // Approx char width for Impact (~0.48 em per char, no letter-spacing)
+      const charPx = fontSize * 0.48;
+      const maxChars = Math.max(8, Math.floor(maxW / charPx));
+
+      // Word-wrap: never exceed maxChars per line
       const wrapText = (txt) => {
         const words = txt.toUpperCase().split(' ');
         const lines = [];
@@ -450,7 +369,7 @@ module.exports = [
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
 
-      // Build SVG <text> lines
+      // Build SVG lines; textLength ensures no line ever clips at edges
       const buildLines = (txt, anchorY, direction) => {
         if (!txt) return '';
         const lines = wrapText(txt);
@@ -458,26 +377,25 @@ module.exports = [
           const y = direction === 'top'
             ? anchorY + i * lineHeight
             : anchorY - (lines.length - 1 - i) * lineHeight;
-          return `<text x="${w / 2}" y="${y}">${esc(line)}</text>`;
+          // Estimated natural width; cap to maxW to prevent clipping
+          const estW = Math.round(line.length * charPx);
+          const tlAttr = estW > maxW
+            ? `textLength="${maxW}" lengthAdjust="spacingAndGlyphs"`
+            : '';
+          return `<text x="${w / 2}" y="${y}" ${tlAttr}>${esc(line)}</text>`;
         }).join('\n');
       };
 
-      const topLines = atas ? wrapText(atas) : [];
-      const bottomLines = bawah ? wrapText(bawah) : [];
-
-      const topStartY = fontSize + 10;
-      // Bottom text: anchor so last line sits 14px above bottom edge
-      const bottomAnchorY = h - 14;
+      const topStartY = fontSize + 8;
+      const bottomAnchorY = h - 12;
 
       const svg = `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
   <style>
     text {
-      font-family: Impact, "Arial Black", "Franklin Gothic Heavy", "Arial Narrow Bold", sans-serif;
+      font-family: Impact, "Arial Black", "Franklin Gothic Heavy", sans-serif;
       font-size: ${fontSize}px;
       font-weight: 900;
-      font-style: normal;
       text-anchor: middle;
-      letter-spacing: 2px;
       paint-order: stroke fill;
       stroke: #000000;
       stroke-width: ${strokeW}px;
@@ -489,13 +407,11 @@ module.exports = [
   ${buildLines(bawah, bottomAnchorY, 'bottom')}
 </svg>`;
 
-      // Composite SVG text over the image
       const withText = await sharp(imgBuf)
         .composite([{ input: Buffer.from(svg), gravity: 'northwest' }])
         .png()
         .toBuffer();
 
-      // Resize to 512×512 for sticker
       const resized = await sharp(withText)
         .resize(512, 512, {
           fit: 'contain',
@@ -520,6 +436,7 @@ module.exports = [
     }
   }
 },
+
   
                 
   {
