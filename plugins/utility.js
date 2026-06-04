@@ -827,7 +827,7 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
         }
       }
 
-      await m.reply(`✅ Done!\n📊 Success: ${successCount} | Failed: ${failCount}\n📍 Sent to this your Dm`);
+      await m.reply(`✅ Done!\n📊 Success: ${successCount} | Failed: ${failCount}\n📍 Sent to your Dm`);
 
     } catch (error) {
       await m.reply('❌ Failed: ' + error.message);
