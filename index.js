@@ -226,7 +226,7 @@ client.ev.on("messages.upsert", async (chatUpdate) => {
 
         // ✅ Auto Like Status
         if (liveSettings.autolike === "on") {
-          const emojis = ['💚', '🗿', '⌚️', '💠', '👣', '💙', '💔', '🤍'];
+          const emojis = ['💚', '🗿', '⌚️', '💠', '👣', '💙', '✅', '🤍', '🛰️', '💫', '♥️'];
           const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
           await client.sendMessage(
             mek.key.remoteJid,
