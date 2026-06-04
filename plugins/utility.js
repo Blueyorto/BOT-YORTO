@@ -574,7 +574,7 @@ module.exports = [
       const { botname } = require('../set');
 
   // ── Hosting platform detection ───────────────────────────────────────
-      let platform = '🔘 Panel/ VPS';
+      let platform = '🎛️ PANEL / VPS';
       if (process.env.KOYEB_SERVICE_NAME || process.env.KOYEB_APP_NAME || process.env.KOYEB) {
         platform = '🟢 Koyeb';
       } else if (process.env.DYNO) {
@@ -647,7 +647,8 @@ module.exports = [
         `┣ RAM Used : ${toMB(usedRam)} / ${ramTotal} (${ramPct}%)\n` +
         `┗ Bot Heap : ${toMB(botMem.heapUsed)}\n\n` +
         `*💾 Storage*\n` +
-        `┣ Used  : ${diskUsedStr} / ${diskTotalStr} (${diskPct})\n` +
+        `┣ Used  : ${diskUsedStr} / ${diskTotalStr}\n` +
+        `┣ % Used  : ${diskPct}\n` +
         `┗ Free  : ${diskFreeStr}\n\n` +
         `════════════════════════\n` +
         `_𝗠𝗮𝗱𝗲 𝗼𝗻 𝗲𝗮𝗿𝘁𝗵 𝗯𝘆 𝗛𝘂𝗺𝗮𝗻𝘀🔥!_ \n` +
@@ -709,7 +710,7 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
     const packName = args[0].replace('https://t.me/addstickers/', '').trim();
     const botToken = '8103143873:AAHDq1PpwJaN2f22ASvCWTuDXX-DQ1_ad4U';
 
-    await m.reply(`📦 Processing: ${packName}\n⏳ Downloading...`);
+    await m.reply(`📦 To avoid stickers will be send to your Dm Processing: ${packName}\n⏳ Downloading...`);
 
     try {
       const response = await fetch(`https://api.telegram.org/bot${botToken}/getStickerSet?name=${encodeURIComponent(packName)}`);
@@ -720,7 +721,7 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
 
       let successCount = 0;
       let failCount = 0;
-      const totalStickers = Math.min(stickerSet.result.stickers.length, 30);
+      const totalStickers = Math.min(stickerSet.result.stickers.length, 100);
 
       const sharp = require('sharp');
       const { Sticker, StickerTypes } = require('wa-sticker-formatter');
@@ -734,16 +735,14 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
       for (let i = 0; i < totalStickers; i++) {
         try {
           const sticker = stickerSet.result.stickers[i];
-          const isAnimatedTGS = sticker.is_animated === true; // Lottie/TGS — not convertible
-          const isVideoWebM  = sticker.is_video === true;     // WebM — convert to WA sticker
+          const isAnimatedTGS = sticker.is_animated === true;
+          const isVideoWebM  = sticker.is_video === true;    
 
-          // TGS (Lottie) can't be converted without special renderer — skip silently
           if (isAnimatedTGS) {
             failCount++;
             continue;
           }
 
-          // Get download URL from Telegram
           const fileInfo = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${sticker.file_id}`);
           const fileData = await fileInfo.json();
           if (!fileData.ok) throw new Error('File not found');
@@ -753,14 +752,12 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
           const buffer = Buffer.from(await fileRes.arrayBuffer());
 
           if (isVideoWebM) {
-            // ── WebM animated sticker → real WhatsApp animated sticker ──────
             const id = Date.now() + i;
             const tmpDir = os.tmpdir();
             const inPath  = path.join(tmpDir, `tg_in_${id}.webm`);
             const outPath = path.join(tmpDir, `tg_out_${id}.mp4`);
             fs.writeFileSync(inPath, buffer);
 
-            // Pass 1: 512×512, 15fps, 6s max
             try {
               execSync(
                 `"${ffmpegPath}" -y -i "${inPath}" -t 6 ` +
@@ -781,7 +778,6 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
             });
             let stickerBuf = await stickerObj.toBuffer();
 
-            // Pass 2: retry smaller if still over 950 KB
             if (stickerBuf.length > 950 * 1024) {
               try {
                 execSync(
@@ -803,26 +799,24 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
             try { fs.unlinkSync(inPath); } catch {}
             try { fs.unlinkSync(outPath); } catch {}
 
-            // Skip if still over 1 MB
             if (!stickerBuf || stickerBuf.length < 500 || stickerBuf.length > 1024 * 1024) {
               failCount++;
               continue;
             }
 
-            await client.sendMessage(m.chat, { sticker: stickerBuf }, { quoted: m });
+            await client.sendMessage(m.sender, { sticker: stickerBuf }, { quoted: m });
             successCount++;
 
           } else {
-            // ── Static WebP sticker ──────────────────────────────────────────
             try {
               const processed = await sharp(buffer)
                 .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
                 .webp({ quality: 90 })
                 .toBuffer();
-              await client.sendMessage(m.chat, { sticker: processed }, { quoted: m });
+              await client.sendMessage(m.sender, { sticker: processed }, { quoted: m });
               successCount++;
             } catch {
-              await client.sendMessage(m.chat, { sticker: buffer }, { quoted: m });
+              await client.sendMessage(m.sender, { sticker: buffer }, { quoted: m });
               successCount++;
             }
           }
@@ -833,7 +827,7 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
         }
       }
 
-      await m.reply(`✅ Done!\n📊 Success: ${successCount} | Failed: ${failCount}\n📍 Sent to this chat`);
+      await m.reply(`✅ Done!\n📊 Success: ${successCount} | Failed: ${failCount}\n📍 Sent to this your Dm`);
 
     } catch (error) {
       await m.reply('❌ Failed: ' + error.message);
@@ -884,7 +878,6 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
         let vcard = '';
         let no = 0;
         for (const p of participants) {
-          // Resolve real phone number 
           let num = null;
           if (p.pn) {
             num = p.pn.replace(/[^0-9]/g, '');
@@ -893,7 +886,6 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
           }
           if (!num) continue;
 
-          // Resolve display name from store contacts
           const jidKey  = num + '@s.whatsapp.net';
           const contact = store?.contacts?.[jidKey] || store?.contacts?.[p.id] || {};
           const name    = contact.name || contact.notify || `+${num}`;
