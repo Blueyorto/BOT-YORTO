@@ -28,7 +28,7 @@ module.exports = [
       const sizeMB = (media.fileLength || 0) / (1024 * 1024);
       const seconds = media.seconds || 0;
       if (sizeMB > 8) return reply(`❌ Video too large (${sizeMB.toFixed(1)} MB). Max is 8 MB.`);
-      if (seconds > 8) return reply(`❌ Video too long (${seconds}s). Max is 8 seconds.`);
+      if (seconds > 12) return reply(`❌ Video too long (${seconds}s). Max is 12 seconds.`);
     }
 
     const result = await client.downloadAndSaveMediaMessage(media);
@@ -90,7 +90,6 @@ module.exports = [
           return reply(`❌ Video sticker failed.\nReason: ${videoErr.message}\n\n💡 *Tip:* Send a GIF or image instead — those always work.`);
         }
       } else {
-        // ── Image → center-crop for square, contain for wide/tall ────────
         const meta = await sharp(result).metadata();
         const { width = 512, height = 512 } = meta;
         const ratio = Math.max(width, height) / Math.min(width, height);
@@ -346,11 +345,9 @@ module.exports = [
       const strokeW = Math.max(3, Math.floor(fontSize / 9));
       const maxW = Math.floor(w * 0.92);  // hard max line width in px
 
-      // Approx char width for Impact (~0.48 em per char, no letter-spacing)
       const charPx = fontSize * 0.48;
       const maxChars = Math.max(8, Math.floor(maxW / charPx));
 
-      // Word-wrap: never exceed maxChars per line
       const wrapText = (txt) => {
         const words = txt.toUpperCase().split(' ');
         const lines = [];
