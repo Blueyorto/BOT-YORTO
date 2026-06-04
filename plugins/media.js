@@ -117,16 +117,21 @@ module.exports = [
   handler: async (client, m, { reply, msgR }) => {
     const { Sticker, StickerTypes } = require('wa-sticker-formatter');
     const Jimp = require('jimp');
+    const fs = require('fs');
     const pushname = m.pushName || 'No Name';
 
     if (!msgR) return m.reply('Quote an image, a short video or a sticker to change watermark.');
 
     let media;
     let isVideo = false;
+    let isAnimatedSticker = false;
 
     if (msgR.imageMessage) media = msgR.imageMessage;
     else if (msgR.videoMessage) { media = msgR.videoMessage; isVideo = true; }
-    else if (msgR.stickerMessage) media = msgR.stickerMessage;
+    else if (msgR.stickerMessage) {
+      media = msgR.stickerMessage;
+      isAnimatedSticker = !!msgR.stickerMessage.isAnimated;
+    }
     else return m.reply('This is neither a sticker, image nor a video...');
 
     let result = await client.downloadAndSaveMediaMessage(media);
@@ -135,6 +140,7 @@ module.exports = [
       let buf;
 
       if (isVideo) {
+        // Video → animated WebP sticker (must be < 1 MB for WhatsApp)
         const { execSync } = require('child_process');
         const os = require('os');
         const path = require('path');
@@ -155,16 +161,16 @@ module.exports = [
               { timeout: 30000, stdio: 'pipe' }
             );
           } catch (e) {
-            require('fs').copyFileSync(inputPath, processedPath);
+            fs.copyFileSync(inputPath, processedPath);
           }
-          const sticker = new Sticker(require('fs').readFileSync(processedPath), {
+          const sticker = new Sticker(fs.readFileSync(processedPath), {
             pack: pushname,
             author: 'BLACK-MD',
             type: StickerTypes.DEFAULT,
             quality: q,
           });
           const out = await sticker.toBuffer();
-          try { require('fs').unlinkSync(processedPath); } catch {}
+          try { fs.unlinkSync(processedPath); } catch {}
           return out;
         };
 
@@ -183,7 +189,28 @@ module.exports = [
           );
         }
 
+      } else if (isAnimatedSticker) {
+        // ── Animated sticker → re-pack with new watermark (keep animation) ──
+        // wa-sticker-formatter handles animated WebP natively — no ffmpeg needed
+        const sticker = new Sticker(fs.readFileSync(result), {
+          pack: pushname,
+          author: 'BLACK-MD',
+          type: StickerTypes.FULL,
+          quality: 70,
+        });
+        buf = await sticker.toBuffer();
+
+        if (!buf || buf.length < 500) return reply('❌ Failed to re-pack animated sticker.');
+
+        if (buf.length > 1024 * 1024) {
+          return reply(
+            `❌ Animated sticker too large (${(buf.length / 1024 / 1024).toFixed(2)} MB).\n` +
+            `💡 *Tip:* WhatsApp stickers must be under 1 MB.`
+          );
+        }
+
       } else {
+        // ── Static image or static sticker → Jimp path ──────────────────
         const sharp = require('sharp');
         const os = require('os');
         const path = require('path');
@@ -196,7 +223,7 @@ module.exports = [
           const pngPath = path.join(os.tmpdir(), `take_${id}.png`);
           await sharp(result).png().toFile(pngPath);
           img = await Jimp.read(pngPath);
-          try { require('fs').unlinkSync(pngPath); } catch {}
+          try { fs.unlinkSync(pngPath); } catch {}
         }
         const padded = img.clone()
           .contain(stickerSize, stickerSize)
@@ -217,10 +244,11 @@ module.exports = [
     } catch (e) {
       reply('❌ Error: ' + e.message);
     } finally {
-      try { require('fs').unlinkSync(result); } catch {}
+      try { fs.unlinkSync(result); } catch {}
     }
   }
 },
+  
   
 {
     command: ['mix'],
