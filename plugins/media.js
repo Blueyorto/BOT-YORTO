@@ -6,52 +6,105 @@ const { uploadToUguu, Webp2mp4File } = require('../lib/uploads');
 
 module.exports = [
 
-  
-{
+  {
   command: ['sticker'],
   aliases: ['s'],
   description: 'Convert image/video to sticker',
   category: 'media',
   handler: async (client, m, { reply, msgR }) => {
-    const { Sticker, StickerTypes } = require('wa-sticker-formatter');
-    const Jimp = require('jimp');
-    const pushname = m.pushName || 'No Name';
+    const sharp = require('sharp');
+    const pushname = m.pushName || 'BLACK-MD';
+
     if (!msgR) return m.reply('Quote an image or a short video.');
+
     let media;
     let isVideo = false;
+
     if (msgR.imageMessage) media = msgR.imageMessage;
     else if (msgR.videoMessage) { media = msgR.videoMessage; isVideo = true; }
-    else return m.reply('That is neither an image nor a short video!');
-    let result = await client.downloadAndSaveMediaMessage(media);
+    else return m.reply('❌ That is neither an image nor a short video!');
+
+    if (isVideo) {
+      const sizeMB = (media.fileLength || 0) / (1024 * 1024);
+      const seconds = media.seconds || 0;
+      if (sizeMB > 8) return reply(`❌ Video too large (${sizeMB.toFixed(1)} MB). Max is 8 MB.`);
+      if (seconds > 12) return reply(`❌ Video too long (${seconds}s). Max is 12 seconds.`);
+    }
+
+    const result = await client.downloadAndSaveMediaMessage(media);
+
     try {
-      let stickerResult;
+      let stickerBuf;
+
       if (isVideo) {
-        stickerResult = new Sticker(fs.readFileSync(result), {
-          pack: pushname,
-          author: 'BLACK-MD',
-          type: StickerTypes.DEFAULT,
-          categories: ['🤩', '🎉'],
-          quality: 100,
-          background: 'transparent',
-        });
+        const { Sticker, StickerTypes } = require('wa-sticker-formatter');
+        const { execSync } = require('child_process');
+        const os = require('os');
+        const path = require('path');
+        let ffmpegPath;
+        try { ffmpegPath = require('ffmpeg-static'); } catch { ffmpegPath = 'ffmpeg'; }
+
+        const id = Date.now();
+        const tmpDir = os.tmpdir();
+
+        const makeSticker = async (inputPath, fps, q) => {
+          const processedPath = path.join(tmpDir, `stk_${id}_${fps}fps.mp4`);
+          try {
+            execSync(
+              `"${ffmpegPath}" -y -i "${inputPath}" -t 6 ` +
+              `-vf "scale=512:512:force_original_aspect_ratio=increase,fps=${fps},` +
+              `crop=min(iw\\,ih):min(iw\\,ih),scale=512:512" ` +
+              `-an -c:v libx264 -crf 28 -preset ultrafast "${processedPath}"`,
+              { timeout: 30000, stdio: 'pipe' }
+            );
+          } catch (e) {
+            fs.copyFileSync(inputPath, processedPath);
+          }
+          const sticker = new Sticker(fs.readFileSync(processedPath), {
+            pack: pushname,
+            author: 'BLACK-MD',
+            type: StickerTypes.FULL,
+            quality: q,
+          });
+          const buf = await sticker.toBuffer();
+          try { fs.unlinkSync(processedPath); } catch {}
+          return buf;
+        };
+
+        try {
+          stickerBuf = await makeSticker(result, 10, 40);
+          if (!stickerBuf || stickerBuf.length < 500) throw new Error('Output buffer empty — ffmpeg may be unavailable on this server.');
+
+          if (stickerBuf.length > 950 * 1024) {
+            const retryBuf = await makeSticker(result, 5, 25);
+            if (retryBuf && retryBuf.length >= 500) stickerBuf = retryBuf;
+          }
+
+          if (stickerBuf.length > 1024 * 1024) {
+            return reply(
+              `❌ Sticker is still too large (${(stickerBuf.length / 1024 / 1024).toFixed(2)} MB) after compression.\n` +
+              `💡 *Tip:* Try a shorter clip (< 4s) or send an image instead.`
+            );
+          }
+        } catch (videoErr) {
+          return reply(`❌ Video sticker failed.\nReason: ${videoErr.message}\n\n💡 *Tip:* Send a GIF or image instead — those always work.`);
+        }
       } else {
-        const stickerSize = 512;
-        const img = await Jimp.read(result);
-        const padded = img.clone()
-          .contain(stickerSize, stickerSize)
-          .background(0x00000000);
-        const paddedBuffer = await padded.getBufferAsync(Jimp.MIME_PNG);
-        stickerResult = new Sticker(paddedBuffer, {
-          pack: pushname,
-          author: 'BLACK-MD',
-          type: StickerTypes.DEFAULT,
-          categories: ['🤩', '🎉'],
-          quality: 100,
-          background: 'transparent',
-        });
+        const meta = await sharp(result).metadata();
+        const { width = 512, height = 512 } = meta;
+        const ratio = Math.max(width, height) / Math.min(width, height);
+        const fitMode = ratio < 1.2 ? 'cover' : 'contain';
+        stickerBuf = await sharp(result)
+          .resize(512, 512, {
+            fit: fitMode,
+            background: { r: 0, g: 0, b: 0, alpha: 0 },
+            position: 'centre',
+          })
+          .webp({ quality: 85 })
+          .toBuffer();
       }
-      const buf = await stickerResult.toBuffer();
-      await client.sendMessage(m.chat, { sticker: buf }, { quoted: m });
+
+      await client.sendMessage(m.chat, { sticker: stickerBuf }, { quoted: m });
     } catch (e) {
       reply('❌ Error: ' + e.message);
     } finally {
@@ -60,7 +113,8 @@ module.exports = [
   }
 },
 
-{
+
+  {
   command: ['take'],
   aliases: ['steal'],
   description: 'Retake/rewatermark a sticker',
@@ -68,26 +122,95 @@ module.exports = [
   handler: async (client, m, { reply, msgR }) => {
     const { Sticker, StickerTypes } = require('wa-sticker-formatter');
     const Jimp = require('jimp');
+    const fs = require('fs');
     const pushname = m.pushName || 'No Name';
+
     if (!msgR) return m.reply('Quote an image, a short video or a sticker to change watermark.');
+
     let media;
     let isVideo = false;
+    let isAnimatedSticker = false;
+
     if (msgR.imageMessage) media = msgR.imageMessage;
     else if (msgR.videoMessage) { media = msgR.videoMessage; isVideo = true; }
-    else if (msgR.stickerMessage) media = msgR.stickerMessage;
+    else if (msgR.stickerMessage) {
+      media = msgR.stickerMessage;
+      isAnimatedSticker = !!msgR.stickerMessage.isAnimated;
+    }
     else return m.reply('This is neither a sticker, image nor a video...');
+
     let result = await client.downloadAndSaveMediaMessage(media);
+
     try {
-      let stickerResult;
+      let buf;
+
       if (isVideo) {
-        stickerResult = new Sticker(fs.readFileSync(result), {
+        const { execSync } = require('child_process');
+        const os = require('os');
+        const path = require('path');
+        let ffmpegPath;
+        try { ffmpegPath = require('ffmpeg-static'); } catch { ffmpegPath = 'ffmpeg'; }
+
+        const id = Date.now();
+        const tmpDir = os.tmpdir();
+
+        const makeSticker = async (inputPath, fps, q) => {
+          const processedPath = path.join(tmpDir, `take_${id}_${fps}fps.mp4`);
+          try {
+            execSync(
+              `"${ffmpegPath}" -y -i "${inputPath}" -t 6 ` +
+              `-vf "scale=512:512:force_original_aspect_ratio=decrease,fps=${fps},` +
+              `pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0" ` +
+              `-an -c:v libx264 -crf 28 -preset ultrafast "${processedPath}"`,
+              { timeout: 30000, stdio: 'pipe' }
+            );
+          } catch (e) {
+            fs.copyFileSync(inputPath, processedPath);
+          }
+          const sticker = new Sticker(fs.readFileSync(processedPath), {
+            pack: pushname,
+            author: 'BLACK-MD',
+            type: StickerTypes.DEFAULT,
+            quality: q,
+          });
+          const out = await sticker.toBuffer();
+          try { fs.unlinkSync(processedPath); } catch {}
+          return out;
+        };
+
+        buf = await makeSticker(result, 10, 40);
+        if (!buf || buf.length < 500) return reply('❌ Video sticker failed — ffmpeg may be unavailable on this server.');
+
+        if (buf.length > 950 * 1024) {
+          const retryBuf = await makeSticker(result, 5, 25);
+          if (retryBuf && retryBuf.length >= 500) buf = retryBuf;
+        }
+
+        if (buf.length > 1024 * 1024) {
+          return reply(
+            `❌ Sticker still too large (${(buf.length / 1024 / 1024).toFixed(2)} MB) after compression.\n` +
+            `💡 *Tip:* Try a shorter clip (< 4s) or send an image instead.`
+          );
+        }
+
+      } else if (isAnimatedSticker) {
+        const sticker = new Sticker(fs.readFileSync(result), {
           pack: pushname,
           author: 'BLACK-MD',
-          type: StickerTypes.DEFAULT,
-          categories: ['🤩', '🎉'],
-          quality: 100,
-          background: 'transparent',
+          type: StickerTypes.FULL,
+          quality: 70,
         });
+        buf = await sticker.toBuffer();
+
+        if (!buf || buf.length < 500) return reply('❌ Failed to re-pack animated sticker.');
+
+        if (buf.length > 1024 * 1024) {
+          return reply(
+            `❌ Animated sticker too large (${(buf.length / 1024 / 1024).toFixed(2)} MB).\n` +
+            `💡 *Tip:* WhatsApp stickers must be under 1 MB.`
+          );
+        }
+
       } else {
         const sharp = require('sharp');
         const os = require('os');
@@ -98,7 +221,7 @@ module.exports = [
           img = await Jimp.read(result);
         } catch (e) {
           const id = Date.now();
-          const pngPath = path.join(os.tmpdir(), `sticker_${id}.png`);
+          const pngPath = path.join(os.tmpdir(), `take_${id}.png`);
           await sharp(result).png().toFile(pngPath);
           img = await Jimp.read(pngPath);
           try { fs.unlinkSync(pngPath); } catch {}
@@ -107,7 +230,7 @@ module.exports = [
           .contain(stickerSize, stickerSize)
           .background(0x00000000);
         const paddedBuffer = await padded.getBufferAsync(Jimp.MIME_PNG);
-        stickerResult = new Sticker(paddedBuffer, {
+        const sticker = new Sticker(paddedBuffer, {
           pack: pushname,
           author: 'BLACK-MD',
           type: StickerTypes.DEFAULT,
@@ -115,8 +238,9 @@ module.exports = [
           quality: 100,
           background: 'transparent',
         });
+        buf = await sticker.toBuffer();
       }
-      const buf = await stickerResult.toBuffer();
+
       await client.sendMessage(m.chat, { sticker: buf }, { quoted: m });
     } catch (e) {
       reply('❌ Error: ' + e.message);
@@ -125,6 +249,7 @@ module.exports = [
     }
   }
 },
+  
   
 {
     command: ['mix'],
@@ -183,87 +308,139 @@ module.exports = [
   },
 
   {
-    command: ['smeme'],
-    aliases: ['write'],
-    description: 'Add words to a sticker',
-    category: 'media',
-    handler: async (client, m, { reply, text, mime, pushname, qmsg }) => {
-    let responnd = `Quote an image or sticker with text separated by |\nExample: .smeme top text|bottom text`
-    if (!/image|webp/.test(mime)) return reply(responnd)
-    if (!text) return reply(responnd)
+  command: ['smeme'],
+  aliases: ['write'],
+  description: 'Add words to a sticker',
+  category: 'media',
+  handler: async (client, m, { reply, text, mime, pushname, qmsg }) => {
+    const respond = `Quote an image or sticker with text separated by |\nExample: .smeme top text|bottom text`;
+    if (!/image|webp/.test(mime)) return reply(respond);
+    if (!text) return reply(respond);
 
-    const atas = text.split('|')[0] ? text.split('|')[0].trim() : ''
-    const bawah = text.split('|')[1] ? text.split('|')[1].trim() : ''
+    const atas = text.split('|')[0]?.trim() || '';
+    const bawah = text.split('|')[1]?.trim() || '';
 
-    const Jimp = require('jimp')
-    const { Sticker, StickerTypes } = require('wa-sticker-formatter')
-    const os = require('os')
-    const path = require('path')
+    const sharp = require('sharp');
+    const { Sticker, StickerTypes } = require('wa-sticker-formatter');
+    const fs = require('fs');
 
-    let dwnld = await client.downloadAndSaveMediaMessage(qmsg)
+    let dwnld = await client.downloadAndSaveMediaMessage(qmsg);
 
-    let image
     try {
-        image = await Jimp.read(dwnld)
-    } catch (e) {
-        // Try sharp as fallback for webp stickers
-        const sharp = require('sharp')
-        const id = Date.now()
-        const pngPath = path.join(os.tmpdir(), `sticker_${id}.png`)
-        await sharp(dwnld).png().toFile(pngPath)
-        image = await Jimp.read(pngPath)
-        try { fs.unlinkSync(pngPath) } catch {}
-    }
+      let imgBuf;
+      try {
+        imgBuf = await sharp(dwnld).png().toBuffer();
+      } catch (e) {
+        return reply('❌ Could not read the image: ' + e.message);
+      }
 
-    const imgW = image.bitmap.width
-    const imgH = image.bitmap.height
+      const meta = await sharp(imgBuf).metadata();
+      const w = meta.width || 512;
+      const h = meta.height || 512;
 
-    const fontWhite = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE)
-    const fontBlack = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK)
+      // ── Font sizing ────────────────────────────────────────────────────
+      // w/12 gives breathing room; floor at 28 for tiny images
+      const fontSize = Math.max(28, Math.floor(w / 12));
+      const lineHeight = Math.floor(fontSize * 1.2);
+      const strokeW = Math.max(3, Math.floor(fontSize / 9));
+      const maxW = Math.floor(w * 0.92);  // hard max line width in px
 
-    const pad = 12
-    const textW = imgW - pad * 2
-    const outlineOffsets = [
-        [-4,-4],[-4,4],[4,-4],[4,4],
-        [-4,0],[4,0],[0,-4],[0,4],
-        [-3,-3],[-3,3],[3,-3],[3,3],
-        [-2,-2],[-2,2],[2,-2],[2,2]
-    ]
+      const charPx = fontSize * 0.48;
+      const maxChars = Math.max(8, Math.floor(maxW / charPx));
 
-    if (atas) {
-        for (const [ox, oy] of outlineOffsets) {
-            image.print(fontBlack, pad + ox, pad + oy, { text: atas, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
+      const wrapText = (txt) => {
+        const words = txt.toUpperCase().split(' ');
+        const lines = [];
+        let current = '';
+        for (const word of words) {
+          const test = current ? `${current} ${word}` : word;
+          if (test.length > maxChars && current) {
+            lines.push(current);
+            current = word;
+          } else {
+            current = test;
+          }
         }
-        image.print(fontWhite, pad, pad, { text: atas, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
+        if (current) lines.push(current);
+        return lines;
+      };
+
+      // XML-safe escape
+      const esc = (s) => s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+
+      // Build SVG lines; textLength ensures no line ever clips at edges
+      const buildLines = (txt, anchorY, direction) => {
+        if (!txt) return '';
+        const lines = wrapText(txt);
+        return lines.map((line, i) => {
+          const y = direction === 'top'
+            ? anchorY + i * lineHeight
+            : anchorY - (lines.length - 1 - i) * lineHeight;
+          // Estimated natural width; cap to maxW to prevent clipping
+          const estW = Math.round(line.length * charPx);
+          const tlAttr = estW > maxW
+            ? `textLength="${maxW}" lengthAdjust="spacingAndGlyphs"`
+            : '';
+          return `<text x="${w / 2}" y="${y}" ${tlAttr}>${esc(line)}</text>`;
+        }).join('\n');
+      };
+
+      const topStartY = fontSize + 8;
+      const bottomAnchorY = h - 12;
+
+      const svg = `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    text {
+      font-family: Impact, "Arial Black", "Franklin Gothic Heavy", sans-serif;
+      font-size: ${fontSize}px;
+      font-weight: 900;
+      text-anchor: middle;
+      paint-order: stroke fill;
+      stroke: #000000;
+      stroke-width: ${strokeW}px;
+      stroke-linejoin: round;
+      fill: #FFFFFF;
     }
+  </style>
+  ${buildLines(atas, topStartY, 'top')}
+  ${buildLines(bawah, bottomAnchorY, 'bottom')}
+</svg>`;
 
-    if (bawah) {
-        const bottomY = imgH - 50
-        for (const [ox, oy] of outlineOffsets) {
-            image.print(fontBlack, pad + ox, bottomY + oy, { text: bawah, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
-        }
-        image.print(fontWhite, pad, bottomY, { text: bawah, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER }, textW)
-    }
+      const withText = await sharp(imgBuf)
+        .composite([{ input: Buffer.from(svg), gravity: 'northwest' }])
+        .png()
+        .toBuffer();
 
-    const stickerSize = 512
-    const padded = image.clone()
-        .contain(stickerSize, stickerSize)
-        .background(0x00000000)
-    const paddedBuffer = await padded.getBufferAsync(Jimp.MIME_PNG)
+      const resized = await sharp(withText)
+        .resize(512, 512, {
+          fit: 'contain',
+          background: { r: 0, g: 0, b: 0, alpha: 0 },
+        })
+        .png()
+        .toBuffer();
 
-    const stickerMeme = new Sticker(paddedBuffer, {
+      const sticker = new Sticker(resized, {
         pack: pushname,
         author: 'BLACK-MD',
         type: StickerTypes.DEFAULT,
         quality: 100,
-        background: 'transparent'
-    })
-    const stickerBuffer = await stickerMeme.toBuffer()
-    await client.sendMessage(m.chat, { sticker: stickerBuffer }, { quoted: m })
+        background: 'transparent',
+      });
+      const stickerBuffer = await sticker.toBuffer();
+      await client.sendMessage(m.chat, { sticker: stickerBuffer }, { quoted: m });
+    } catch (e) {
+      reply('❌ Error: ' + e.message);
+    } finally {
+      try { fs.unlinkSync(dwnld); } catch {}
+    }
+  }
+},
 
-    try { fs.unlinkSync(dwnld) } catch(e) {}
-      }
-      },
+  
                 
   {
     command: ['vv'],

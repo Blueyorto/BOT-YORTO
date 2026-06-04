@@ -540,10 +540,10 @@ module.exports = [
   
   {
     command: ['eval'],
-    aliases: ['exec', '=>'],
+    aliases: ['=>'],
     description: 'Evaluate a bot Baileys function',
     category: 'owner',
-    handler: async (client, m, { body, budy, msgR, args, text, q, arg,        
+    handler: async (client, m, { body, store, budy, msgR, args, text, q, arg,        
         pushname, botNumber, itsMe, from, reply, sender,
         Owner, superUserSet, finalSuperUsers,        
         quoted, mime, qmsg, api,      

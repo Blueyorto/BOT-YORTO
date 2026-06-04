@@ -163,7 +163,7 @@ client.ev.on('connection.update', async (update) => {
     
     try {
   await client.groupAcceptInvite('LDBdQY8fKbs1qkPWCTuJGX');
-} catch (_) {} // already a member or invalid invite — ignore
+} catch (_) {} // if already a member or invalid invite — ignore
     
  startPeriodicCleanup();
       console.log(color("Congrats, BLACK MD has successfully connected to this server", "green"));
@@ -287,18 +287,24 @@ client.ev.on("messages.upsert", async (chatUpdate) => {
   
 let lastTextTime = 0;
 const messageDelay = 5000;
+  
  client.ev.on('call', async (callData) => {
     try {
       const liveSettings = await fetchSettings();
       if (liveSettings.anticall === 'on') {
+        
         const callId = callData[0].id;
         const callerId = callData[0].from;
+        const isGroup   = callData[0].isGroup;
 
+        if (isGroup) return;
+        
         await client.rejectCall(callId, callerId);
+        
         const currentTime = Date.now();
         if (currentTime - lastTextTime >= messageDelay) {
           await client.sendMessage(callerId, {
-            text: "🚫 Anticall is active! Only texts messages are allowed"
+            text: "🚫 Anticall is active! Only text messages are allowed"
           });
           lastTextTime = currentTime;
         } else {
