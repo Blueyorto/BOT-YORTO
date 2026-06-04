@@ -697,89 +697,151 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
     }
   },
 
-  
+  {
+  command: ['tg'],
+  aliases: ['tgs', 'telegrams'],
+  description: 'Download Telegram sticker pack',
+  category: 'utility',
+  handler: async (client, m, { reply, args }) => {
+    if (!args[0]) return m.reply('⚠️ Please provide a Telegram sticker URL!\n\nExample: .tg https://t.me/addstickers/HellsParadise_S2');
+    if (!args[0].match(/(https:\/\/t.me\/addstickers\/)/gi)) return m.reply('❌ Invalid URL!');
 
-{
-    command: ['tg'],
-    aliases: ['tgs', 'telegrams'],
-    description: 'Download Telegram sticker pack',
-    category: 'utility',
-    handler: async (client, m, { reply, args }) => {
-      if (!args[0]) return m.reply('⚠️ Please provide a Telegram sticker URL!\n\nExample: .tg https://t.me/addstickers/HellsParadise_S2');
-      if (!args[0].match(/(https:\/\/t.me\/addstickers\/)/gi)) return m.reply('❌ Invalid URL!');
-      
-      const packName = args[0].replace('https://t.me/addstickers/', '').trim();
-      const botToken = '8103143873:AAHDq1PpwJaN2f22ASvCWTuDXX-DQ1_ad4U';
-      
-      // Send status to current chat (where command was used)
-      await m.reply(`📦 Processing: ${packName}\n⏳ Downloading...`);
-      
-      try {
-        const response = await fetch(`https://api.telegram.org/bot${botToken}/getStickerSet?name=${encodeURIComponent(packName)}`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        
-        const stickerSet = await response.json();
-        if (!stickerSet.ok) return m.reply('❌ Sticker pack not found or private');
-        
-        let successCount = 0;
-        let failCount = 0;
-        const totalStickers = Math.min(stickerSet.result.stickers.length, 30);
-        
-        for (let i = 0; i < totalStickers; i++) {
-          try {
-            const sticker = stickerSet.result.stickers[i];
-            const isVideo = sticker.is_video === true;
-            
-            // Get file path
-            const fileInfo = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${sticker.file_id}`);
-            const fileData = await fileInfo.json();
-            if (!fileData.ok) throw new Error('File not found');
-            
-            // Download file
-            const fileUrl = `https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`;
-            const fileRes = await fetch(fileUrl);
-            const buffer = Buffer.from(await fileRes.arrayBuffer());
-            
-            if (isVideo) {
-              // Send as video with GIF playback
-              await client.sendMessage(m.chat, { 
-                video: buffer,
-                mimetype: 'video/webm',
-                gifPlayback: true,
-                caption: `🎬 Sticker ${i + 1}/${totalStickers}`
-              }, { quoted: m });
-              successCount++;
-            } else {
-              // Static stickers
-              try {
-                const sharp = require('sharp');
-                const processed = await sharp(buffer)
-                  .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-                  .webp()
-                  .toBuffer();
-                await client.sendMessage(m.chat, { sticker: processed }, { quoted: m });
-                successCount++;
-              } catch (e) {
-                await client.sendMessage(m.chat, { sticker: buffer }, { quoted: m });
-                successCount++;
-              }
-            }
-            
-            await new Promise(r => setTimeout(r, 500));
-          } catch (err) {
+    const packName = args[0].replace('https://t.me/addstickers/', '').trim();
+    const botToken = '8103143873:AAHDq1PpwJaN2f22ASvCWTuDXX-DQ1_ad4U';
+
+    await m.reply(`📦 Processing: ${packName}\n⏳ Downloading...`);
+
+    try {
+      const response = await fetch(`https://api.telegram.org/bot${botToken}/getStickerSet?name=${encodeURIComponent(packName)}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const stickerSet = await response.json();
+      if (!stickerSet.ok) return m.reply('❌ Sticker pack not found or private');
+
+      let successCount = 0;
+      let failCount = 0;
+      const totalStickers = Math.min(stickerSet.result.stickers.length, 30);
+
+      const sharp = require('sharp');
+      const { Sticker, StickerTypes } = require('wa-sticker-formatter');
+      const { execSync } = require('child_process');
+      const os = require('os');
+      const path = require('path');
+      const fs = require('fs');
+      let ffmpegPath;
+      try { ffmpegPath = require('ffmpeg-static'); } catch { ffmpegPath = 'ffmpeg'; }
+
+      for (let i = 0; i < totalStickers; i++) {
+        try {
+          const sticker = stickerSet.result.stickers[i];
+          const isAnimatedTGS = sticker.is_animated === true; // Lottie/TGS — not convertible
+          const isVideoWebM  = sticker.is_video === true;     // WebM — convert to WA sticker
+
+          // TGS (Lottie) can't be converted without special renderer — skip silently
+          if (isAnimatedTGS) {
             failCount++;
-            console.log(`Failed sticker ${i + 1}:`, err.message);
+            continue;
           }
+
+          // Get download URL from Telegram
+          const fileInfo = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${sticker.file_id}`);
+          const fileData = await fileInfo.json();
+          if (!fileData.ok) throw new Error('File not found');
+
+          const fileUrl = `https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`;
+          const fileRes = await fetch(fileUrl);
+          const buffer = Buffer.from(await fileRes.arrayBuffer());
+
+          if (isVideoWebM) {
+            // ── WebM animated sticker → real WhatsApp animated sticker ──────
+            const id = Date.now() + i;
+            const tmpDir = os.tmpdir();
+            const inPath  = path.join(tmpDir, `tg_in_${id}.webm`);
+            const outPath = path.join(tmpDir, `tg_out_${id}.mp4`);
+            fs.writeFileSync(inPath, buffer);
+
+            // Pass 1: 512×512, 15fps, 6s max
+            try {
+              execSync(
+                `"${ffmpegPath}" -y -i "${inPath}" -t 6 ` +
+                `-vf "scale=512:512:force_original_aspect_ratio=decrease,fps=15,` +
+                `pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0" ` +
+                `-an -c:v libx264 -crf 26 -preset ultrafast "${outPath}"`,
+                { timeout: 30000, stdio: 'pipe' }
+              );
+            } catch {
+              fs.copyFileSync(inPath, outPath);
+            }
+
+            const stickerObj = new Sticker(fs.readFileSync(outPath), {
+              pack: 'BLACK-MD',
+              author: 'TG Pack',
+              type: StickerTypes.FULL,
+              quality: 40,
+            });
+            let stickerBuf = await stickerObj.toBuffer();
+
+            // Pass 2: retry smaller if still over 950 KB
+            if (stickerBuf.length > 950 * 1024) {
+              try {
+                execSync(
+                  `"${ffmpegPath}" -y -i "${inPath}" -t 4 ` +
+                  `-vf "scale=512:512:force_original_aspect_ratio=decrease,fps=8,` +
+                  `pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0" ` +
+                  `-an -c:v libx264 -crf 30 -preset ultrafast "${outPath}"`,
+                  { timeout: 30000, stdio: 'pipe' }
+                );
+                const retry = new Sticker(fs.readFileSync(outPath), {
+                  pack: 'BLACK-MD', author: 'TG Pack',
+                  type: StickerTypes.FULL, quality: 25,
+                });
+                const retryBuf = await retry.toBuffer();
+                if (retryBuf && retryBuf.length >= 500) stickerBuf = retryBuf;
+              } catch {}
+            }
+
+            try { fs.unlinkSync(inPath); } catch {}
+            try { fs.unlinkSync(outPath); } catch {}
+
+            // Skip if still over 1 MB
+            if (!stickerBuf || stickerBuf.length < 500 || stickerBuf.length > 1024 * 1024) {
+              failCount++;
+              continue;
+            }
+
+            await client.sendMessage(m.chat, { sticker: stickerBuf }, { quoted: m });
+            successCount++;
+
+          } else {
+            // ── Static WebP sticker ──────────────────────────────────────────
+            try {
+              const processed = await sharp(buffer)
+                .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+                .webp({ quality: 90 })
+                .toBuffer();
+              await client.sendMessage(m.chat, { sticker: processed }, { quoted: m });
+              successCount++;
+            } catch {
+              await client.sendMessage(m.chat, { sticker: buffer }, { quoted: m });
+              successCount++;
+            }
+          }
+
+          await new Promise(r => setTimeout(r, 600));
+        } catch (err) {
+          failCount++;
         }
-        
-        await m.reply(`✅ Done!\n📊 Success: ${successCount} | Failed: ${failCount}\n📍 Sent to this chat`);
-        
-      } catch (error) {
-        console.error(error);
-        await m.reply('❌ Failed: ' + error.message);
       }
+
+      await m.reply(`✅ Done!\n📊 Success: ${successCount} | Failed: ${failCount}\n📍 Sent to this chat`);
+
+    } catch (error) {
+      await m.reply('❌ Failed: ' + error.message);
     }
-  },
+  }
+},
+
+
 
   {
     command: ['pair'],
