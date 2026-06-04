@@ -302,6 +302,7 @@ module.exports = [
     }
   },
 
+  /*
   {
     command: ['smeme'],
     aliases: ['write'],
@@ -338,8 +339,8 @@ module.exports = [
     const imgW = image.bitmap.width
     const imgH = image.bitmap.height
 
-    const fontWhite = await Jimp.loadFont(Jimp.FONT_Algerian_32_WHITE)
-    const fontBlack = await Jimp.loadFont(Jimp.FONT_Algerian_32_BLACK)
+    const fontWhite = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE)
+    const fontBlack = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK)
 
     const pad = 12
     const textW = imgW - pad * 2
@@ -383,7 +384,143 @@ module.exports = [
 
     try { fs.unlinkSync(dwnld) } catch(e) {}
       }
-      },
+      }, */
+
+  {
+  command: ['smeme'],
+  aliases: ['write'],
+  description: 'Add words to a sticker',
+  category: 'media',
+  handler: async (client, m, { reply, text, mime, pushname, qmsg }) => {
+    const respond = `Quote an image or sticker with text separated by |\nExample: .smeme top text|bottom text`;
+    if (!/image|webp/.test(mime)) return reply(respond);
+    if (!text) return reply(respond);
+
+    const atas = text.split('|')[0]?.trim() || '';
+    const bawah = text.split('|')[1]?.trim() || '';
+
+    const sharp = require('sharp');
+    const { Sticker, StickerTypes } = require('wa-sticker-formatter');
+    const fs = require('fs');
+
+    let dwnld = await client.downloadAndSaveMediaMessage(qmsg);
+
+    try {
+      // Read image — convert webp stickers to png first
+      let imgBuf;
+      try {
+        imgBuf = await sharp(dwnld).png().toBuffer();
+      } catch (e) {
+        return reply('❌ Could not read the image: ' + e.message);
+      }
+
+      const meta = await sharp(imgBuf).metadata();
+      const w = meta.width || 512;
+      const h = meta.height || 512;
+
+      // ── Bold meme font settings ────────────────────────────────────────
+      const fontSize = Math.max(36, Math.floor(w / 9));
+      const lineHeight = Math.floor(fontSize * 1.15);
+      const strokeW = Math.max(4, Math.floor(fontSize / 8));
+      // Approx chars per line based on Impact width (~0.5em per char)
+      const maxChars = Math.max(10, Math.floor(w / (fontSize * 0.52)));
+
+      // Word-wrap helper
+      const wrapText = (txt) => {
+        const words = txt.toUpperCase().split(' ');
+        const lines = [];
+        let current = '';
+        for (const word of words) {
+          const test = current ? `${current} ${word}` : word;
+          if (test.length > maxChars && current) {
+            lines.push(current);
+            current = word;
+          } else {
+            current = test;
+          }
+        }
+        if (current) lines.push(current);
+        return lines;
+      };
+
+      // XML-safe escape
+      const esc = (s) => s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+
+      // Build SVG <text> lines
+      const buildLines = (txt, anchorY, direction) => {
+        if (!txt) return '';
+        const lines = wrapText(txt);
+        return lines.map((line, i) => {
+          const y = direction === 'top'
+            ? anchorY + i * lineHeight
+            : anchorY - (lines.length - 1 - i) * lineHeight;
+          return `<text x="${w / 2}" y="${y}">${esc(line)}</text>`;
+        }).join('\n');
+      };
+
+      const topLines = atas ? wrapText(atas) : [];
+      const bottomLines = bawah ? wrapText(bawah) : [];
+
+      const topStartY = fontSize + 10;
+      // Bottom text: anchor so last line sits 14px above bottom edge
+      const bottomAnchorY = h - 14;
+
+      const svg = `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    text {
+      font-family: Impact, "Arial Black", "Franklin Gothic Heavy", "Arial Narrow Bold", sans-serif;
+      font-size: ${fontSize}px;
+      font-weight: 900;
+      font-style: normal;
+      text-anchor: middle;
+      letter-spacing: 2px;
+      paint-order: stroke fill;
+      stroke: #000000;
+      stroke-width: ${strokeW}px;
+      stroke-linejoin: round;
+      fill: #FFFFFF;
+    }
+  </style>
+  ${buildLines(atas, topStartY, 'top')}
+  ${buildLines(bawah, bottomAnchorY, 'bottom')}
+</svg>`;
+
+      // Composite SVG text over the image
+      const withText = await sharp(imgBuf)
+        .composite([{ input: Buffer.from(svg), gravity: 'northwest' }])
+        .png()
+        .toBuffer();
+
+      // Resize to 512×512 for sticker
+      const resized = await sharp(withText)
+        .resize(512, 512, {
+          fit: 'contain',
+          background: { r: 0, g: 0, b: 0, alpha: 0 },
+        })
+        .png()
+        .toBuffer();
+
+      const sticker = new Sticker(resized, {
+        pack: pushname,
+        author: 'BLACK-MD',
+        type: StickerTypes.DEFAULT,
+        quality: 100,
+        background: 'transparent',
+      });
+      const stickerBuffer = await sticker.toBuffer();
+      await client.sendMessage(m.chat, { sticker: stickerBuffer }, { quoted: m });
+    } catch (e) {
+      reply('❌ Error: ' + e.message);
+    } finally {
+      try { fs.unlinkSync(dwnld); } catch {}
+    }
+  }
+},
+  
                 
   {
     command: ['vv'],
