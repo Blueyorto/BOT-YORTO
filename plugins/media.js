@@ -6,7 +6,73 @@ const { uploadToUguu, Webp2mp4File } = require('../lib/uploads');
 
 module.exports = [
 
+  {
+  command: ['sticker'],
+  aliases: ['s'],
+  description: 'Convert image/video to sticker',
+  category: 'media',
+  handler: async (client, m, { reply, msgR }) => {
+    const sharp = require('sharp');
+    const pushname = m.pushName || 'BLACK-MD';
+
+    if (!msgR) return m.reply('Quote an image or a short video.');
+
+    let media;
+    let isVideo = false;
+
+    if (msgR.imageMessage) media = msgR.imageMessage;
+    else if (msgR.videoMessage) { media = msgR.videoMessage; isVideo = true; }
+    else return m.reply('❌ That is neither an image nor a short video!');
+
+    // ── Video size/duration guard ────────────────────────────────────────
+    if (isVideo) {
+      const sizeMB = (media.fileLength || 0) / (1024 * 1024);
+      const seconds = media.seconds || 0;
+      if (sizeMB > 8) return reply(`❌ Video too large (${sizeMB.toFixed(1)} MB). Max is 8 MB.`);
+      if (seconds > 8) return reply(`❌ Video too long (${seconds}s). Max is 8 seconds.`);
+    }
+
+    const result = await client.downloadAndSaveMediaMessage(media);
+
+    try {
+      let stickerBuf;
+
+      if (isVideo) {
+        // Video needs ffmpeg — attempt with wa-sticker-formatter
+        const { Sticker, StickerTypes } = require('wa-sticker-formatter');
+        try {
+          const sticker = new Sticker(fs.readFileSync(result), {
+            pack: pushname,
+            author: 'BLACK-MD',
+            type: StickerTypes.FULL,
+            quality: 50,
+          });
+          stickerBuf = await sticker.toBuffer();
+          if (!stickerBuf || stickerBuf.length < 500) throw new Error('Output buffer empty — ffmpeg may be unavailable on this server.');
+        } catch (videoErr) {
+          return reply(`❌ Video sticker failed.\nReason: ${videoErr.message}\n\n💡 *Tip:* Send a GIF or image instead — those always work.`);
+        }
+      } else {
+        // ── Image → webp via sharp (fast, no ffmpeg needed) ─────────────
+        stickerBuf = await sharp(result)
+          .resize(512, 512, {
+            fit: 'contain',
+            background: { r: 0, g: 0, b: 0, alpha: 0 },
+          })
+          .webp({ quality: 80 })
+          .toBuffer();
+      }
+
+      await client.sendMessage(m.chat, { sticker: stickerBuf }, { quoted: m });
+    } catch (e) {
+      reply('❌ Error: ' + e.message);
+    } finally {
+      try { fs.unlinkSync(result); } catch {}
+    }
+  }
+},
   
+  /*
 {
   command: ['sticker'],
   aliases: ['s'],
@@ -59,6 +125,8 @@ module.exports = [
     }
   }
 },
+
+*/
 
 {
   command: ['take'],
