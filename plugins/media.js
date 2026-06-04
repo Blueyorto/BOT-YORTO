@@ -38,17 +38,60 @@ module.exports = [
       let stickerBuf;
 
       if (isVideo) {
-        // Video needs ffmpeg — attempt with wa-sticker-formatter
+        // Video → animated WebP sticker (must be < 1 MB for WhatsApp)
         const { Sticker, StickerTypes } = require('wa-sticker-formatter');
-        try {
-          const sticker = new Sticker(fs.readFileSync(result), {
+        const { execSync } = require('child_process');
+        const os = require('os');
+        const path = require('path');
+        let ffmpegPath;
+        try { ffmpegPath = require('ffmpeg-static'); } catch { ffmpegPath = 'ffmpeg'; }
+
+        const id = Date.now();
+        const tmpDir = os.tmpdir();
+
+        // Helper: pre-process video with ffmpeg then convert via wa-sticker-formatter
+        const makeSticker = async (inputPath, fps, q) => {
+          const processedPath = path.join(tmpDir, `stk_${id}_${fps}fps.mp4`);
+          try {
+            execSync(
+              `"${ffmpegPath}" -y -i "${inputPath}" -t 6 ` +
+              `-vf "scale=512:512:force_original_aspect_ratio=decrease,fps=${fps},` +
+              `pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0" ` +
+              `-an -c:v libx264 -crf 28 -preset ultrafast "${processedPath}"`,
+              { timeout: 30000, stdio: 'pipe' }
+            );
+          } catch (e) {
+            fs.copyFileSync(inputPath, processedPath);
+          }
+          const sticker = new Sticker(fs.readFileSync(processedPath), {
             pack: pushname,
             author: 'BLACK-MD',
             type: StickerTypes.FULL,
-            quality: 50,
+            quality: q,
           });
-          stickerBuf = await sticker.toBuffer();
+          const buf = await sticker.toBuffer();
+          try { fs.unlinkSync(processedPath); } catch {}
+          return buf;
+        };
+
+        try {
+          // First pass: 10 fps, quality 40
+          stickerBuf = await makeSticker(result, 10, 40);
           if (!stickerBuf || stickerBuf.length < 500) throw new Error('Output buffer empty — ffmpeg may be unavailable on this server.');
+
+          // If still over 950 KB, retry at 5 fps, quality 25
+          if (stickerBuf.length > 950 * 1024) {
+            const retryBuf = await makeSticker(result, 5, 25);
+            if (retryBuf && retryBuf.length >= 500) stickerBuf = retryBuf;
+          }
+
+          // Final size guard
+          if (stickerBuf.length > 1024 * 1024) {
+            return reply(
+              `❌ Sticker is still too large (${(stickerBuf.length / 1024 / 1024).toFixed(2)} MB) after compression.\n` +
+              `💡 *Tip:* Try a shorter clip (< 4s) or send an image instead.`
+            );
+          }
         } catch (videoErr) {
           return reply(`❌ Video sticker failed.\nReason: ${videoErr.message}\n\n💡 *Tip:* Send a GIF or image instead — those always work.`);
         }
@@ -72,62 +115,6 @@ module.exports = [
   }
 },
   
-  /*
-{
-  command: ['sticker'],
-  aliases: ['s'],
-  description: 'Convert image/video to sticker',
-  category: 'media',
-  handler: async (client, m, { reply, msgR }) => {
-    const { Sticker, StickerTypes } = require('wa-sticker-formatter');
-    const Jimp = require('jimp');
-    const pushname = m.pushName || 'No Name';
-    if (!msgR) return m.reply('Quote an image or a short video.');
-    let media;
-    let isVideo = false;
-    if (msgR.imageMessage) media = msgR.imageMessage;
-    else if (msgR.videoMessage) { media = msgR.videoMessage; isVideo = true; }
-    else return m.reply('That is neither an image nor a short video!');
-    let result = await client.downloadAndSaveMediaMessage(media);
-    try {
-      let stickerResult;
-      if (isVideo) {
-        stickerResult = new Sticker(fs.readFileSync(result), {
-          pack: pushname,
-          author: 'BLACK-MD',
-          type: StickerTypes.DEFAULT,
-          categories: ['🤩', '🎉'],
-          quality: 100,
-          background: 'transparent',
-        });
-      } else {
-        const stickerSize = 512;
-        const img = await Jimp.read(result);
-        const padded = img.clone()
-          .contain(stickerSize, stickerSize)
-          .background(0x00000000);
-        const paddedBuffer = await padded.getBufferAsync(Jimp.MIME_PNG);
-        stickerResult = new Sticker(paddedBuffer, {
-          pack: pushname,
-          author: 'BLACK-MD',
-          type: StickerTypes.DEFAULT,
-          categories: ['🤩', '🎉'],
-          quality: 100,
-          background: 'transparent',
-        });
-      }
-      const buf = await stickerResult.toBuffer();
-      await client.sendMessage(m.chat, { sticker: buf }, { quoted: m });
-    } catch (e) {
-      reply('❌ Error: ' + e.message);
-    } finally {
-      try { fs.unlinkSync(result); } catch {}
-    }
-  }
-},
-
-*/
-
 {
   command: ['take'],
   aliases: ['steal'],
