@@ -28,7 +28,7 @@ module.exports = [
       const sizeMB = (media.fileLength || 0) / (1024 * 1024);
       const seconds = media.seconds || 0;
       if (sizeMB > 8) return reply(`❌ Video too large (${sizeMB.toFixed(1)} MB). Max is 8 MB.`);
-      if (seconds > 10) return reply(`❌ Video too long (${seconds}s). Max is 10 seconds.`);
+      if (seconds > 8) return reply(`❌ Video too long (${seconds}s). Max is 8 seconds.`);
     }
 
     const result = await client.downloadAndSaveMediaMessage(media);
@@ -52,8 +52,8 @@ module.exports = [
           try {
             execSync(
               `"${ffmpegPath}" -y -i "${inputPath}" -t 6 ` +
-              `-vf "scale=512:512:force_original_aspect_ratio=decrease,fps=${fps},` +
-              `pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0" ` +
+              `-vf "scale=512:512:force_original_aspect_ratio=increase,fps=${fps},` +
+              `crop=min(iw\\,ih):min(iw\\,ih),scale=512:512" ` +
               `-an -c:v libx264 -crf 28 -preset ultrafast "${processedPath}"`,
               { timeout: 30000, stdio: 'pipe' }
             );
@@ -72,7 +72,6 @@ module.exports = [
         };
 
         try {
-      
           stickerBuf = await makeSticker(result, 10, 40);
           if (!stickerBuf || stickerBuf.length < 500) throw new Error('Output buffer empty — ffmpeg may be unavailable on this server.');
 
@@ -91,12 +90,18 @@ module.exports = [
           return reply(`❌ Video sticker failed.\nReason: ${videoErr.message}\n\n💡 *Tip:* Send a GIF or image instead — those always work.`);
         }
       } else {
+        // ── Image → center-crop for square, contain for wide/tall ────────
+        const meta = await sharp(result).metadata();
+        const { width = 512, height = 512 } = meta;
+        const ratio = Math.max(width, height) / Math.min(width, height);
+        const fitMode = ratio < 1.2 ? 'cover' : 'contain';
         stickerBuf = await sharp(result)
           .resize(512, 512, {
-            fit: 'contain',
+            fit: fitMode,
             background: { r: 0, g: 0, b: 0, alpha: 0 },
+            position: 'centre',
           })
-          .webp({ quality: 80 })
+          .webp({ quality: 85 })
           .toBuffer();
       }
 
@@ -108,6 +113,7 @@ module.exports = [
     }
   }
 },
+
 
   {
   command: ['take'],
