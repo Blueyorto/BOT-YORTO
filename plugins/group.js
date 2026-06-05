@@ -223,90 +223,81 @@ module.exports = [
     }
   },
 
-  {
-  command: ['add'],
-  description: 'Add a member to the group',
-  category: 'group',
-  handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin, text, args }) => {
-    if (!m.isGroup) return reply(group);
-    if (!isBotAdmin) return reply(botAdmin);
-    if (!isAdmin) return reply(admin);
-    if (!text) return reply('Please provide a number to add.\n\nExample: .add 254114283550');
+    {
+    command: ['add'],
+    description: 'Add a member to the group',
+    category: 'group',
+    handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin, text }) => {
+      if (!m.isGroup) return reply(group);
+      if (!isBotAdmin) return reply(botAdmin);
+      if (!isAdmin) return reply(admin);
+      if (!text) return reply('Please provide a number to add.\n\nExample: .add 254114283550');
 
-    const rawNum = text.replace(/[^0-9]/g, '').trim();
-    if (!rawNum) return reply('❌ Invalid number. Use digits only, e.g. .add 254114283550');
-    const targetJid = rawNum + '@s.whatsapp.net';
+      const rawNum = text.replace(/[^0-9]/g, '').trim();
+      if (!rawNum) return reply('❌ Invalid number. Use digits only, e.g. .add 254114283550');
+      const targetJid = rawNum + '@s.whatsapp.net';
 
-    const sendInviteDM = async (reason) => {
-      try {
-        const [code, meta] = await Promise.all([
-          client.groupInviteCode(m.chat),
-          client.groupMetadata(m.chat)
-        ]);
-        const groupName = meta.subject;
+      const sendInviteDM = async (reason) => {
+        try {
+          const [code, meta] = await Promise.all([
+            client.groupInviteCode(m.chat),
+            client.groupMetadata(m.chat)
+          ]);
+          const groupName = meta.subject;
 
-        // 3-day expiry as Unix timestamp (seconds)
-        const expiry = Math.floor(Date.now() / 1000) + 3 * 24 * 60 * 60;
-
-        // generateWAMessageFromContent + relayMessage is the correct Baileys
-        // way to send a groupInviteMessage card (sendMessage doesn't support it)
-        const { generateWAMessageFromContent, proto } = require('@whiskeysockets/baileys');
-        const inviteMsg = generateWAMessageFromContent(
-          targetJid,
-          proto.Message.fromObject({
-            groupInviteMessage: {
-              groupJid: m.chat,
-              inviteCode: code,
-              inviteExpiration: expiry,
-              groupName: groupName,
-              caption: `👋 You've been invited to join *${groupName}*.\nThis invite expires in *3 days*.`
+          await client.sendMessage(targetJid, {
+            groupInvite: {
+              jid: m.chat,
+              name: groupName,
+              caption: `👋 Hi You've been invited to join here. This invite was sent by admin via Black-MD`,
+              code: code,
+              expiration: 86400
             }
-          }),
-          { userJid: client.user.id }
-        );
-        await client.relayMessage(targetJid, inviteMsg.message, { messageId: inviteMsg.key.id });
+          });
 
-        await client.sendMessage(m.chat, {
-          text: `⚠️ Couldn't add @${rawNum} directly${reason ? ` (${reason})` : ''}.\n\n📩 Private invite card sent to their DM _(expires in 3 days)_.`,
-          mentions: [targetJid]
-        }, { quoted: m });
+          await client.sendMessage(m.chat, {
+            text: `⚠️ Couldn't add @${rawNum} directly${reason ? ` (${reason})` : ''}.\n\n📩 Invite card sent to their DM privately.`,
+            mentions: [targetJid]
+          }, { quoted: m });
 
-      } catch (inviteErr) {
-        reply(`❌ Failed to add @${rawNum} and couldn't send invite.\n_${inviteErr.message}_`);
+        } catch (inviteErr) {
+          reply(`❌ Failed to add @${rawNum} and couldn't send invite.\n_${inviteErr.message}_`);
+        }
+      };
+
+      try {
+        const result = await client.groupParticipantsUpdate(m.chat, [targetJid], 'add');
+        const status = String(result?.[0]?.status || '');
+
+        if (status === '200') {
+          await client.sendMessage(m.chat, {
+            text: `✅ Successfully added @${rawNum} to the group.`,
+            mentions: [targetJid]
+          }, { quoted: m });
+        } else if (status === '403') {
+          await sendInviteDM('their privacy settings block being added');
+        } else if (status === '408') {
+          await client.sendMessage(m.chat, {
+            text: `❌ @${rawNum} is not registered on WhatsApp.`,
+            mentions: [targetJid]
+          }, { quoted: m });
+        } else if (status === '409') {
+          await client.sendMessage(m.chat, {
+            text: `ℹ️ @${rawNum} is already a member of this group.`,
+            mentions: [targetJid]
+          }, { quoted: m });
+        } else if (status === '401') {
+          await sendInviteDM('they have blocked being added to groups');
+        } else {
+          await sendInviteDM(`status ${status || 'unknown'}`);
+        }
+      } catch (err) {
+        await sendInviteDM(`error: ${err.message}`);
       }
-    };
-
-    try {
-      const result = await client.groupParticipantsUpdate(m.chat, [targetJid], 'add');
-      const status = String(result?.[0]?.status || '');
-
-      if (status === '200') {
-        await client.sendMessage(m.chat, {
-          text: `✅ Successfully added @${rawNum} to the group.`,
-          mentions: [targetJid]
-        }, { quoted: m });
-      } else if (status === '403') {
-        await sendInviteDM('their privacy settings block being added');
-      } else if (status === '408') {
-        await client.sendMessage(m.chat, {
-          text: `❌ @${rawNum} is not registered on WhatsApp.`,
-          mentions: [targetJid]
-        }, { quoted: m });
-      } else if (status === '409') {
-        await client.sendMessage(m.chat, {
-          text: `ℹ️ @${rawNum} is already a member of this group.`,
-          mentions: [targetJid]
-        }, { quoted: m });
-      } else if (status === '401') {
-        await sendInviteDM('they have blocked being added to groups');
-      } else {
-        await sendInviteDM(`status ${status || 'unknown'}`);
-      }
-    } catch (err) {
-      await sendInviteDM(`error: ${err.message}`);
     }
-  }
-},
+  },
+
+  
 
   
 
