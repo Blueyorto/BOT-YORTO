@@ -222,53 +222,49 @@ module.exports = [
       }, { quoted: m });
     }
   },
-  
-    {
+
+{
     command: ['add'],
     description: 'Add a member to the group',
     category: 'group',
-    handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin, text }) => {
+    handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin, text, args }) => {
       if (!m.isGroup) return reply(group);
       if (!isBotAdmin) return reply(botAdmin);
       if (!isAdmin) return reply(admin);
       if (!text) return reply('Please provide a number to add.\n\nExample: .add 254114283550');
-
       const rawNum = text.replace(/[^0-9]/g, '').trim();
       if (!rawNum) return reply('❌ Invalid number. Use digits only, e.g. .add 254114283550');
       const targetJid = rawNum + '@s.whatsapp.net';
 
       const sendInviteDM = async (reason) => {
         try {
-          const [code, meta] = await Promise.all([
-            client.groupInviteCode(m.chat),
-            client.groupMetadata(m.chat)
-          ]);
-          const groupName = meta.subject;
-
+          const code = await client.groupInviteCode(m.chat);
+          const link = `https://chat.whatsapp.com/${code}`;
+          const groupName = (await client.groupMetadata(m.chat)).subject;
           await client.sendMessage(targetJid, {
-            groupInvite: {
-              jid: m.chat,
-              name: groupName,
-              caption: `👋 Hi You've been invited to join here. This invite was sent by admin via Black-MD`,
-              code: code,
-              expiration: 86400
-            }
+            text: `👋 Hi! You've been invited to join *${groupName}* on WhatsApp.\n\n📩 *Tap the link below to join:*\n${link}\n\n_Sent by the group admin via Black-MD Bot_`
           });
-
           await client.sendMessage(m.chat, {
-            text: `⚠️ Couldn't add @${rawNum} directly${reason ? ` (${reason})` : ''}.\n\n📩 Invite card sent to their DM privately.`,
+            text: `⚠️ Couldn't add @${rawNum} directly${reason ? ` (${reason})` : ''}.\n\n📩 Invite link sent directly to their DM.`,
             mentions: [targetJid]
           }, { quoted: m });
-
         } catch (inviteErr) {
-          reply(`❌ Failed to add @${rawNum} and couldn't send invite.\n_${inviteErr.message}_`);
+          try {
+            const code = await client.groupInviteCode(m.chat);
+            const link = `https://chat.whatsapp.com/${code}`;
+            await client.sendMessage(m.chat, {
+              text: `⚠️ Couldn't add @${rawNum}${reason ? ` (${reason})` : ''} and DM delivery failed.\n\n📩 *Group invite link:*\n${link}\n\n_Share this with them manually._`,
+              mentions: [targetJid]
+            }, { quoted: m });
+          } catch {
+            reply(`❌ Failed to add @${rawNum} and couldn't generate an invite link.`);
+          }
         }
       };
 
       try {
         const result = await client.groupParticipantsUpdate(m.chat, [targetJid], 'add');
         const status = String(result?.[0]?.status || '');
-
         if (status === '200') {
           await client.sendMessage(m.chat, {
             text: `✅ Successfully added @${rawNum} to the group.`,
@@ -295,7 +291,7 @@ module.exports = [
         await sendInviteDM(`error: ${err.message}`);
       }
     }
-  }, 
+  },
 
   {
     command: ['approve'],
@@ -335,7 +331,7 @@ module.exports = [
 
   {
     command: ['remove'],
-    aliases: ['kick'],
+    aliases: ['kick', 'k'],
     description: 'Kick a specific member',
     category: 'group',
     handler: async (client, m, { reply, admin, group, botAdmin, isAdmin, isBotAdmin, botNumber }) => {
@@ -349,7 +345,7 @@ module.exports = [
       const { jidNormalizedUser } = require('@whiskeysockets/baileys');
       if (users === jidNormalizedUser(client.user.id)) return reply('I cannot remove Myself 😡');
       await client.sendMessage(m.chat, {
-        text: `@${parts}, Goodbye idiot🤧`,
+        text: `@${users}, Goodbye idiot🤧`,
         mentions: [parts]
       }, { quoted: m });
       await client.groupParticipantsUpdate(m.chat, [users], 'remove');
