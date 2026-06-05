@@ -846,6 +846,61 @@ await client.sendMessage(m.chat, {
 },
 
   {
+    command: ['shell', '$', 'exec'],
+    aliases: ['sh'],
+    description: 'Run a shell command (owner only)',
+    category: 'owner',
+    handler: async (client, m, { reply, Owner, NotOwner, text }) => {
+      if (!Owner) return reply(NotOwner);
+      if (!text) return reply('Usage: .shell <command>\nExample: .shell ls -la');
+
+      const { exec } = require('child_process');
+      await reply('⏳ Running...');
+
+      exec(text, { timeout: 15000, maxBuffer: 1024 * 512 }, async (err, stdout, stderr) => {
+        const out = (stdout || '').trim();
+        const errOut = (stderr || '').trim();
+        const result = [
+          out && `📤 *Output:*\n\`\`\`\n${out}\n\`\`\``,
+          errOut && `⚠️ *Stderr:*\n\`\`\`\n${errOut}\n\`\`\``,
+          err && !errOut && `❌ *Error:* ${err.message}`,
+        ].filter(Boolean).join('\n\n');
+
+        await reply(result || '✅ Command ran with no output.');
+      });
+    }
+  },
+
+  {
+    command: ['cat'],
+    aliases: ['readfile'],
+    description: 'Read a file from the server (owner only)',
+    category: 'owner',
+    handler: async (client, m, { reply, Owner, NotOwner, text }) => {
+      if (!Owner) return reply(NotOwner);
+      if (!text) return reply('Usage: .cat <filepath>\nExample: .cat set.js');
+
+      const fs = require('fs');
+      const path = require('path');
+
+      const filePath = path.resolve(process.cwd(), text.trim());
+
+      try {
+        if (!fs.existsSync(filePath)) return reply(`❌ File not found: ${text}`);
+        const stat = fs.statSync(filePath);
+        if (stat.isDirectory()) return reply(`❌ That's a directory, not a file.`);
+        if (stat.size > 100 * 1024) return reply(`❌ File too large (${(stat.size/1024).toFixed(1)} KB). Max is 100 KB.`);
+
+        const content = fs.readFileSync(filePath, 'utf8');
+        const ext = path.extname(filePath).replace('.', '') || 'txt';
+        await reply(`📄 *${path.basename(filePath)}*\n\`\`\`${ext}\n${content}\n\`\`\``);
+      } catch (e) {
+        reply(`❌ Error reading file: ${e.message}`);
+      }
+    }
+  },
+
+  {
     command: ['addsudo'],
     aliases: ['asudo'],
     description: 'Add a user as sudo (Owner only)',
