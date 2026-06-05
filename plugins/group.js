@@ -223,7 +223,6 @@ module.exports = [
     }
   },
   
-/*
     {
     command: ['add'],
     description: 'Add a member to the group',
@@ -296,7 +295,7 @@ module.exports = [
         await sendInviteDM(`error: ${err.message}`);
       }
     }
-  }, */
+  }, 
 
   {
     command: ['approve'],
