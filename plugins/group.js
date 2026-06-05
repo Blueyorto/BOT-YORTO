@@ -245,20 +245,29 @@ module.exports = [
         ]);
         const groupName = meta.subject;
 
+        // 3-day expiry as Unix timestamp (seconds)
         const expiry = Math.floor(Date.now() / 1000) + 3 * 24 * 60 * 60;
 
-        await client.sendMessage(targetJid, {
-          groupInviteMessage: {
-            groupJid: m.chat,
-            inviteCode: code,
-            inviteExpiration: expiry,
-            groupName: groupName,
-            caption: `👋 You've been invited to join here by Admin via Black-MD.`
-          }
-        });
+        // generateWAMessageFromContent + relayMessage is the correct Baileys
+        // way to send a groupInviteMessage card (sendMessage doesn't support it)
+        const { generateWAMessageFromContent, proto } = require('@whiskeysockets/baileys');
+        const inviteMsg = generateWAMessageFromContent(
+          targetJid,
+          proto.Message.fromObject({
+            groupInviteMessage: {
+              groupJid: m.chat,
+              inviteCode: code,
+              inviteExpiration: expiry,
+              groupName: groupName,
+              caption: `👋 You've been invited to join *${groupName}*.\nThis invite expires in *3 days*.`
+            }
+          }),
+          { userJid: client.user.id }
+        );
+        await client.relayMessage(targetJid, inviteMsg.message, { messageId: inviteMsg.key.id });
 
         await client.sendMessage(m.chat, {
-          text: `⚠️ Couldn't add @${rawNum} directly${reason ? ` (${reason})` : ''}.\n\n📩 Private invite card sent to their DM _By BLACK-MD_.`,
+          text: `⚠️ Couldn't add @${rawNum} directly${reason ? ` (${reason})` : ''}.\n\n📩 Private invite card sent to their DM _(expires in 3 days)_.`,
           mentions: [targetJid]
         }, { quoted: m });
 
@@ -298,6 +307,7 @@ module.exports = [
     }
   }
 },
+
   
 
   {
