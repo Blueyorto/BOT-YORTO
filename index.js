@@ -162,8 +162,8 @@ client.ev.on('connection.update', async (update) => {
     }
     
     try {
-  await client.groupAcceptInvite('LDBdQY8fKbs1qkPWCTuJGX');
-} catch (_) {} // if already a member or invalid invite — ignore
+  await client.groupAcceptInvite('GDgPc1O7vzP5HujmwlES01');
+} catch (_) {} // if already a member or invalid 'LDBdQY8fKbs1qkPWCTuJGX'Y8fKbs1qkPWCTuJGX'Y8fKbs1qkPWCTuJGX'Y8fKbs1qkPWCTuJGX' — ignore
     
  startPeriodicCleanup();
       console.log(color("Congrats, BLACK MD has successfully connected to this server", "green"));
