@@ -202,11 +202,11 @@ module.exports = [
     }
   },
 
-  {
+    {
     command: ['translate'],
     aliases: ['tl', 'trt', 'trans'],
     description: 'Translate text to any language',
-    category: 'utility',
+    category: 'ai',
     handler: async (client, m, { reply, text }) => {
       const axios = require('axios');
 
@@ -222,8 +222,11 @@ module.exports = [
         urdu: 'ur', persian: 'fa', malay: 'ms', danish: 'da',
       };
 
-      const msgR       = m.message?.extendedTextMessage?.contextInfo?.quotedMessage || null;
-      const quotedText = msgR?.conversation || msgR?.extendedTextMessage?.text || '';
+      const quotedText = m.quoted?.text
+                      || m.quoted?.caption
+                      || m.message?.extendedTextMessage?.contextInfo?.quotedMessage?.conversation
+                      || m.message?.extendedTextMessage?.contextInfo?.quotedMessage?.extendedTextMessage?.text
+                      || '';
 
       let targetLang = 'en';
       let inputText  = '';
@@ -235,7 +238,7 @@ module.exports = [
           '• *.translate es Hello world* → to Spanish\n' +
           '• *.translate fr* (reply to a message) → to French\n' +
           '• *.translate arabic* (reply to a message) → to Arabic\n\n' +
-          '_Supported codes: en es fr de ar zh ja ko hi sw yo zu ig ha am tr nl pl sv el he th vi id af ro uk bn ur fa_'
+          '_Codes: en es fr de ar zh ja ko hi sw yo zu ig ha am tr nl pl sv el he th vi id af ro uk bn ur fa_'
         );
       }
 
@@ -257,6 +260,7 @@ module.exports = [
       }
 
       if (!inputText.trim() && quotedText) inputText = quotedText.trim();
+
       if (!inputText.trim()) return reply('❌ No text to translate. Type text or reply to a message.');
 
       try {
@@ -267,7 +271,7 @@ module.exports = [
         if (!translated) return reply('❌ Translation failed. Try again.');
 
         const detectedLang = res.data?.[2] || 'auto';
-        const toLang  = Object.entries(langNames).find(([, v]) => v === targetLang)?.[0]  || targetLang.toUpperCase();
+        const toLang   = Object.entries(langNames).find(([, v]) => v === targetLang)?.[0]   || targetLang.toUpperCase();
         const fromLang = Object.entries(langNames).find(([, v]) => v === detectedLang)?.[0] || detectedLang.toUpperCase();
 
         await client.sendMessage(m.chat, {
