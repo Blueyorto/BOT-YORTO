@@ -227,13 +227,13 @@ module.exports = [
 
       const extract = (html, patterns) => {
         for (const re of patterns) {
-          const m = html.match(re);
-          if (m?.[1]) return decode(m[1]);
+          const match = html.match(re);
+          if (match?.[1]) return decode(match[1]);
         }
         return null;
       };
 
-      // 1. mbasic — simple HTML, exposes followers/following/posts
+      // 1. mbasic — simpler HTML, may expose stats
       const mbasicRes = await axios.get(
         `https://mbasic.facebook.com/${encodeURIComponent(username)}`,
         {
@@ -249,7 +249,7 @@ module.exports = [
 
       const mhtml = mbasicRes?.data || '';
 
-      // 2. og: meta fallback (desktop crawler UA)
+      // 2. og: meta fallback
       const ogRes = await axios.get(
         `https://www.facebook.com/${encodeURIComponent(username)}`,
         {
@@ -268,13 +268,12 @@ module.exports = [
         html.match(new RegExp(`property=["']og:${prop}["'][^>]+content=["']([^"']+)["']`, 'i'))?.[1]?.trim()
         || html.match(new RegExp(`content=["']([^"']+)["'][^>]+property=["']og:${prop}["']`, 'i'))?.[1]?.trim();
 
-      const name = decode(getMeta('title', ohtml) || getMeta('title', mhtml)) || username;
-
-      const image = getMeta('image', ohtml) || getMeta('image', mhtml);
+      const name    = decode(getMeta('title', ohtml) || getMeta('title', mhtml)) || username;
+      const image   = getMeta('image', ohtml) || getMeta('image', mhtml);
       const isRealImage = image && !image.includes('rsrc.php') && image.length > 80;
 
-      const rawBio = decode(getMeta('description', ohtml) || getMeta('description', mhtml) || '');
-      let bio = rawBio
+      const rawBio  = decode(getMeta('description', ohtml) || getMeta('description', mhtml) || '');
+      const bio = rawBio
         .replace(/[\d,]+\s+(followers?|following|likes?|talking about this)(\s*·\s*)?/gi, '')
         .replace(/^[^.]+\.\s*/, '')
         .trim() || 'N/A';
@@ -299,27 +298,22 @@ module.exports = [
         /([\d,.]+\s*[KMB]?)\s*likes?\b/i,
       ]) || extract(rawBio, [/([\d,]+)\s+likes/i]) || null;
 
-      const friends = extract(mhtml, [
-        /([\d,.]+\s*[KMB]?)\s*friends?/i,
-      ]) || null;
-
-      const statsLines = [];
-      if (followers) statsLines.push(`👥 *Followers:* ${followers}`);
-      if (following)  statsLines.push(`➡️ *Following:* ${following}`);
-      if (posts)      statsLines.push(`📸 *Posts:* ${posts}`);
-      if (likes && !followers) statsLines.push(`👍 *Likes:* ${likes}`);
-      if (friends && !followers) statsLines.push(`👫 *Friends:* ${friends}`);
-
-      const statsBlock = statsLines.length
-        ? `📊 *Stats*\n${statsLines.join('\n')}\n\n`
-        : `⚠️ _Stats hidden or profile is private_\n\n`;
+      const talking = extract(mhtml, [
+        /([\d,.]+\s*[KMB]?)\s*talking about this/i,
+        /talking about this[^<]*?(\d[\d,.]*\s*[KMB]?)/i,
+      ]) || extract(rawBio, [/([\d,]+)\s+talking about this/i]) || null;
 
       const caption =
         `📘 *Facebook Profile*\n\n` +
         `👤 *Name:* ${name}\n` +
         `🔖 *Username:* ${username}\n` +
         `📝 *About:* ${bio}\n\n` +
-        statsBlock +
+        `📊 *Stats*\n` +
+        `👍 *Likes:* ${likes || '---'}\n` +
+        `👥 *Followers:* ${followers || '---'}\n` +
+        `➡️ *Following:* ${following || '---'}\n` +
+        `📸 *Posts:* ${posts || '---'}\n` +
+        `💬 *Talking about:* ${talking || '---'}\n\n` +
         `🔗 https://facebook.com/${username}`;
 
       if (isRealImage) {
@@ -337,6 +331,6 @@ module.exports = [
       );
     }
   }
-}
+    }
 
 ];
