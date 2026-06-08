@@ -724,7 +724,7 @@ module.exports = [
     command: ['blue'],
     aliases: ['blizzard'],
     description: 'BlueBlizzards services info',
-    category: 'effects',
+    category: 'media',
     handler: async (client, m) => {
       const menu =
         '*💙 BLUEBLIZZARDS — Premium Services*\n' +
