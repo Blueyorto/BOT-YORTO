@@ -206,7 +206,7 @@ module.exports = [
     command: ['translate'],
     aliases: ['tl', 'trt', 'trans'],
     description: 'Translate text to any language',
-    category: 'ai',
+    category: 'utility',
     handler: async (client, m, { reply, text }) => {
       const axios = require('axios');
 
@@ -352,7 +352,7 @@ module.exports = [
   },
 
   {
-    command: ['quotes'],
+    command: ['quote'],
     description: 'Get an inspirational quote',
     category: 'utility',
     handler: async (client, m) => {
@@ -480,114 +480,8 @@ module.exports = [
   },
 
   {
-    command: ['validate'],
-    aliases: ['checknum'],
-    description: 'Validate a phone number and check WhatsApp',
-    category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      if (!text) return reply('Usage: validate +254712345678\nProvide the full number with country code (e.g. +1 for US, +44 for UK, +254 for Kenya).');
-      const cleaned = text.trim().replace(/[\s\-().]/g, '');
-      const digits = cleaned.replace(/^\+/, '');
-      if (!digits || !/^\d{7,15}$/.test(digits)) return reply('❌ Invalid number format. Use international format, e.g. +254712345678 or +14155551234');
-      m.reply('🔍 Validating +' + digits + ' worldwide...');
-      const region = digits.startsWith('1') && digits.length === 11 ? 1 : 3;
-      let apiData = null;
-      try {
-        const apiRes = await global.axios.get('https://api.phonevalidator.com/api/v4/phonesearch', {
-          params: { apikey: 'dbc19b10-f34e-4857-b42b-6c12543d42e3', phone: digits, type: 'basic', region },
-          timeout: 10000
-        });
-        apiData = apiRes.data?.PhoneBasic || null;
-      } catch (e) {}
-      const jid = digits + '@s.whatsapp.net';
-      let onWA = false;
-      try {
-        const [result] = await client.onWhatsApp(jid);
-        onWA = result?.exists === true;
-      } catch (e) {}
-      let about = null;
-      try {
-        const statusList = await client.fetchStatus(jid);
-        if (Array.isArray(statusList) && statusList.length > 0) {
-          const st = statusList[0]?.status?.status;
-          if (typeof st === 'string' && st.length > 0) about = st;
-        }
-      } catch (e) {}
-      const aboutText = about || '🔒 Private (hidden by WhatsApp privacy settings)';
-      let ppStatus = 'None / hidden';
-      let ppUrl = null;
-      try {
-        ppUrl = await client.profilePictureUrl(jid, 'image');
-        if (ppUrl) ppStatus = 'Available';
-      } catch (e) {}
-      const isValid = apiData?.FakeNumber === 'NO';
-      const lineType = apiData?.LineType || 'Unknown';
-      const carrier = apiData?.PhoneCompany || 'Unknown';
-      const country = apiData?.Country || 'Unknown';
-      const countryCode = apiData?.CountryCode || '??';
-      const fakeReason = apiData?.FakeNumberReason || '';
-      const replyText =
-        '*📱 Number Validation Results*\n' +
-        '━━━━━━━━━━━━━━━━━━━━━━\n\n' +
-        '📞 *Number:* +' + digits + '\n' +
-        '🌍 *Country:* ' + country + ' (' + countryCode + ')\n' +
-        '🏢 *Carrier:* ' + carrier + '\n' +
-        '📶 *Line Type:* ' + lineType + '\n' +
-        '✅ *Valid Number:* ' + (isValid ? '✅ Yes' : '❌ No' + (fakeReason ? ' — ' + fakeReason : '')) + '\n\n' +
-        '💬 *WhatsApp:* ' + (onWA ? '✅ Active on WhatsApp' : '❌ Not registered on WhatsApp') + '\n' +
-        '📝 *About/Bio:* ' + aboutText + '\n' +
-        '🖼️ *Profile Pic:* ' + ppStatus + '\n\n' +
-        '🔗 https://wa.me/' + digits;
-      if (ppUrl) {
-        await client.sendMessage(m.chat, { image: { url: ppUrl }, caption: replyText }, { quoted: m });
-      } else {
-        await client.sendMessage(m.chat, { text: replyText }, { quoted: m });
-      }
-    }
-  },
-
-  {
-    command: ['github'],
-    aliases: ['gitstalk'],
-    description: 'Get GitHub user info',
-    category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      if (!text) return m.reply('Provide a github username to stalk');
-      try {
-        const response = await fetch(`https://api.github.com/users/${encodeURIComponent(text)}`, { headers: { 'User-Agent': 'BlackMD-Bot' } });
-        if (response.status === 404) return m.reply(`❌ GitHub user "${text}" not found.`);
-        if (!response.ok) return m.reply(`❌ GitHub API error: ${response.status}`);
-        const data = await response.json();
-        const username = data.login || 'N/A';
-        const nickname = data.name || 'N/A';
-        const bio = data.bio || 'N/A';
-        const profilePic = data.avatar_url;
-        const url = data.html_url;
-        const type = data.type || 'N/A';
-        const company = data.company || 'N/A';
-        const blog = data.blog || 'N/A';
-        const location = data.location || 'N/A';
-        const publicRepos = data.public_repos ?? 0;
-        const publicGists = data.public_gists ?? 0;
-        const followers = data.followers ?? 0;
-        const following = data.following ?? 0;
-        const createdAt = data.created_at ? new Date(data.created_at).toDateString() : 'N/A';
-        const message =
-          `*GitHub User Info*\n\n` +
-          `Username:- ${username}\n\nNickname:- ${nickname}\n\nBio:- ${bio}\n\nLink:- ${url}\n\n` +
-          `Location:- ${location}\n\nCompany:- ${company}\n\nBlog:- ${blog}\n\n` +
-          `Followers:- ${followers}\n\nFollowing:- ${following}\n\nRepos:- ${publicRepos}\n\n` +
-          `Gists:- ${publicGists}\n\nAccount Type:- ${type}\n\nCreated:- ${createdAt}`;
-        await client.sendMessage(m.chat, { image: { url: profilePic }, caption: message }, { quoted: m });
-      } catch (error) {
-        m.reply('Unable to fetch data\n' + error);
-      }
-    }
-  },
-
-  {
     command: ['gitclone'],
-    aliases: ['clone'],
+    aliases: ['clone', 'zip'],
     description: 'Download a GitHub repo as ZIP',
     category: 'utility',
     handler: async (client, m, { reply, text }) => {
