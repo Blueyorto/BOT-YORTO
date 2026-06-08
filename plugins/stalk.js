@@ -22,32 +22,43 @@ function getUsername(text) {
 module.exports = [
 
   // ── INSTAGRAM ──────────────────────────────────────────────────────────────
-  {
+    {
     command: ['igstalk'],
     aliases: ['instastalk', 'stalkim', 'ig'],
     description: 'Stalk an Instagram profile',
     category: 'stalk',
     handler: async (client, m, { reply, text }) => {
       if (!text) return reply('📸 Usage: *.igstalk <username>*\nExample: *.igstalk cristiano*');
-      const username = getUsername(text);
+      const username = text.trim()
+        .replace(/https?:\/\/(www\.)?instagram\.com\//i, '')
+        .replace(/^@/, '').split(/[/?#]/)[0].trim();
       try {
         reply(`🔍 Fetching *@${username}* on Instagram...`);
         const res = await axios.get(
-          `https://i.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(username)}`,
+          `https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(username)}`,
           {
             headers: {
-              'User-Agent': 'Instagram 219.0.0.12.117 Android (28/9; 411dpi; 1080x2176; Xiaomi; MI 8; dipper; qcom; en_US; 302733750)',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
               'Accept': '*/*',
+              'Referer': 'https://www.instagram.com/',
               'x-ig-app-id': '936619743392459',
-              'X-IG-Capabilities': '3brTvw==',
-              'X-IG-Connection-Type': 'WIFI',
+              'x-csrftoken': 'missing',
+              'Cookie': 'csrftoken=missing; ig_did=AAAAAAAA-0000-0000-0000-000000000000; mid=aaaa',
             },
             timeout: 15000,
           }
         );
-
         const u = res.data?.data?.user;
         if (!u) return reply('❌ User not found or profile is private.');
+
+        const formatNum = n => {
+          if (!n && n !== 0) return 'N/A';
+          n = Number(n);
+          if (n >= 1e9) return (n/1e9).toFixed(1)+'B';
+          if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+          if (n >= 1e3) return (n/1e3).toFixed(1)+'K';
+          return n.toString();
+        };
 
         const caption =
           `📸 *Instagram Profile*\n\n` +
@@ -72,11 +83,10 @@ module.exports = [
         }
       } catch (err) {
         console.error('igstalk error:', err.message);
-        reply('❌ Could not fetch Instagram profile. Username may not exist.');
+        reply('❌ Could not fetch Instagram profile. Username may not exist or is private.');
       }
     }
   },
-
   // ── TIKTOK ─────────────────────────────────────────────────────────────────
   {
     command: ['ttstalk'],
@@ -210,14 +220,16 @@ module.exports = [
   },
 
   // ── FACEBOOK ───────────────────────────────────────────────────────────────
-  {
+    {
     command: ['fbstalk'],
     aliases: ['facebookstalk', 'stalkfb', 'fb'],
     description: 'Stalk a Facebook profile or page',
     category: 'stalk',
     handler: async (client, m, { reply, text }) => {
       if (!text) return reply('📘 Usage: *.fbstalk <username>*\nExample: *.fbstalk zuck*');
-      const username = getUsername(text);
+      const username = text.trim()
+        .replace(/https?:\/\/(www\.)?facebook\.com\//i, '')
+        .replace(/^@/, '').split(/[/?#]/)[0].trim();
       try {
         reply(`🔍 Fetching *${username}* on Facebook...`);
 
@@ -232,22 +244,26 @@ module.exports = [
 
         const html = res.data;
         const getMeta = (prop) =>
-          html.match(new RegExp(`<meta[^>]+property=["']og:${prop}["'][^>]+content=["']([^"']+)["']`, 'i'))?.[1]?.trim()
-          || html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:${prop}["']`, 'i'))?.[1]?.trim();
+          html.match(new RegExp(`property=["']og:${prop}["'][^>]+content=["']([^"']+)["']`, 'i'))?.[1]?.trim()
+          || html.match(new RegExp(`content=["']([^"']+)["'][^>]+property=["']og:${prop}["']`, 'i'))?.[1]?.trim();
 
         const title   = getMeta('title') || username;
         const rawDesc = getMeta('description') || '';
         const image   = getMeta('image');
 
-        const likesMatch   = rawDesc.match(/([\d,]+)\s+likes/i);
-        const talkingMatch = rawDesc.match(/([\d,]+)\s+talking about this/i);
+        // Decode HTML entities Facebook uses in attribute values
+        const decoded = rawDesc
+          .replace(/&#xb7;/gi, '·').replace(/&#183;/g, '·').replace(/&middot;/g, '·')
+          .replace(/&amp;/g, '&').replace(/&#039;/g, "'").replace(/&quot;/g, '"');
 
-        let bio = rawDesc
-          .replace(/[\d,]+\s+likes\s*[·•]\s*[\d,]+\s+talking about this\.?\s*/gi, '')
-          .replace(/^[^.]+\.\s*/, '') 
-          .replace(/&amp;/g, '&')
-          .replace(/&#039;/g, "'")
-          .replace(/&quot;/g, '"')
+        // Extract likes + "talking about this" counts that FB stuffs into og:description
+        const likesMatch   = decoded.match(/([\d,]+)\s+likes/i);
+        const talkingMatch = decoded.match(/([\d,]+)\s+talking about this/i);
+
+        // Strip stats clause and any leading "Name. " duplicate to get real bio
+        let bio = decoded
+          .replace(/[\d,]+\s+likes\s*·\s*[\d,]+\s+talking about this\.?\s*/gi, '')
+          .replace(/^[^.]+\.\s*/, '')
           .trim() || 'N/A';
 
         const caption =
@@ -256,12 +272,12 @@ module.exports = [
           `🔖 *Username:* ${username}\n` +
           `📝 *About:* ${bio}\n\n` +
           `📊 *Stats*\n` +
-          (likesMatch   ? `👍 *Likes:* ${likesMatch[1]}\n`               : '') +
-          (talkingMatch ? `💬 *Talking about:* ${talkingMatch[1]}\n`     : '') +
+          (likesMatch   ? `👍 *Likes:* ${likesMatch[1]}\n`             : '') +
+          (talkingMatch ? `💬 *Talking about:* ${talkingMatch[1]}\n`   : '') +
           `\n🔗 https://facebook.com/${username}`;
 
-        // Only use image if it's a real profile CDN image, not a generic placeholder
-        const isRealImage = image && !image.includes('rsrc.php') && !image.includes('static.xx.fbcdn.net/rsrc');
+        // Only send image if it's a real profile CDN image, not a tiny placeholder
+        const isRealImage = image && !image.includes('rsrc.php') && image.length > 80;
         if (isRealImage) {
           await client.sendMessage(m.chat, { image: { url: image }, caption }, { quoted: m });
         } else {
@@ -276,6 +292,6 @@ module.exports = [
         );
       }
     }
-  },
+  }
 
 ];
