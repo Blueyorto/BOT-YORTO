@@ -23,70 +23,53 @@ module.exports = [
 
   // ── INSTAGRAM ──────────────────────────────────────────────────────────────
     {
-    command: ['igstalk'],
-    aliases: ['instastalk', 'stalkim', 'ig'],
-    description: 'Stalk an Instagram profile',
-    category: 'stalk',
-    handler: async (client, m, { reply, text }) => {
-      if (!text) return reply('📸 Usage: *.igstalk <username>*\nExample: *.igstalk cristiano*');
-      const username = text.trim()
-        .replace(/https?:\/\/(www\.)?instagram\.com\//i, '')
-        .replace(/^@/, '').split(/[/?#]/)[0].trim();
-      try {
-        reply(`🔍 Fetching *@${username}* on Instagram...`);
-        const res = await axios.get(
-          `https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(username)}`,
-          {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-              'Accept': '*/*',
-              'Referer': 'https://www.instagram.com/',
-              'x-ig-app-id': '936619743392459',
-              'x-csrftoken': 'missing',
-              'Cookie': 'csrftoken=missing; ig_did=AAAAAAAA-0000-0000-0000-000000000000; mid=aaaa',
-            },
-            timeout: 15000,
-          }
-        );
-        const u = res.data?.data?.user;
-        if (!u) return reply('❌ User not found or profile is private.');
+  command: ['igstalk'],
+  aliases: ['instastalk', 'stalkim', 'ig'],
+  description: 'Stalk an Instagram profile',
+  category: 'stalk',
+  handler: async (client, m, { reply, text, api }) => {
+    if (!text) return reply('📸 Usage: *.igstalk <username>*\nExample: *.igstalk cristiano*');
+    const username = text.trim()
+      .replace(/https?:\/\/(www\.)?instagram\.com\//i, '')
+      .replace(/^@/, '').split(/[/?#]/)[0].trim();
+    try {
+      reply(`🔍 Fetching *@${username}* on Instagram...`);
 
-        const formatNum = n => {
-          if (!n && n !== 0) return 'N/A';
-          n = Number(n);
-          if (n >= 1e9) return (n/1e9).toFixed(1)+'B';
-          if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
-          if (n >= 1e3) return (n/1e3).toFixed(1)+'K';
-          return n.toString();
-        };
+      const res = await axios.get(
+        `${api}/stalker/ig?user=${encodeURIComponent(username)}`,
+        { timeout: 15000 }
+      );
 
-        const caption =
-          `📸 *Instagram Profile*\n\n` +
-          `👤 *Name:* ${u.full_name || username}\n` +
-          `🔖 *Username:* @${u.username}\n` +
-          `📝 *Bio:* ${u.biography || 'N/A'}\n` +
-          `🌐 *Website:* ${u.external_url || 'None'}\n\n` +
-          `📊 *Stats*\n` +
-          `👥 *Followers:* ${formatNum(u.edge_followed_by?.count)}\n` +
-          `➡️ *Following:* ${formatNum(u.edge_follow?.count)}\n` +
-          `🖼️ *Posts:* ${formatNum(u.edge_owner_to_timeline_media?.count)}\n\n` +
-          `🔒 *Private:* ${u.is_private ? 'Yes' : 'No'}\n` +
-          `✅ *Verified:* ${u.is_verified ? 'Yes ✔️' : 'No'}\n` +
-          `🏢 *Business:* ${u.is_business_account ? 'Yes' : 'No'}\n\n` +
-          `🔗 https://instagram.com/${u.username}`;
+      const d = res.data;
+      if (!d || d.status === false) return reply('❌ User not found or profile is private.');
 
-        const pfp = u.profile_pic_url_hd || u.profile_pic_url;
-        if (pfp) {
-          await client.sendMessage(m.chat, { image: { url: pfp }, caption }, { quoted: m });
-        } else {
-          await client.sendMessage(m.chat, { text: caption }, { quoted: m });
-        }
-      } catch (err) {
-        console.error('igstalk error:', err.message);
-        reply('❌ Could not fetch Instagram profile. Username may not exist or is private.');
+      const caption =
+        `📸 *Instagram Profile*\n\n` +
+        `👤 *Name:* ${d.full_name || username}\n` +
+        `🔖 *Username:* @${d.username || username}\n` +
+        `📝 *Bio:* ${d.biography || 'N/A'}\n` +
+        `🌐 *Website:* ${d.external_url || 'None'}\n\n` +
+        `📊 *Stats*\n` +
+        `👥 *Followers:* ${formatNum(d.followers || d.follower_count)}\n` +
+        `➡️ *Following:* ${formatNum(d.following || d.following_count)}\n` +
+        `🖼️ *Posts:* ${formatNum(d.posts || d.media_count)}\n\n` +
+        `🔒 *Private:* ${d.is_private ? 'Yes' : 'No'}\n` +
+        `✅ *Verified:* ${d.is_verified ? 'Yes ✔️' : 'No'}\n` +
+        `🏢 *Business:* ${d.is_business ? 'Yes' : 'No'}\n\n` +
+        `🔗 https://instagram.com/${d.username || username}`;
+
+      const pfp = d.profile_pic_url_hd || d.profile_pic_url || d.avatar;
+      if (pfp) {
+        await client.sendMessage(m.chat, { image: { url: pfp }, caption }, { quoted: m });
+      } else {
+        await client.sendMessage(m.chat, { text: caption }, { quoted: m });
       }
+    } catch (err) {
+      console.error('igstalk error:', err.message);
+      reply('❌ Could not fetch Instagram profile. Username may not exist or is private.');
     }
-  },
+  }
+},
   // ── TIKTOK ─────────────────────────────────────────────────────────────────
   {
     command: ['ttstalk'],
@@ -220,78 +203,140 @@ module.exports = [
   },
 
   // ── FACEBOOK ───────────────────────────────────────────────────────────────
-    {
-    command: ['fbstalk'],
-    aliases: ['facebookstalk', 'stalkfb', 'fb'],
-    description: 'Stalk a Facebook profile or page',
-    category: 'stalk',
-    handler: async (client, m, { reply, text }) => {
-      if (!text) return reply('📘 Usage: *.fbstalk <username>*\nExample: *.fbstalk zuck*');
-      const username = text.trim()
-        .replace(/https?:\/\/(www\.)?facebook\.com\//i, '')
-        .replace(/^@/, '').split(/[/?#]/)[0].trim();
-      try {
-        reply(`🔍 Fetching *${username}* on Facebook...`);
 
-        const res = await axios.get(`https://www.facebook.com/${encodeURIComponent(username)}`, {
+{
+  command: ['fbstalk'],
+  aliases: ['facebookstalk', 'stalkfb', 'fb'],
+  description: 'Stalk a Facebook profile or page',
+  category: 'stalk',
+  handler: async (client, m, { reply, text }) => {
+    if (!text) return reply('📘 Usage: *.fbstalk <username>*\nExample: *.fbstalk zuck*');
+    const username = text.trim()
+      .replace(/https?:\/\/(www\.)?facebook\.com\//i, '')
+      .replace(/^@/, '').split(/[/?#]/)[0].trim();
+
+    try {
+      reply(`🔍 Fetching *${username}* on Facebook...`);
+
+      const decode = s =>
+        (s || '')
+          .replace(/&#xb7;/gi, '·').replace(/&#183;/g, '·').replace(/&middot;/g, '·')
+          .replace(/&amp;/g, '&').replace(/&#039;/g, "'").replace(/&quot;/g, '"')
+          .replace(/&#(\d+);/g, (_, c) => String.fromCharCode(c))
+          .replace(/<[^>]+>/g, '').trim();
+
+      const extract = (html, patterns) => {
+        for (const re of patterns) {
+          const m = html.match(re);
+          if (m?.[1]) return decode(m[1]);
+        }
+        return null;
+      };
+
+      // 1. mbasic — simple HTML, exposes followers/following/posts
+      const mbasicRes = await axios.get(
+        `https://mbasic.facebook.com/${encodeURIComponent(username)}`,
+        {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          },
+          timeout: 15000,
+          maxRedirects: 5,
+        }
+      ).catch(() => null);
+
+      const mhtml = mbasicRes?.data || '';
+
+      // 2. og: meta fallback (desktop crawler UA)
+      const ogRes = await axios.get(
+        `https://www.facebook.com/${encodeURIComponent(username)}`,
+        {
           headers: {
             'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
             'Accept-Language': 'en-US,en;q=0.9',
           },
           timeout: 15000,
           maxRedirects: 5,
-        });
-
-        const html = res.data;
-        const getMeta = (prop) =>
-          html.match(new RegExp(`property=["']og:${prop}["'][^>]+content=["']([^"']+)["']`, 'i'))?.[1]?.trim()
-          || html.match(new RegExp(`content=["']([^"']+)["'][^>]+property=["']og:${prop}["']`, 'i'))?.[1]?.trim();
-
-        const title   = getMeta('title') || username;
-        const rawDesc = getMeta('description') || '';
-        const image   = getMeta('image');
-
-        // Decode HTML entities Facebook uses in attribute values
-        const decoded = rawDesc
-          .replace(/&#xb7;/gi, '·').replace(/&#183;/g, '·').replace(/&middot;/g, '·')
-          .replace(/&amp;/g, '&').replace(/&#039;/g, "'").replace(/&quot;/g, '"');
-
-        // Extract likes + "talking about this" counts that FB stuffs into og:description
-        const likesMatch   = decoded.match(/([\d,]+)\s+likes/i);
-        const talkingMatch = decoded.match(/([\d,]+)\s+talking about this/i);
-
-        // Strip stats clause and any leading "Name. " duplicate to get real bio
-        let bio = decoded
-          .replace(/[\d,]+\s+likes\s*·\s*[\d,]+\s+talking about this\.?\s*/gi, '')
-          .replace(/^[^.]+\.\s*/, '')
-          .trim() || 'N/A';
-
-        const caption =
-          `📘 *Facebook Profile*\n\n` +
-          `👤 *Name:* ${title}\n` +
-          `🔖 *Username:* ${username}\n` +
-          `📝 *About:* ${bio}\n\n` +
-          `📊 *Stats*\n` +
-          (likesMatch   ? `👍 *Likes:* ${likesMatch[1]}\n`             : '') +
-          (talkingMatch ? `💬 *Talking about:* ${talkingMatch[1]}\n`   : '') +
-          `\n🔗 https://facebook.com/${username}`;
-
-        // Only send image if it's a real profile CDN image, not a tiny placeholder
-        const isRealImage = image && !image.includes('rsrc.php') && image.length > 80;
-        if (isRealImage) {
-          await client.sendMessage(m.chat, { image: { url: image }, caption }, { quoted: m });
-        } else {
-          await client.sendMessage(m.chat, { text: caption }, { quoted: m });
         }
-      } catch (err) {
-        console.error('fbstalk error:', err.message);
-        reply(
-          `📘 *Facebook: ${username}*\n\n` +
-          `⚠️ Facebook blocks automated lookups for private profiles.\n\n` +
-          `🔗 View manually: https://facebook.com/${username}`
-        );
+      ).catch(() => null);
+
+      const ohtml = ogRes?.data || '';
+
+      const getMeta = (prop, html) =>
+        html.match(new RegExp(`property=["']og:${prop}["'][^>]+content=["']([^"']+)["']`, 'i'))?.[1]?.trim()
+        || html.match(new RegExp(`content=["']([^"']+)["'][^>]+property=["']og:${prop}["']`, 'i'))?.[1]?.trim();
+
+      const name = decode(getMeta('title', ohtml) || getMeta('title', mhtml)) || username;
+
+      const image = getMeta('image', ohtml) || getMeta('image', mhtml);
+      const isRealImage = image && !image.includes('rsrc.php') && image.length > 80;
+
+      const rawBio = decode(getMeta('description', ohtml) || getMeta('description', mhtml) || '');
+      let bio = rawBio
+        .replace(/[\d,]+\s+(followers?|following|likes?|talking about this)(\s*·\s*)?/gi, '')
+        .replace(/^[^.]+\.\s*/, '')
+        .trim() || 'N/A';
+
+      const followers = extract(mhtml, [
+        /([\d,.]+\s*[KMB]?)\s*follower/i,
+        /follower[^<]*?(\d[\d,.]*\s*[KMB]?)/i,
+      ]) || extract(rawBio, [/([\d,]+)\s*follower/i]) || null;
+
+      const following = extract(mhtml, [
+        /([\d,.]+\s*[KMB]?)\s*following/i,
+        /following[^<]*?(\d[\d,.]*\s*[KMB]?)/i,
+      ]) || extract(rawBio, [/([\d,]+)\s*following/i]) || null;
+
+      const posts = extract(mhtml, [
+        /([\d,.]+\s*[KMB]?)\s*posts?/i,
+        /posts?[^<]*?(\d[\d,.]*\s*[KMB]?)/i,
+      ]) || null;
+
+      const likes = extract(mhtml, [
+        /([\d,.]+\s*[KMB]?)\s*(?:people\s+)?like\s+this/i,
+        /([\d,.]+\s*[KMB]?)\s*likes?\b/i,
+      ]) || extract(rawBio, [/([\d,]+)\s+likes/i]) || null;
+
+      const friends = extract(mhtml, [
+        /([\d,.]+\s*[KMB]?)\s*friends?/i,
+      ]) || null;
+
+      const statsLines = [];
+      if (followers) statsLines.push(`👥 *Followers:* ${followers}`);
+      if (following)  statsLines.push(`➡️ *Following:* ${following}`);
+      if (posts)      statsLines.push(`📸 *Posts:* ${posts}`);
+      if (likes && !followers) statsLines.push(`👍 *Likes:* ${likes}`);
+      if (friends && !followers) statsLines.push(`👫 *Friends:* ${friends}`);
+
+      const statsBlock = statsLines.length
+        ? `📊 *Stats*\n${statsLines.join('\n')}\n\n`
+        : `⚠️ _Stats hidden or profile is private_\n\n`;
+
+      const caption =
+        `📘 *Facebook Profile*\n\n` +
+        `👤 *Name:* ${name}\n` +
+        `🔖 *Username:* ${username}\n` +
+        `📝 *About:* ${bio}\n\n` +
+        statsBlock +
+        `🔗 https://facebook.com/${username}`;
+
+      if (isRealImage) {
+        await client.sendMessage(m.chat, { image: { url: image }, caption }, { quoted: m });
+      } else {
+        await client.sendMessage(m.chat, { text: caption }, { quoted: m });
       }
+
+    } catch (err) {
+      console.error('fbstalk error:', err.message);
+      reply(
+        `📘 *Facebook: ${username}*\n\n` +
+        `⚠️ Facebook blocks automated lookups for private profiles.\n\n` +
+        `🔗 View manually: https://facebook.com/${username}`
+      );
     }
   }
+}
 
 ];
