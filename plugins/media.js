@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const axios = global.axios || require('axios');
-const { uploadToUguu, Webp2mp4File } = require('../lib/uploads');
+const { uploadToUguu, upscaleImage } = require('../lib/uploads');
 
 module.exports = [
 
@@ -691,34 +691,26 @@ module.exports = [
 
       let filePath;
       try {
-        reply('⏳ Upscaling your image to HD... Please wait.');
+    filePath = await client.downloadAndSaveMediaMessage(imageMsg);
+    const buffer = await fs.readFile(filePath);
 
-        filePath = await client.downloadAndSaveMediaMessage(imageMsg);
-        if (!filePath || !fs.existsSync(filePath)) throw new Error('Download failed');
+    const upscaledUrl = await upscaleImage(buffer);
 
-        const image = await Jimp.read(filePath);
-        const newW = image.getWidth() * 4;
-        const newH = image.getHeight() * 4;
-        image.resize(newW, newH, Jimp.RESIZE_BICUBIC);
+    await client.sendMessage(m.chat, { image: { url: upscaledUrl }, caption: "🔼 Image Upscaled to HD" }, { quoted: m });
 
-        const upscaledBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
-
-        await client.sendMessage(m.chat, {
-          image: upscaledBuffer,
-          caption: '🔼 *Image Upscaled to HD*\n_Powered by BLACK-MD_',
-          mimetype: 'image/jpeg',
-        }, { quoted: m });
-
-      } catch (err) {
-        console.error('HD Upscale error:', err);
-        reply('❌ Failed to upscale. Make sure you replied to a clear photo and try again.');
-      } finally {
-        if (filePath && fs.existsSync(filePath)) {
-          try { fs.unlinkSync(filePath); } catch (_) {}
-        }
-      }
+  } catch (err) {
+        
+    console.error("HD Upscale error:", err);
+        
+    await reply("❌ Failed to upscale image. Try again.");
+        
+  } finally {
+    if (filePath && fs.existsSync(filePath)) {
+      try { fs.unlinkSync(filePath); } catch {}
     }
-  },
+  }
+ }
+},
 
   {
     command: ['blue'],
