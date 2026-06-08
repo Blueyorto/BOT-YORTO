@@ -3,6 +3,8 @@
 const fs   = require('fs');
 const os   = require('os');
 const path = require('path');
+const axios    = require('axios');
+const FormData = require('form-data');
 
 module.exports = [
 
@@ -10,7 +12,7 @@ module.exports = [
     command: ['topdf'],
     aliases: ['pdf', 'makepdf', 'img2pdf', 'text2pdf'],
     description: 'Convert a quoted image or text to a PDF file',
-    category: 'convert',
+    category: 'converter',
     handler: async (client, m, { reply, text }) => {
       const PDFDocument = require('pdfkit');
 
@@ -65,7 +67,7 @@ module.exports = [
     command: ['toexcel'],
     aliases: ['excel', 'makeexcel', 'toxlsx', 'text2excel'],
     description: 'Convert comma-separated text to an Excel spreadsheet',
-    category: 'convert',
+    category: 'converter',
     handler: async (client, m, { reply, text }) => {
       const XLSX = require('xlsx');
 
@@ -123,7 +125,7 @@ module.exports = [
     command: ['toword'],
     aliases: ['word', 'makedoc', 'todocx', 'img2word', 'text2word'],
     description: 'Convert a quoted image or text to a Word (.docx) file',
-    category: 'convert',
+    category: 'converter',
     handler: async (client, m, { reply, text }) => {
 
       const { Document, Packer, Paragraph, TextRun, ImageRun, AlignmentType } = require('docx');
@@ -176,6 +178,140 @@ module.exports = [
         reply('❌ Failed to create Word document. Try again.');
       } finally {
         if (imgFilePath && fs.existsSync(imgFilePath)) try { fs.unlinkSync(imgFilePath); } catch (_) {}
+      }
+    }
+  },
+
+      {
+    command: ['ocr'],
+    aliases: ['readtext', 'extract', 'imgtotext', 'scan'],
+    description: 'Extract text from a quoted image',
+    category; 'converter',
+    handler: async (client, m, { reply }) => {
+
+      const msgR = m.message?.extendedTextMessage?.contextInfo?.quotedMessage || null;
+      if (!msgR) return reply('🖼️ Reply to an image with *.ocr* to read text from it.');
+
+      const imageMsg = msgR.imageMessage || null;
+      if (!imageMsg) return reply('❌ Quoted message is not an image.');
+
+      let filePath;
+      try {
+        reply('🔍 Scanning image for text...');
+
+        filePath = await client.downloadAndSaveMediaMessage(imageMsg);
+        if (!filePath || !fs.existsSync(filePath)) throw new Error('Image download failed');
+
+        const form = new FormData();
+        form.append('file', fs.createReadStream(filePath));
+        form.append('language', 'eng');
+        form.append('isOverlayRequired', 'false');
+        form.append('detectOrientation', 'true');
+        form.append('scale', 'true');
+        form.append('OCREngine', '2');
+
+        const res = await axios.post(
+          'https://api.ocr.space/parse/image',
+          form,
+          {
+            headers: {
+              ...form.getHeaders(),
+              'apikey': 'helloworld',
+            },
+            timeout: 30000,
+          }
+        );
+
+        const data = res.data;
+        if (data?.IsErroredOnProcessing) {
+          return reply(`❌ OCR error: ${data.ErrorMessage?.[0] || 'Unknown error'}`);
+        }
+
+        const text = data?.ParsedResults?.[0]?.ParsedText?.trim();
+        if (!text) return reply('🤷 No text found in the image. Try a clearer photo.');
+
+        await client.sendMessage(m.chat, {
+          text: `${text}`,
+        }, { quoted: m });
+
+      } catch (err) {
+        console.error('OCR error:', err.message);
+        reply('❌ Failed to read text. Try a clearer, well-lit photo.');
+      } finally {
+        if (filePath && fs.existsSync(filePath)) try { fs.unlinkSync(filePath); } catch (_) {}
+      }
+    }
+  },
+
+      {
+    command: ['transcribe'],
+    aliases: ['stt', 'listen', 'voice2text', 'audiotxt'],
+    description: 'Convert a quoted voice/audio message to text',
+    category: 'converter',
+    handler: async (client, m, { reply }) => {
+      const ffmpeg     = require('fluent-ffmpeg');
+      const ffmpegPath = require('ffmpeg-static');
+      ffmpeg.setFfmpegPath(ffmpegPath);
+
+      const msgR = m.message?.extendedTextMessage?.contextInfo?.quotedMessage || null;
+      if (!msgR) return reply('🎙️ Reply to a voice note or audio message with *.transcribe*');
+
+      const audioMsg = msgR.audioMessage || msgR.videoMessage || null;
+      if (!audioMsg) return reply('❌ Quoted message is not audio. Reply to a voice note.');
+
+      let rawPath, flacPath;
+      try {
+        reply('⏳ Converting audio to text...');
+
+        rawPath = await client.downloadAndSaveMediaMessage(audioMsg);
+        if (!rawPath || !fs.existsSync(rawPath)) throw new Error('Audio download failed');
+
+        flacPath = path.join(os.tmpdir(), `stt_${Date.now()}.flac`);
+        await new Promise((resolve, reject) => {
+          ffmpeg(rawPath)
+            .audioChannels(1)
+            .audioFrequency(16000)
+            .toFormat('flac')
+            .on('end', resolve)
+            .on('error', reject)
+            .save(flacPath);
+        });
+
+        const flacBuffer = fs.readFileSync(flacPath);
+        const GOOGLE_KEY = 'AIzaSyBOti4mM-6x9WDnZIjIeyEU21OpBXqWBgw';
+        const res = await axios.post(
+          `https://www.google.com/speech-api/v2/recognize?output=json&lang=en-US&key=${GOOGLE_KEY}`,
+          flacBuffer,
+          {
+            headers: { 'Content-Type': 'audio/x-flac; rate=16000' },
+            timeout: 30000,
+          }
+        );
+
+        const lines = String(res.data).trim().split('\n').filter(l => l.trim() && l !== '{}');
+        let transcript = '';
+        for (const line of lines) {
+          try {
+            const obj = JSON.parse(line);
+            const alt = obj?.result?.[0]?.alternative?.[0]?.transcript;
+            if (alt) transcript += alt + ' ';
+          } catch (_) {}
+        }
+
+        transcript = transcript.trim();
+        if (!transcript) return reply('🤷 Could not make out any speech. Try a clearer audio message.');
+
+        await client.sendMessage(m.chat, {
+          text: `🎙️ *Transcription:*\n\n${transcript}`,
+        }, { quoted: m });
+
+      } catch (err) {
+        console.error('Transcribe error:', err.message);
+        reply('❌ Transcription failed. Audio may be too long (max ~60s) or too noisy.');
+      } finally {
+        for (const p of [rawPath, flacPath]) {
+          if (p && fs.existsSync(p)) try { fs.unlinkSync(p); } catch (_) {}
+        }
       }
     }
   },
