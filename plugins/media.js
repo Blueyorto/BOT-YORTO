@@ -692,8 +692,8 @@ module.exports = [
       let filePath;
       try {
     filePath = await client.downloadAndSaveMediaMessage(imageMsg);
-    const buffer = await fs.readFile(filePath);
-
+    
+    const buffer = require('fs').readFileSync(filePath);
     const upscaledUrl = await upscaleImage(buffer);
 
     await client.sendMessage(m.chat, { image: { url: upscaledUrl }, caption: "🔼 Image Upscaled to HD" }, { quoted: m });
