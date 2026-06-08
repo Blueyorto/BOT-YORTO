@@ -392,7 +392,6 @@ const Owner = finalSuperUsers.includes(standardizeJid(senderForOwner)) || isSudo
         console.error('gptdm error:', gptErr.message);
         await client.sendPresenceUpdate('paused', m.chat).catch(() => {});
       }
-    }
                                                               }
 
   } catch (err) {
