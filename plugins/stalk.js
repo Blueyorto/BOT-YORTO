@@ -24,7 +24,7 @@ module.exports = [
   // ── INSTAGRAM ──────────────────────────────────────────────────────────────
     {
   command: ['igstalk'],
-  aliases: ['instastalk', 'stalkim', 'ig'],
+  aliases: ['instastalk', 'stalkim'],
   description: 'Stalk an Instagram profile',
   category: 'stalk',
   handler: async (client, m, { reply, text, api }) => {
@@ -75,7 +75,7 @@ module.exports = [
   // ── TIKTOK ─────────────────────────────────────────────────────────────────
   {
     command: ['ttstalk'],
-    aliases: ['tikstalk', 'tiktokstalk', 'tt'],
+    aliases: ['tikstalk', 'tiktokstalk'],
     description: 'Stalk a TikTok profile',
     category: 'stalk',
     handler: async (client, m, { reply, text }) => {
@@ -156,7 +156,7 @@ module.exports = [
   // ── TWITTER / X ────────────────────────────────────────────────────────────
   {
     command: ['twstalk'],
-    aliases: ['twitterstalk', 'xstalk', 'tw'],
+    aliases: ['twitterstalk', 'xstalk'],
     description: 'Stalk a Twitter/X profile',
     category: 'stalk',
     handler: async (client, m, { reply, text }) => {
@@ -208,7 +208,7 @@ module.exports = [
 
 {
   command: ['fbstalk'],
-  aliases: ['facebookstalk', 'stalkfb', 'fb'],
+  aliases: ['facebookstalk', 'stalkfb'],
   description: 'Stalk a Facebook profile or page',
   category: 'stalk',
   handler: async (client, m, { reply, text }) => {
@@ -333,6 +333,54 @@ module.exports = [
       );
     }
   }
+ },
+
+  {
+  command: ['npmstalk'],
+  aliases: ['npm', 'pkg'],
+  description: 'Stalk an NPM package using its name',
+  category: 'stalk',
+  handler: async (client, m, { reply, text, api }) => {
+    if (!text) return reply('❌ Provide an NPM package name.\n\nExample: *.npmstalk baileys*');
+    try {
+      const res = await axios.get(
+        `${api}/stalker/npm?q=${encodeURIComponent(text)}`,
+        { timeout: 15000 }
+      );
+      const data = res.data;
+
+      if (!data.status || !data.result?.metadata) {
+        return reply('❌ Failed to fetch NPM package data. Make sure the package name is correct.');
+      }
+
+      const { metadata, versions, dependencies, maintainers, repository } = data.result;
+      const npmLink = `https://www.npmjs.com/package/${text}`;
+
+      const caption =
+        `📦 *NPM Package: ${metadata.name}*\n\n` +
+        `📝 *Description:* ${metadata.description || '—'}\n` +
+        `🔗 *NPM Link:* ${npmLink}\n` +
+        `📄 *License:* ${metadata.license || '—'}\n` +
+        `🏷️ *Keywords:* ${metadata.keywords?.join(', ') || '—'}\n` +
+        `📅 *Last Updated:* ${new Date(metadata.lastUpdated).toDateString()}\n\n` +
+        `📊 *Versions*\n` +
+        `📍 Latest: ${versions.latest}\n` +
+        `📍 First: ${versions.first}\n` +
+        `🔢 Total: ${versions.count}\n` +
+        `📅 Published: ${new Date(versions.latestPublishTime).toDateString()}\n` +
+        `📅 Created: ${new Date(versions.initialPublishTime).toDateString()}\n\n` +
+        `📦 *Dependencies*\n` +
+        `🔢 Latest: ${dependencies.latestCount}\n` +
+        `🔢 Initial: ${dependencies.initialCount}\n\n` +
+        `👥 *Maintainers:* ${maintainers.join(', ')}\n` +
+        `📁 *Repo:* ${repository}`;
+
+      await client.sendMessage(m.chat, { text: caption }, { quoted: m });
+    } catch (err) {
+      console.error('npmstalk error:', err.message);
+      reply('❌ Error fetching NPM package data: ' + err.message);
     }
+  }
+}
 
 ];
