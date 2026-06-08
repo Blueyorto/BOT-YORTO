@@ -43,22 +43,24 @@ module.exports = [
       const d = res.data;
       if (!d || d.status === false) return reply('❌ User not found or profile is private.');
 
+      // Access the result object properly
+      const result = d.result;
+      
       const caption =
         `📸 *Instagram Profile*\n\n` +
-        `👤 *Name:* ${d.full_name || username}\n` +
-        `🔖 *Username:* @${d.username || username}\n` +
-        `📝 *Bio:* ${d.biography || 'N/A'}\n` +
-        `🌐 *Website:* ${d.external_url || 'None'}\n\n` +
+        `👤 *Name:* ${result.name || username}\n` +
+        `🔖 *Username:* @${result.username || username}\n` +
+        `📝 *Bio:* ${result.bio || 'N/A'}\n` +
+        `🌐 *Website:* ${result.bioLinks?.[0]?.url || 'None'}\n\n` +
         `📊 *Stats*\n` +
-        `👥 *Followers:* ${formatNum(d.followers || d.follower_count)}\n` +
-        `➡️ *Following:* ${formatNum(d.following || d.following_count)}\n` +
-        `🖼️ *Posts:* ${formatNum(d.posts || d.media_count)}\n\n` +
-        `🔒 *Private:* ${d.is_private ? 'Yes' : 'No'}\n` +
-        `✅ *Verified:* ${d.is_verified ? 'Yes ✔️' : 'No'}\n` +
-        `🏢 *Business:* ${d.is_business ? 'Yes' : 'No'}\n\n` +
-        `🔗 https://instagram.com/${d.username || username}`;
+        `👥 *Followers:* ${formatNum(result.followers || 0)}\n` +
+        `➡️ *Following:* ${formatNum(result.following || 0)}\n` +
+        `🖼️ *Posts:* ${formatNum(result.posts || 0)}\n\n` +
+        `🏢 *Business:* ${result.isBusiness ? 'Yes' : 'No'}\n\n` +
+        `📅 *Joined:* ${new Date(result.created_at).toLocaleDateString()}\n\n` +
+        `🔗 https://instagram.com/${result.username || username}`;
 
-      const pfp = d.profile_pic_url_hd || d.profile_pic_url || d.avatar;
+      const pfp = result.profilePic;
       if (pfp) {
         await client.sendMessage(m.chat, { image: { url: pfp }, caption }, { quoted: m });
       } else {
@@ -69,7 +71,7 @@ module.exports = [
       reply('❌ Could not fetch Instagram profile. Username may not exist or is private.');
     }
   }
-},
+  },
   // ── TIKTOK ─────────────────────────────────────────────────────────────────
   {
     command: ['ttstalk'],
