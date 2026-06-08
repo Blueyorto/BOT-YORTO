@@ -38,6 +38,7 @@ const totalCommands = Object.values(byCategory).reduce((sum, arr) => sum + arr.l
         media: '🎆',
         ai: '🤖',
         downloads: '📥',
+        converter: '🔃',
         coding: '🎭',
         utility: '🔧',
         owner: '👑',
@@ -47,15 +48,15 @@ const totalCommands = Object.values(byCategory).reduce((sum, arr) => sum + arr.l
         misc: '📦',
       };
 
-      let menu = `╔══════════════════╗\n`;
-      menu += `║       ☆  𝐁𝐋𝐀𝐂𝐊-𝐌𝐃  ☆ \n`;
-      menu += `╚══════════════════╝\n\n`;
+      let menu = `╔═════════════════╗\n`;
+      menu += `║    ☆  𝐁𝐋𝐀𝐂𝐊-𝐌𝐃  ☆ \n`;
+      menu += `╚═════════════════╝\n\n`;
       menu += `👤 *User:* ${pushname}\n`;
       menu += `🪩 *Mode:* ${mode.toUpperCase()}\n`;
       menu += `⚡️ *Speed:* ${Rspeed.toFixed(4)} Ms\n`;
       menu += `🔑 *Prefix:* ${prefix}\n`;
       menu += `📦 *Total Commands:* ${totalCommands}\n`;
-      menu += `════════════════════\n\n`;
+      menu += `═══════════════════\n\n`;
 
       for (const [cat, plugins] of Object.entries(byCategory)) {
         const icon = categoryIcons[cat] || '📌';
