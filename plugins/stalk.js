@@ -38,6 +38,7 @@ module.exports = [
             headers: {
               'User-Agent': 'Instagram 219.0.0.12.117 Android (28/9; 411dpi; 1080x2176; Xiaomi; MI 8; dipper; qcom; en_US; 302733750)',
               'Accept': '*/*',
+              'x-ig-app-id': '936619743392459',
               'X-IG-Capabilities': '3brTvw==',
               'X-IG-Connection-Type': 'WIFI',
             },
@@ -98,7 +99,6 @@ module.exports = [
 
         const html = res.data;
 
-        // Try to extract embedded JSON data
         let user = null, stats = null;
         const scriptMatch = html.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/);
         if (scriptMatch) {
@@ -115,9 +115,9 @@ module.exports = [
           } catch (_) {}
         }
 
-        // Fallback to og meta tags
-        const getMeta = (prop) => html.match(new RegExp(`<meta[^>]+property=["']og:${prop}["'][^>]+content=["']([^"']+)["']`, 'i'))?.[1]
-                                || html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:${prop}["']`, 'i'))?.[1];
+        const getMeta = (prop) =>
+          html.match(new RegExp(`<meta[^>]+property=["']og:${prop}["'][^>]+content=["']([^"']+)["']`, 'i'))?.[1]
+          || html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:${prop}["']`, 'i'))?.[1];
 
         if (!user) {
           const caption =
@@ -235,23 +235,34 @@ module.exports = [
           html.match(new RegExp(`<meta[^>]+property=["']og:${prop}["'][^>]+content=["']([^"']+)["']`, 'i'))?.[1]?.trim()
           || html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:${prop}["']`, 'i'))?.[1]?.trim();
 
-        const title       = getMeta('title') || username;
-        const description = getMeta('description') || 'N/A';
-        const image       = getMeta('image');
+        const title   = getMeta('title') || username;
+        const rawDesc = getMeta('description') || '';
+        const image   = getMeta('image');
 
-        const followersMatch = html.match(/(\d[\d,.]+)\s*(?:people follow|followers)/i);
-        const likesMatch     = html.match(/(\d[\d,.]+)\s*(?:people like|likes this)/i);
+        const likesMatch   = rawDesc.match(/([\d,]+)\s+likes/i);
+        const talkingMatch = rawDesc.match(/([\d,]+)\s+talking about this/i);
+
+        let bio = rawDesc
+          .replace(/[\d,]+\s+likes\s*[·•]\s*[\d,]+\s+talking about this\.?\s*/gi, '')
+          .replace(/^[^.]+\.\s*/, '') 
+          .replace(/&amp;/g, '&')
+          .replace(/&#039;/g, "'")
+          .replace(/&quot;/g, '"')
+          .trim() || 'N/A';
 
         const caption =
           `📘 *Facebook Profile*\n\n` +
           `👤 *Name:* ${title}\n` +
           `🔖 *Username:* ${username}\n` +
-          `📝 *About:* ${description.replace(/&amp;/g,'&').replace(/&#039;/g,"'")}\n` +
-          (followersMatch ? `👥 *Followers:* ${followersMatch[1]}\n` : '') +
-          (likesMatch     ? `👍 *Likes:* ${likesMatch[1]}\n`         : '') +
+          `📝 *About:* ${bio}\n\n` +
+          `📊 *Stats*\n` +
+          (likesMatch   ? `👍 *Likes:* ${likesMatch[1]}\n`               : '') +
+          (talkingMatch ? `💬 *Talking about:* ${talkingMatch[1]}\n`     : '') +
           `\n🔗 https://facebook.com/${username}`;
 
-        if (image && !image.includes('static.xx')) {
+        // Only use image if it's a real profile CDN image, not a generic placeholder
+        const isRealImage = image && !image.includes('rsrc.php') && !image.includes('static.xx.fbcdn.net/rsrc');
+        if (isRealImage) {
           await client.sendMessage(m.chat, { image: { url: image }, caption }, { quoted: m });
         } else {
           await client.sendMessage(m.chat, { text: caption }, { quoted: m });
@@ -266,97 +277,5 @@ module.exports = [
       }
     }
   },
-
-  {
-    command: ['whois'],
-    aliases: ['wacheck', 'wainfo', 'numberinfo', 'whoami'],
-    description: 'Look up a WhatsApp number — name, profile picture, and about',
-    category: 'stalk',
-    handler: async (client, m, { reply, text, quoted }) => {
-      // ── Resolve the target number ──────────────────────────────────────
-      let jid;
-
-      if (m.mentionedJid?.length > 0) {
-        jid = m.mentionedJid[0];
-
-      } else if (quoted) {
-        jid = quoted.sender || quoted.key?.participant || quoted.key?.remoteJid;
-
-      } else if (text) {
-        const num = text.replace(/[^0-9]/g, '').trim();
-        if (!num) return reply('📱 Usage: *.whois <number>*\nExample: *.whois 254712345678*\nOr reply to someone\'s message.');
-        jid = num + '@s.whatsapp.net';
-
-      } else {
-        return reply(
-          '📱 *Whois — WhatsApp Lookup*\n\n' +
-          'Usage:\n' +
-          '• *.whois 254712345678* — lookup a number\n' +
-          '• Reply to any message with *.whois* — lookup that person\n' +
-          '• *.whois @mention* — lookup a mentioned person'
-        );
-      }
-
-      if (jid && !jid.includes('@')) jid = jid + '@s.whatsapp.net';
-
-      try {
-        // ── Check if number is on WhatsApp ─────────────────────────────
-        let exists = true;
-        try {
-          const check = await client.onWhatsApp(jid.replace('@s.whatsapp.net', ''));
-          if (!check || check.length === 0) exists = false;
-          else jid = check[0].jid || jid;
-        } catch (_) {}
-
-        if (!exists) {
-          const num = jid.split('@')[0];
-          return reply(`❌ *+${num}* is not registered on WhatsApp.`);
-        }
-
-        const num = jid.split('@')[0];
-        let name   = null;
-        let about  = null;
-        let pfpUrl = null;
-
-        // Profile picture
-        try {
-          pfpUrl = await client.profilePictureUrl(jid, 'image');
-        } catch (_) { pfpUrl = null; }
-
-        // About / status
-        try {
-          const status = await client.fetchStatus(jid);
-          about = status?.status || null;
-        } catch (_) { about = null; }
-
-        // Display name from contacts store
-        try {
-          const contact = client.store?.contacts?.[jid];
-          name = contact?.notify || contact?.name || contact?.verifiedName || null;
-        } catch (_) {}
-
-        // Fallback: name from reply
-        if (!name && quoted) name = quoted.pushName || null;
-
-        const caption =
-          `📱 *WhatsApp Lookup*\n\n` +
-          `📞 *Number:* +${num}\n` +
-          `👤 *Name:* ${name || 'Hidden / Unknown'}\n` +
-          `💬 *About:* ${about || 'Hidden / Not set'}\n` +
-          `🖼️ *Profile Pic:* ${pfpUrl ? 'Available ✅' : 'Hidden / None ❌'}\n\n` +
-          `🔗 *Chat link:* https://wa.me/${num}`;
-
-        if (pfpUrl) {
-          await client.sendMessage(m.chat, { image: { url: pfpUrl }, caption }, { quoted: m });
-        } else {
-          await client.sendMessage(m.chat, { text: caption }, { quoted: m });
-        }
-
-      } catch (err) {
-        console.error('whois error:', err.message);
-        reply('❌ Could not look up that number. Make sure it includes the country code (e.g. 254712345678).');
-      }
-    }
-  }
 
 ];
