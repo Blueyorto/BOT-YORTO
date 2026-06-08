@@ -3,6 +3,7 @@
 const fs   = require('fs');
 const os   = require('os');
 const path = require('path');
+const fetch = require('node-fetch');
 const axios    = require('axios');
 const FormData = require('form-data');
 
@@ -186,7 +187,7 @@ module.exports = [
     command: ['ocr'],
     aliases: ['readtext', 'extract', 'imgtotext', 'scan'],
     description: 'Extract text from a quoted image',
-    category; 'converter',
+    category: 'converter',
     handler: async (client, m, { reply }) => {
 
       const msgR = m.message?.extendedTextMessage?.contextInfo?.quotedMessage || null;
@@ -243,9 +244,45 @@ module.exports = [
     }
   },
 
+    {
+    command: ['attp'],
+    description: 'Animated text sticker',
+    category: 'converter',
+    handler: async (client, m, { reply, q }) => {
+      if (!q) return reply('Provide text. E.g: .attp Hello World');
+      client.sendMessage(m.chat, {
+        sticker: { url: `https://api.lolhuman.xyz/api/attp?apikey=cde5404984da80591a2692b6&text=${encodeURIComponent(q)}` }
+      }, { quoted: m });
+    }
+  },
+
+  {
+    command: ['carbon'],
+    description: 'Turn code into a carbon screenshot',
+    category: 'converter',
+    handler: async (client, m, { reply }) => {
+      if (!m.quoted || !m.quoted.text) return reply('Quote a code message to convert to carbon image.');
+      try {
+        const response = await fetch('https://carbonara.solopov.dev/api/cook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: m.quoted.text, backgroundColor: '#1F816D' }),
+        });
+        if (!response.ok) return m.reply('API failed to fetch a valid response.');
+        const buffer = await response.buffer();
+        await client.sendMessage(m.chat, {
+          image: buffer,
+          caption: `𝗖𝗢𝗡𝗩𝗘𝗥𝗧𝗘𝗗 𝗕𝗬 𝐁𝐋𝐀𝐂𝐊-𝐌𝐃`
+        }, { quoted: m });
+      } catch (err) {
+        m.reply('❌ Carbon failed: ' + err.message);
+      }
+    }
+  },
+
       {
-    command: ['transcribe'],
-    aliases: ['stt', 'listen', 'voice2text', 'audiotxt'],
+    command: ['totext'],
+    aliases: ['stt', 'listen', 'transcribe', 'audiotxt'],
     description: 'Convert a quoted voice/audio message to text',
     category: 'converter',
     handler: async (client, m, { reply }) => {
