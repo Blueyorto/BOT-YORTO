@@ -4,6 +4,7 @@ const { jidNormalizedUser } = require('@whiskeysockets/baileys');
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
+const fetch = require('node-fetch');
 global.axios = require('axios').default;
 const chalk = require('chalk');
 const speed = require('performance-now');
