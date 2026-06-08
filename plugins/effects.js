@@ -25,7 +25,7 @@ function makeEffect(command, url, label) {
 }
 
 module.exports = [
-
+  makeEffect('glitch',     'https://en.ephoto360.com/create-digital-glitch-text-effects-online-767.html',          'glitch'),
   makeEffect('metallic',   'https://en.ephoto360.com/impressive-decorative-3d-metal-text-effect-798.html',         'Metallic'),
   makeEffect('ice',        'https://en.ephoto360.com/ice-text-effect-online-101.html',                              'Ice'),
   makeEffect('snow',       'https://en.ephoto360.com/create-a-snow-3d-text-effect-free-online-621.html',           'Snow'),
@@ -34,7 +34,10 @@ module.exports = [
   makeEffect('matrix',     'https://en.ephoto360.com/matrix-text-effect-154.html',                                 'Matrix'),
   makeEffect('light',      'https://en.ephoto360.com/light-text-effect-futuristic-technology-style-648.html',      'Light'),
   makeEffect('neon',       'https://en.ephoto360.com/create-colorful-neon-light-text-effects-online-797.html',     'Neon'),
-  makeEffect(['silver', 'silva'],  'https://en.ephoto360.com/create-glossy-silver-3d-text-effect-online-802.html','Silver'),
+  makeEffect(['silver', 'silva'],  'https://en.ephoto360.com/create-glossy-silver-3d-text-effect-online-802.html', 'Silver'),
+  makeEffect('fabric',     'https://en.ephoto360.com/text-effect-on-jean-fabric-304.html',                         'fabric'),
+  makeEffect('candy',      'https://en.ephoto360.com/candy-text-effect-94.html',                                   'candy'),
+  makeEffect('frost',      'https://en.ephoto360.com/create-a-frozen-christmas-text-effect-online-792.html',       'frost'),
   makeEffect('devil',      'https://en.ephoto360.com/neon-devil-wings-text-effect-online-683.html',                'Devil'),
   makeEffect('typography', 'https://en.ephoto360.com/create-typography-text-effect-on-pavement-online-774.html',  'Typography'),
   makeEffect('purple',     'https://en.ephoto360.com/purple-text-effect-online-100.html',                          'Purple'),
