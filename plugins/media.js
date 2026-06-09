@@ -712,59 +712,40 @@ module.exports = [
   }
  }
 },
-  
-{
+
+  {
   command: ['remini2'],
   aliases: ['upscale2', 'enhance2', 'hd2'],
   description: 'Enhance a quoted image using AI (Remini)',
   category: 'media',
-  handler: async (client, m, { reply, api, mime }) => {
-    if (!m.quoted) return reply(`📌 Reply to an image with the command to enhance it.`);
+  handler: async (client, m, { reply, mime }) => {
+    if (!m.quoted) return reply('📌 Reply to an image with the command to enhance it.');
     if (!/image/.test(m.quoted.mimetype || mime || '')) return reply('❌ Only image messages can be enhanced. Reply to a photo.');
 
     try {
       reply('⏳ Enhancing your image with AI... Please wait.');
 
       const filePath = await client.downloadAndSaveMediaMessage(m.quoted);
-      if (!filePath || !fs.existsSync(filePath)) throw new Error('Download failed');
+      if (!filePath || !fs.existsSync(filePath)) return reply('❌ Failed to download image.');
 
       const imageUrl = await uploadToUguu(filePath);
       try { fs.unlinkSync(filePath); } catch (_) {}
 
-      // Try multiple free remini APIs in order until one works
-      const endpoints = [
-        () => axios.get(`https://api.siputzx.my.id/api/r/remini?url=${encodeURIComponent(imageUrl)}`, { timeout: 30000 }),
-        () => axios.get(`https://apis.davidcyriltech.my.id/remini?url=${encodeURIComponent(imageUrl)}`, { timeout: 30000 }),
-        () => axios.get(`https://api.lolhuman.xyz/api/remini?apikey=cde5404984da80591a2692b6&img=${encodeURIComponent(imageUrl)}`, { timeout: 30000 }),
-        () => axios.get(`https://api.ryzendesu.vip/api/ai/remini?url=${encodeURIComponent(imageUrl)}`, { timeout: 30000 }),
-      ];
-
-      let result = null;
-      for (const call of endpoints) {
-        try {
-          const res = await call();
-          const d = res.data;
-          const candidate = d?.result || d?.data?.url || d?.url || d?.image || d?.img || d?.enhancedImage;
-          if (candidate && typeof candidate === 'string' && candidate.startsWith('http')) {
-            result = candidate;
-            break;
-          }
-        } catch (_) {}
-      }
-      if (!result) throw new Error('All remini APIs failed or returned no image');
+      const res = await axios.get(`https://apis.davidcyriltech.my.id/remini?url=${encodeURIComponent(imageUrl)}`, { timeout: 30000 });
+      const d = res.data;
+      const result = d?.result || d?.image || d?.image_url || d?.url || d?.data?.url || d?.data?.image;
+      if (!result) return reply('❌ Failed to enhance image. Try again.');
 
       await client.sendMessage(m.chat, {
         image: { url: result },
-        caption: '✨ *Image Enhanced to HD*\n_Powered by BLACK-MD_',
+        caption: '✨ *Image Enhanced with AI*\n_Powered by BLACK-MD_',
       }, { quoted: m });
 
     } catch (err) {
-      console.error('Remini error:', err.message);
       reply('❌ Failed to enhance image. Make sure you replied to a clear photo and try again.');
     }
   }
 },
-
   
   {
     command: ['save'],
