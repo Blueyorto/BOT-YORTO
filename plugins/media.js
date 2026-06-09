@@ -712,49 +712,59 @@ module.exports = [
   }
  }
 },
-
+  
 {
-    command: ['remini2'],
-    aliases: ['upscale2', 'enhance2', 'hd2'],
-    description: 'Upscale a quoted image to HD (4x)',
-    category: 'media',
-    handler: async (client, m, { reply, msgR }) => {
+  command: ['remini2'],
+  aliases: ['upscale2', 'enhance2', 'hd2'],
+  description: 'Enhance a quoted image using AI (Remini)',
+  category: 'media',
+  handler: async (client, m, { reply, api, mime }) => {
+    if (!m.quoted) return reply(`📌 Reply to an image with the command to enhance it.`);
+    if (!/image/.test(m.quoted.mimetype || mime || '')) return reply('❌ Only image messages can be enhanced. Reply to a photo.');
 
-      if (!msgR) return reply(`📌 Reply to an image with ${m.prefix}hd to upscale it.`);
+    try {
+      reply('⏳ Enhancing your image with AI... Please wait.');
 
-      const imageMsg = msgR.imageMessage || null;
-      if (!imageMsg) return reply('❌ Only image messages can be upscaled. Reply to a photo.');
+      const filePath = await client.downloadAndSaveMediaMessage(m.quoted);
+      if (!filePath || !fs.existsSync(filePath)) throw new Error('Download failed');
 
-      let filePath;
-      try {
-        reply('⏳ Upscaling your image to HD... Please wait.');
+      const imageUrl = await uploadToUguu(filePath);
+      try { fs.unlinkSync(filePath); } catch (_) {}
 
-        filePath = await client.downloadAndSaveMediaMessage(imageMsg);
-        if (!filePath || !fs.existsSync(filePath)) throw new Error('Download failed');
+      // Try multiple free remini APIs in order until one works
+      const endpoints = [
+        () => axios.get(`https://api.siputzx.my.id/api/r/remini?url=${encodeURIComponent(imageUrl)}`, { timeout: 30000 }),
+        () => axios.get(`https://apis.davidcyriltech.my.id/remini?url=${encodeURIComponent(imageUrl)}`, { timeout: 30000 }),
+        () => axios.get(`https://api.lolhuman.xyz/api/remini?apikey=cde5404984da80591a2692b6&img=${encodeURIComponent(imageUrl)}`, { timeout: 30000 }),
+        () => axios.get(`https://api.ryzendesu.vip/api/ai/remini?url=${encodeURIComponent(imageUrl)}`, { timeout: 30000 }),
+      ];
 
-        const image = await Jimp.read(filePath);
-        const newW = image.getWidth() * 4;
-        const newH = image.getHeight() * 4;
-        image.resize(newW, newH, Jimp.RESIZE_BICUBIC);
-
-        const upscaledBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
-
-        await client.sendMessage(m.chat, {
-          image: upscaledBuffer,
-          caption: '🔼 *Image Upscaled to HD*\n_Powered by BLACK-MD_',
-          mimetype: 'image/jpeg',
-        }, { quoted: m });
-
-      } catch (err) {
-        console.error('HD Upscale error:', err);
-        reply('❌ Failed to upscale. Make sure you replied to a clear photo and try again.');
-      } finally {
-        if (filePath && fs.existsSync(filePath)) {
-          try { fs.unlinkSync(filePath); } catch (_) {}
-        }
+      let result = null;
+      for (const call of endpoints) {
+        try {
+          const res = await call();
+          const d = res.data;
+          const candidate = d?.result || d?.data?.url || d?.url || d?.image || d?.img || d?.enhancedImage;
+          if (candidate && typeof candidate === 'string' && candidate.startsWith('http')) {
+            result = candidate;
+            break;
+          }
+        } catch (_) {}
       }
+      if (!result) throw new Error('All remini APIs failed or returned no image');
+
+      await client.sendMessage(m.chat, {
+        image: { url: result },
+        caption: '✨ *Image Enhanced to HD*\n_Powered by BLACK-MD_',
+      }, { quoted: m });
+
+    } catch (err) {
+      console.error('Remini error:', err.message);
+      reply('❌ Failed to enhance image. Make sure you replied to a clear photo and try again.');
     }
-  },
+  }
+},
+
   
   {
     command: ['save'],
