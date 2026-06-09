@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('fs');
+const Jimp = require('jimp') 
 const axios = global.axios || require('axios');
 const { uploadToUguu, upscaleImage } = require('../lib/uploads');
 
