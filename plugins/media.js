@@ -14,6 +14,7 @@ module.exports = [
   category: 'media',
   handler: async (client, m, { reply, msgR }) => {
     const sharp = require('sharp');
+    const { Sticker, StickerTypes } = require('wa-sticker-formatter');
     const pushname = m.pushName || 'BLACK-MD';
 
     if (!msgR) return m.reply('Quote an image or a short video.');
@@ -38,7 +39,6 @@ module.exports = [
       let stickerBuf;
 
       if (isVideo) {
-        const { Sticker, StickerTypes } = require('wa-sticker-formatter');
         const { execSync } = require('child_process');
         const os = require('os');
         const path = require('path');
@@ -90,20 +90,27 @@ module.exports = [
         } catch (videoErr) {
           return reply(`❌ Video sticker failed.\nReason: ${videoErr.message}\n\n💡 *Tip:* Send a GIF or image instead — those always work.`);
         }
+
       } else {
         const meta = await sharp(result).metadata();
         const { width = 512, height = 512 } = meta;
         const ratio = Math.max(width, height) / Math.min(width, height);
         const fitMode = ratio < 1.2 ? 'cover' : 'contain';
-        stickerBuf = await sharp(result)
+        const webpBuf = await sharp(result)
           .resize(512, 512, {
             fit: fitMode,
             background: { r: 0, g: 0, b: 0, alpha: 0 },
             position: 'centre',
-            pack: pushname,
           })
           .webp({ quality: 85 })
           .toBuffer();
+        const sticker = new Sticker(webpBuf, {
+          pack: pushname,
+          author: 'BLACK-MD',
+          type: StickerTypes.DEFAULT,
+          quality: 85,
+        });
+        stickerBuf = await sticker.toBuffer();
       }
 
       await client.sendMessage(m.chat, { sticker: stickerBuf }, { quoted: m });
