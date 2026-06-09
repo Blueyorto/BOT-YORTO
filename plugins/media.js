@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const axios = global.axios || require('axios');
-const { uploadToUguu, Webp2mp4File } = require('../lib/uploads');
+const { uploadToUguu, upscaleImage } = require('../lib/uploads');
 
 module.exports = [
 
@@ -99,6 +99,7 @@ module.exports = [
             fit: fitMode,
             background: { r: 0, g: 0, b: 0, alpha: 0 },
             position: 'centre',
+            pack: pushname,
           })
           .webp({ quality: 85 })
           .toBuffer();
@@ -288,7 +289,7 @@ module.exports = [
 
   {
     command: ['toimg'],
-    aliases: ['photo'],
+    aliases: ['photo', 'toimage'],
     description: 'Convert a sticker to image',
     category: 'media',
     handler: async (client, m, { reply, mime, quoted }) => {
@@ -339,11 +340,10 @@ module.exports = [
       const h = meta.height || 512;
 
       // ── Font sizing ────────────────────────────────────────────────────
-      // w/12 gives breathing room; floor at 28 for tiny images
       const fontSize = Math.max(28, Math.floor(w / 12));
       const lineHeight = Math.floor(fontSize * 1.2);
       const strokeW = Math.max(3, Math.floor(fontSize / 9));
-      const maxW = Math.floor(w * 0.92);  // hard max line width in px
+      const maxW = Math.floor(w * 0.92);
 
       const charPx = fontSize * 0.48;
       const maxChars = Math.max(8, Math.floor(maxW / charPx));
@@ -648,16 +648,16 @@ module.exports = [
     if (!/image/.test(mime)) return reply('📌 That is not an image!');
     try {
       await reply('🔎 Searching for similar images...');
-      // Download the quoted image
+      
       const buf = await client.downloadAndSaveMediaMessage(m.quoted);
       
       const imageUrl = await uploadToUguu(buf);
-      // Call reverse image API
+      
       const res = await global.axios.get(`${api}/search/reverseimage?url=${encodeURIComponent(imageUrl)}`);
       const data = res.data;
       if (!data?.result?.similarImages?.length) return reply('❌ No similar images found.');
       const similarImages = data.result.similarImages.slice(0, 10);
-      // Send as album
+      
       const album = [];
       for (let i = 0; i < similarImages.length; i++) {
         const img = similarImages[i];
@@ -676,7 +676,84 @@ module.exports = [
     }
   }
 },
-  
+
+{
+    command: ['remini'],
+    aliases: ['upscale', 'enhance', 'hd'],
+    description: 'Upscale a quoted image to HD (4x)',
+    category: 'media',
+    handler: async (client, m, { reply, msgR }) => {
+
+      if (!msgR) return reply(`📌 Reply to an image with ${m.prefix}hd to upscale it.`);
+
+      const imageMsg = msgR.imageMessage || null;
+      if (!imageMsg) return reply('❌ Only image messages can be upscaled. Reply to a photo.');
+
+      let filePath;
+      try {
+    filePath = await client.downloadAndSaveMediaMessage(imageMsg);
+    
+    const buffer = require('fs').readFileSync(filePath);
+    const upscaledUrl = await upscaleImage(buffer);
+
+    await client.sendMessage(m.chat, { image: { url: upscaledUrl }, caption: "🔼 Image Upscaled to HD" }, { quoted: m });
+
+  } catch (err) {
+        
+    console.error("HD Upscale error:", err);
+        
+    await reply("❌ Failed to upscale image. Try again.");
+        
+  } finally {
+    if (filePath && fs.existsSync(filePath)) {
+      try { fs.unlinkSync(filePath); } catch {}
+    }
+  }
+ }
+},
+
+{
+    command: ['remini2'],
+    aliases: ['upscale2', 'enhance2', 'hd2'],
+    description: 'Upscale a quoted image to HD (4x)',
+    category: 'media',
+    handler: async (client, m, { reply, msgR }) => {
+
+      if (!msgR) return reply(`📌 Reply to an image with ${m.prefix}hd to upscale it.`);
+
+      const imageMsg = msgR.imageMessage || null;
+      if (!imageMsg) return reply('❌ Only image messages can be upscaled. Reply to a photo.');
+
+      let filePath;
+      try {
+        reply('⏳ Upscaling your image to HD... Please wait.');
+
+        filePath = await client.downloadAndSaveMediaMessage(imageMsg);
+        if (!filePath || !fs.existsSync(filePath)) throw new Error('Download failed');
+
+        const image = await Jimp.read(filePath);
+        const newW = image.getWidth() * 4;
+        const newH = image.getHeight() * 4;
+        image.resize(newW, newH, Jimp.RESIZE_BICUBIC);
+
+        const upscaledBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
+
+        await client.sendMessage(m.chat, {
+          image: upscaledBuffer,
+          caption: '🔼 *Image Upscaled to HD*\n_Powered by BLACK-MD_',
+          mimetype: 'image/jpeg',
+        }, { quoted: m });
+
+      } catch (err) {
+        console.error('HD Upscale error:', err);
+        reply('❌ Failed to upscale. Make sure you replied to a clear photo and try again.');
+      } finally {
+        if (filePath && fs.existsSync(filePath)) {
+          try { fs.unlinkSync(filePath); } catch (_) {}
+        }
+      }
+    }
+  },
   
   {
     command: ['save'],

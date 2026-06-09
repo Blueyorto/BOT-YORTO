@@ -1134,7 +1134,8 @@ await client.sendMessage(m.chat, {
   
   {
     command: ['groupstatus'],
-    aliases: ['togroupstatus', 'statusgroup'],
+    aliases: ['togroupstatus', 'statusgroup', 'gcstatus'],
+    noprefix: ['gss', 'gcs'],
     description: 'Send a message/media to group status',
     category: 'owner',
     handler: async (client, m, { reply, Owner, NotOwner, group, text }) => {

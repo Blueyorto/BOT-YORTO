@@ -202,24 +202,85 @@ module.exports = [
     }
   },
 
-  {
-    command: ['trt'],
-    aliases: ['translate'],
-    description: 'Translate text',
+    {
+    command: ['translate'],
+    aliases: ['tl', 'trt', 'trans'],
+    description: 'Translate text to any language',
     category: 'utility',
-    handler: async (client, m, { reply, text, args, from }) => {
-      if (args.length < 2) return m.reply('Please provide a language code and text to translate!');
-      const targetLang = args[0];
-      const textToTranslate = args.slice(1).join(' ');
+    handler: async (client, m, { reply, text }) => {
+      const axios = require('axios');
+
+      const langNames = {
+        english: 'en', spanish: 'es', french: 'fr', german: 'de',
+        italian: 'it', portuguese: 'pt', russian: 'ru', arabic: 'ar',
+        chinese: 'zh', japanese: 'ja', korean: 'ko', hindi: 'hi',
+        swahili: 'sw', yoruba: 'yo', zulu: 'zu', igbo: 'ig',
+        hausa: 'ha', amharic: 'am', somali: 'so', turkish: 'tr',
+        dutch: 'nl', polish: 'pl', swedish: 'sv', greek: 'el',
+        hebrew: 'he', thai: 'th', vietnamese: 'vi', indonesian: 'id',
+        afrikaans: 'af', romanian: 'ro', ukrainian: 'uk', bengali: 'bn',
+        urdu: 'ur', persian: 'fa', malay: 'ms', danish: 'da',
+      };
+
+      const quotedText = m.quoted?.text
+                      || m.quoted?.caption
+                      || m.message?.extendedTextMessage?.contextInfo?.quotedMessage?.conversation
+                      || m.message?.extendedTextMessage?.contextInfo?.quotedMessage?.extendedTextMessage?.text
+                      || '';
+
+      let targetLang = 'en';
+      let inputText  = '';
+
+      if (!text && !quotedText) {
+        return reply(
+          '🌍 *Translate — Usage:*\n\n' +
+          '• *.translate Hello world* → to English\n' +
+          '• *.translate es Hello world* → to Spanish\n' +
+          '• *.translate fr* (reply to a message) → to French\n' +
+          '• *.translate arabic* (reply to a message) → to Arabic\n\n' +
+          '_Codes: en es fr de ar zh ja ko hi sw yo zu ig ha am tr nl pl sv el he th vi id af ro uk bn ur fa_'
+        );
+      }
+
+      if (text) {
+        const parts     = text.trim().split(/\s+/);
+        const firstWord = parts[0].toLowerCase();
+        const isLangName = langNames[firstWord];
+        const isLangCode = /^[a-z]{2,3}$/.test(firstWord) && parts.length > 1;
+
+        if (isLangName) {
+          targetLang = isLangName;
+          inputText  = parts.slice(1).join(' ');
+        } else if (isLangCode) {
+          targetLang = firstWord;
+          inputText  = parts.slice(1).join(' ');
+        } else {
+          inputText = text.trim();
+        }
+      }
+
+      if (!inputText.trim() && quotedText) inputText = quotedText.trim();
+
+      if (!inputText.trim()) return reply('❌ No text to translate. Type text or reply to a message.');
+
       try {
-        const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(textToTranslate)}&langpair=en|${targetLang}`);
-        if (!response.ok) return m.reply('Translation service unavailable. Try again later.');
-        const data = await response.json();
-        const translated = data.responseData?.translatedText;
-        if (!translated) return m.reply('Translation failed. Check your language code.');
-        await client.sendMessage(from, { text: `🌍 *Translation (${targetLang}):*\n\n${translated}` }, { quoted: m });
-      } catch (error) {
-        m.reply('Translation failed: ' + error.message);
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&dt=ld&q=${encodeURIComponent(inputText)}`;
+        const res = await axios.get(url, { timeout: 15000 });
+
+        const translated = (res.data[0] || []).map(seg => seg?.[0] || '').join('').trim();
+        if (!translated) return reply('❌ Translation failed. Try again.');
+
+        const detectedLang = res.data?.[2] || 'auto';
+        const toLang   = Object.entries(langNames).find(([, v]) => v === targetLang)?.[0]   || targetLang.toUpperCase();
+        const fromLang = Object.entries(langNames).find(([, v]) => v === detectedLang)?.[0] || detectedLang.toUpperCase();
+
+        await client.sendMessage(m.chat, {
+          text: `🌍 *Translation*\n📥 *From:* ${fromLang}\n📤 *To:* ${toLang}\n\n${translated}`,
+        }, { quoted: m });
+
+      } catch (err) {
+        console.error('translate error:', err.message);
+        reply('❌ Translation failed. Try again in a moment.');
       }
     }
   },
@@ -291,7 +352,7 @@ module.exports = [
   },
 
   {
-    command: ['quotes'],
+    command: ['quote'],
     description: 'Get an inspirational quote',
     category: 'utility',
     handler: async (client, m) => {
@@ -307,49 +368,6 @@ module.exports = [
     handler: async (client, m) => {
       const res = await global.axios.get('https://api.jcwyt.com/pickup');
       m.reply(`💘 ${res.data?.pickup || res.data}`);
-    }
-  },
-
-  {
-    command: ['support'],
-    description: 'Get support links',
-    category: 'utility',
-    handler: async (client, m) => {
-      const links = {
-        group: 'https://chat.whatsapp.com/LDBdQY8fKbs1qkPWCTuJGX',
-        channel: 'https://whatsapp.com/channel/0029VawxyHxLdQeX3kA96G3N',
-        email: 'mailto:cryptoboy1649@gmail.com',
-        github: 'https://github.com/black-super-bot/issues',
-        developer: 'https://wa.me/254114283550'
-      };
-      const banner = 'https://files.catbox.moe/xiflcv.jpeg';
-      await client.sendPresenceUpdate('composing', m.chat);
-      const supportMessage =
-        `▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄\n` +
-        `█                             █\n` +
-        `█   🄱🄻🄰🄲🄺🅈 🅂🅄🄿🄿🄾🅁🅃   █\n` +
-        `█                             █\n` +
-        `▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀\n\n` +
-        `✧ 𝙂𝙍𝙊𝙐𝙋 » ${links.group}\n\n` +
-        `✧ 𝘾𝙃𝘼𝙉𝙉𝙀𝙇 » ${links.channel}\n\n` +
-        `✧ 𝙀𝙈𝘼𝙄𝙇 » ${links.email}\n\n` +
-        `✧ 𝙂𝙄𝙏𝙃𝙐𝘽 » ${links.github}\n\n` +
-        `✧ 𝘿𝙀𝙑𝙀𝙇𝙊𝙋𝙀𝙍 » ${links.developer}\n\n` +
-        `▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄\n` +
-        `█  24/7 PREMIUM SUPPORT  █\n` +
-        `▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀`;
-      await client.sendMessage(m.chat, {
-        image: { url: banner },
-        caption: supportMessage,
-        contextInfo: {
-          externalAdReply: {
-            title: '🅿🆁🅴🅼🅸🆄🅼 🆂🆄🅿🅿🅾🆁🆃',
-            body: 'BLACKY BOT v1.0 | Instant Response',
-            thumbnail: { url: banner },
-            sourceUrl: links.channel
-          }
-        }
-      });
     }
   },
 
@@ -419,114 +437,8 @@ module.exports = [
   },
 
   {
-    command: ['validate'],
-    aliases: ['checknum'],
-    description: 'Validate a phone number and check WhatsApp',
-    category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      if (!text) return reply('Usage: validate +254712345678\nProvide the full number with country code (e.g. +1 for US, +44 for UK, +254 for Kenya).');
-      const cleaned = text.trim().replace(/[\s\-().]/g, '');
-      const digits = cleaned.replace(/^\+/, '');
-      if (!digits || !/^\d{7,15}$/.test(digits)) return reply('❌ Invalid number format. Use international format, e.g. +254712345678 or +14155551234');
-      m.reply('🔍 Validating +' + digits + ' worldwide...');
-      const region = digits.startsWith('1') && digits.length === 11 ? 1 : 3;
-      let apiData = null;
-      try {
-        const apiRes = await global.axios.get('https://api.phonevalidator.com/api/v4/phonesearch', {
-          params: { apikey: 'dbc19b10-f34e-4857-b42b-6c12543d42e3', phone: digits, type: 'basic', region },
-          timeout: 10000
-        });
-        apiData = apiRes.data?.PhoneBasic || null;
-      } catch (e) {}
-      const jid = digits + '@s.whatsapp.net';
-      let onWA = false;
-      try {
-        const [result] = await client.onWhatsApp(jid);
-        onWA = result?.exists === true;
-      } catch (e) {}
-      let about = null;
-      try {
-        const statusList = await client.fetchStatus(jid);
-        if (Array.isArray(statusList) && statusList.length > 0) {
-          const st = statusList[0]?.status?.status;
-          if (typeof st === 'string' && st.length > 0) about = st;
-        }
-      } catch (e) {}
-      const aboutText = about || '🔒 Private (hidden by WhatsApp privacy settings)';
-      let ppStatus = 'None / hidden';
-      let ppUrl = null;
-      try {
-        ppUrl = await client.profilePictureUrl(jid, 'image');
-        if (ppUrl) ppStatus = 'Available';
-      } catch (e) {}
-      const isValid = apiData?.FakeNumber === 'NO';
-      const lineType = apiData?.LineType || 'Unknown';
-      const carrier = apiData?.PhoneCompany || 'Unknown';
-      const country = apiData?.Country || 'Unknown';
-      const countryCode = apiData?.CountryCode || '??';
-      const fakeReason = apiData?.FakeNumberReason || '';
-      const replyText =
-        '*📱 Number Validation Results*\n' +
-        '━━━━━━━━━━━━━━━━━━━━━━\n\n' +
-        '📞 *Number:* +' + digits + '\n' +
-        '🌍 *Country:* ' + country + ' (' + countryCode + ')\n' +
-        '🏢 *Carrier:* ' + carrier + '\n' +
-        '📶 *Line Type:* ' + lineType + '\n' +
-        '✅ *Valid Number:* ' + (isValid ? '✅ Yes' : '❌ No' + (fakeReason ? ' — ' + fakeReason : '')) + '\n\n' +
-        '💬 *WhatsApp:* ' + (onWA ? '✅ Active on WhatsApp' : '❌ Not registered on WhatsApp') + '\n' +
-        '📝 *About/Bio:* ' + aboutText + '\n' +
-        '🖼️ *Profile Pic:* ' + ppStatus + '\n\n' +
-        '🔗 https://wa.me/' + digits;
-      if (ppUrl) {
-        await client.sendMessage(m.chat, { image: { url: ppUrl }, caption: replyText }, { quoted: m });
-      } else {
-        await client.sendMessage(m.chat, { text: replyText }, { quoted: m });
-      }
-    }
-  },
-
-  {
-    command: ['github'],
-    aliases: ['gitstalk'],
-    description: 'Get GitHub user info',
-    category: 'utility',
-    handler: async (client, m, { reply, text }) => {
-      if (!text) return m.reply('Provide a github username to stalk');
-      try {
-        const response = await fetch(`https://api.github.com/users/${encodeURIComponent(text)}`, { headers: { 'User-Agent': 'BlackMD-Bot' } });
-        if (response.status === 404) return m.reply(`❌ GitHub user "${text}" not found.`);
-        if (!response.ok) return m.reply(`❌ GitHub API error: ${response.status}`);
-        const data = await response.json();
-        const username = data.login || 'N/A';
-        const nickname = data.name || 'N/A';
-        const bio = data.bio || 'N/A';
-        const profilePic = data.avatar_url;
-        const url = data.html_url;
-        const type = data.type || 'N/A';
-        const company = data.company || 'N/A';
-        const blog = data.blog || 'N/A';
-        const location = data.location || 'N/A';
-        const publicRepos = data.public_repos ?? 0;
-        const publicGists = data.public_gists ?? 0;
-        const followers = data.followers ?? 0;
-        const following = data.following ?? 0;
-        const createdAt = data.created_at ? new Date(data.created_at).toDateString() : 'N/A';
-        const message =
-          `*GitHub User Info*\n\n` +
-          `Username:- ${username}\n\nNickname:- ${nickname}\n\nBio:- ${bio}\n\nLink:- ${url}\n\n` +
-          `Location:- ${location}\n\nCompany:- ${company}\n\nBlog:- ${blog}\n\n` +
-          `Followers:- ${followers}\n\nFollowing:- ${following}\n\nRepos:- ${publicRepos}\n\n` +
-          `Gists:- ${publicGists}\n\nAccount Type:- ${type}\n\nCreated:- ${createdAt}`;
-        await client.sendMessage(m.chat, { image: { url: profilePic }, caption: message }, { quoted: m });
-      } catch (error) {
-        m.reply('Unable to fetch data\n' + error);
-      }
-    }
-  },
-
-  {
     command: ['gitclone'],
-    aliases: ['clone'],
+    aliases: ['clone', 'zip'],
     description: 'Download a GitHub repo as ZIP',
     category: 'utility',
     handler: async (client, m, { reply, text }) => {
@@ -675,8 +587,6 @@ const retweets = "125";
 const theme = "dark";
 
 const imageurl = `https://some-random-api.com/canvas/misc/tweet?displayname=${encodeURIComponent(displayname)}&username=${encodeURIComponent(username)}&avatar=${encodeURIComponent(avatar)}&comment=${encodeURIComponent(text)}&replies=${encodeURIComponent(replies)}&retweets=${encodeURIComponent(retweets)}&theme=${encodeURIComponent(theme)}`;
-
-
 
 await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼𝗻𝘃𝗲𝗿𝘁𝗲𝗱 𝗯𝘆 𝐁𝐋𝐀𝐂𝐊-𝐌𝐃 𝗕𝗢𝗧`}, { quoted: m}) 
 
@@ -827,7 +737,7 @@ await client.sendMessage(m.chat, { image: { url: imageurl}, caption: `𝗖𝗼�
         }
       }
 
-      await m.reply(`✅ Done!\n📊 Success: ${successCount} | Failed: ${failCount}\n📍 Sent to your Dm`);
+      await m.reply(`✅ Mission Complete!\n📊 Success: ${successCount} | Failed: ${failCount}\n📍 Sent to your Dm`);
 
     } catch (error) {
       await m.reply('❌ Failed: ' + error.message);

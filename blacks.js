@@ -4,6 +4,7 @@ const { jidNormalizedUser } = require('@whiskeysockets/baileys');
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
+const fetch = require('node-fetch');
 global.axios = require('axios').default;
 const chalk = require('chalk');
 const speed = require('performance-now');
@@ -342,40 +343,56 @@ const Owner = finalSuperUsers.includes(standardizeJid(senderForOwner)) || isSudo
       try {
         if (!global.gptConversations) global.gptConversations = new Map();
         const userJid = m.sender;
-        const maxHistory = 20;
-        if (!global.gptConversations.has(userJid)) global.gptConversations.set(userJid, []);
-        
-        const history = global.gptConversations.get(userJid);
-        
-        let contextPrompt = body.trim();
-        
-        if (history.length > 0) {
-          const historyText = history.slice(-maxHistory).map(h => `${h.role === 'user' ? 'User' : 'Assistant'}: ${h.content}`).join('\n');
-          contextPrompt = `Previous conversation:\n${historyText}\n\nUser: ${body.trim()}`;
+
+        if (!global.gptConversations.has(userJid)) {
+          global.gptConversations.set(userJid, [
+            {
+              role: 'system',
+              content: `You are a helpful, friendly AI assistant in a WhatsApp bot called BLACK-MD. Be concise and natural in your replies. Today is ${new Date().toDateString()}.`
+            }
+          ]);
         }
-        await client.sendPresenceUpdate('composing', m.chat);
-        
-        const gptRes = await global.axios.get(`https://ravenn.site/ai/gpt4?q=${encodeURIComponent(contextPrompt)}`, { timeout: 30000 });
-        
-const replyText = gptRes.data?.result || gptRes.data?.reply || gptRes.data?.message || gptRes.data?.response;
-        
-        if (!replyText) throw new Error('Empty AI response');
-        
+
+        const history = global.gptConversations.get(userJid);
+
         history.push({ role: 'user', content: body.trim() });
-        
+
+        const system  = history[0];
+        const convo   = history.slice(1);
+        const trimmed = convo.length > 20 ? convo.slice(convo.length - 20) : convo;
+        const messages = [system, ...trimmed];
+
+        await client.sendPresenceUpdate('composing', m.chat);
+
+        const res = await fetch('https://text.pollinations.ai/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'openai',
+            messages,
+            seed: Math.floor(Math.random() * 9999),
+            private: true,
+          }),
+        });
+
+        if (!res.ok) throw new Error(`Pollinations returned ${res.status}`);
+
+        const replyText = (await res.text()).trim();
+        if (!replyText) throw new Error('Empty response from AI');
+
         history.push({ role: 'assistant', content: replyText });
-        
-        if (history.length > maxHistory * 2) global.gptConversations.set(userJid, history.slice(-(maxHistory * 2)));
-        
+        if (history.length > 22) {
+          global.gptConversations.set(userJid, [system, ...history.slice(history.length - 20)]);
+        }
+
         await client.sendPresenceUpdate('paused', m.chat);
-        
         await client.sendMessage(m.chat, { text: replyText }, { quoted: m });
-        
+
       } catch (gptErr) {
         console.error('gptdm error:', gptErr.message);
         await client.sendPresenceUpdate('paused', m.chat).catch(() => {});
       }
-    }
+                                                              }
 
   } catch (err) {
     console.log(util.format(err));
