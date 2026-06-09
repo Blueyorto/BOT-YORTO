@@ -281,7 +281,7 @@ module.exports = [
   {
     command: ['support'],
     description: 'Get support links',
-    category: 'utility',
+    category: 'others',
     handler: async (client, m) => {
       const links = {
         group: 'https://chat.whatsapp.com/GDgPc1O7vzP5HujmwlES01',
@@ -325,7 +325,7 @@ module.exports = [
        command: ['blue'],
     aliases: ['blizzard'],
     description: 'BlueBlizzards services info',
-    category: 'media',
+    category: 'others',
     handler: async (client, m) => {
       const menu =
         '*💙 BLUEBLIZZARDS — Premium Services*\n' +
