@@ -414,8 +414,52 @@ module.exports = [
   // ═══════════════════════════════════════════════════════════
 
   {
-    command: ['instagram'],
-    aliases: ['igdl', 'insta', 'ig'],
+  command: ['instagram'],
+  aliases: ['igdl', 'insta', 'ig'],
+  description: 'Download Instagram photo/video/reel',
+  category: 'downloads',
+  handler: async (client, m, { text }) => {
+    if (!text) return m.reply('📌 Provide an Instagram link.\nExample: .ig https://www.instagram.com/p/xxxxx');
+    if (!text.includes('instagram.com')) return m.reply('❌ That is not a valid Instagram link.');
+    try {
+      await m.reply('⏳ Please wait, fetching your media...');
+      await client.sendMessage(m.chat, { react: { text: '📥', key: m.key } });
+
+      const response = await fetch(`https://api.bk9.dev/download/instagram?url=${encodeURIComponent(text)}`);
+      const data = await response.json();
+
+      if (!data.status || !data.BK9 || typeof data.BK9 === 'string') return m.reply('❌ Failed to fetch Instagram media. Make sure the link is valid and the post is public.');
+
+      const items = Array.isArray(data.BK9) ? data.BK9 : [data.BK9];
+      if (items.length === 0) return m.reply('❌ No media found at that link.');
+
+      for (const item of items) {
+        const url = item?.url || item?.video || item?.image || (typeof item === 'string' ? item : null);
+        if (!url) continue;
+        const isVideo = item?.type === 'video' || url.includes('.mp4');
+        if (isVideo) {
+          await client.sendMessage(m.chat, {
+            video: { url },
+            mimetype: 'video/mp4',
+            caption: '📸 *Instagram*\n_Downloaded by BLACK-MD_',
+            gifPlayback: false,
+          }, { quoted: m });
+        } else {
+          await client.sendMessage(m.chat, {
+            image: { url },
+            caption: '📸 *Instagram*\n_Downloaded by BLACK-MD_',
+          }, { quoted: m });
+        }
+      }
+
+    } catch (err) {
+      m.reply('❌ Error downloading Instagram media.');
+    }
+  }
+},
+  {
+    command: ['instagram2'],
+    aliases: ['igdl2', 'insta2', 'ig2'],
     description: 'Download Instagram video',
     category: 'downloads',
     handler: async (client, m, { text }) => {
@@ -563,6 +607,39 @@ module.exports = [
       }
     }
   },
+
+  {
+  command: ['facebook2'],
+  aliases: ['fb2', 'fbdl2'],
+  description: 'Download Facebook video',
+  category: 'downloads',
+  handler: async (client, m, { text }) => {
+    if (!text || !text.startsWith('http')) return m.reply('📌 Provide a valid Facebook video link!');
+    try {
+      await m.reply('⏳ Please wait, fetching your video...');
+      await client.sendMessage(m.chat, { react: { text: '📥', key: m.key } });
+
+      const response = await fetch(`https://api.bk9.dev/download/fb?url=${encodeURIComponent(text)}`);
+      const data = await response.json();
+
+      if (!data.status || !data.BK9) return m.reply('❌ Failed to fetch Facebook video. Make sure the link is valid and the video is public.');
+
+      const videoUrl = data.BK9?.hd || data.BK9?.sd || data.BK9?.url || (typeof data.BK9 === 'string' ? data.BK9 : null);
+      if (!videoUrl) return m.reply('❌ No downloadable video found for that link.');
+
+      const title = data.BK9?.title || 'Facebook Video';
+      await client.sendMessage(m.chat, {
+        video: { url: videoUrl },
+        mimetype: 'video/mp4',
+        caption: `📘 *${title}*\n_Downloaded by BLACK-MD_`,
+        gifPlayback: false,
+      }, { quoted: m });
+
+    } catch (err) {
+      m.reply('❌ Error downloading Facebook video.');
+    }
+  }
+},
 
   {
     command: ['pinterest'],
