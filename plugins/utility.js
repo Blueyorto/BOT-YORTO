@@ -372,49 +372,6 @@ module.exports = [
   },
 
   {
-    command: ['support'],
-    description: 'Get support links',
-    category: 'utility',
-    handler: async (client, m) => {
-      const links = {
-        group: 'https://chat.whatsapp.com/LDBdQY8fKbs1qkPWCTuJGX',
-        channel: 'https://whatsapp.com/channel/0029VawxyHxLdQeX3kA96G3N',
-        email: 'mailto:cryptoboy1649@gmail.com',
-        github: 'https://github.com/black-super-bot/issues',
-        developer: 'https://wa.me/254114283550'
-      };
-      const banner = 'https://files.catbox.moe/xiflcv.jpeg';
-      await client.sendPresenceUpdate('composing', m.chat);
-      const supportMessage =
-        `▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄\n` +
-        `█                             █\n` +
-        `█   🄱🄻🄰🄲🄺🅈 🅂🅄🄿🄿🄾🅁🅃   █\n` +
-        `█                             █\n` +
-        `▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀\n\n` +
-        `✧ 𝙂𝙍𝙊𝙐𝙋 » ${links.group}\n\n` +
-        `✧ 𝘾𝙃𝘼𝙉𝙉𝙀𝙇 » ${links.channel}\n\n` +
-        `✧ 𝙀𝙈𝘼𝙄𝙇 » ${links.email}\n\n` +
-        `✧ 𝙂𝙄𝙏𝙃𝙐𝘽 » ${links.github}\n\n` +
-        `✧ 𝘿𝙀𝙑𝙀𝙇𝙊𝙋𝙀𝙍 » ${links.developer}\n\n` +
-        `▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄\n` +
-        `█  24/7 PREMIUM SUPPORT  █\n` +
-        `▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀`;
-      await client.sendMessage(m.chat, {
-        image: { url: banner },
-        caption: supportMessage,
-        contextInfo: {
-          externalAdReply: {
-            title: '🅿🆁🅴🅼🅸🆄🅼 🆂🆄🅿🅿🅾🆁🆃',
-            body: 'BLACKY BOT v1.0 | Instant Response',
-            thumbnail: { url: banner },
-            sourceUrl: links.channel
-          }
-        }
-      });
-    }
-  },
-
-  {
     command: ['repo'],
     aliases: ['sc', 'script'],
     description: 'Get bot source code and stats',
