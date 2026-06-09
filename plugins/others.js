@@ -278,4 +278,81 @@ module.exports = [
   }
 },
 
+  {
+    command: ['support'],
+    description: 'Get support links',
+    category: 'utility',
+    handler: async (client, m) => {
+      const links = {
+        group: 'https://chat.whatsapp.com/GDgPc1O7vzP5HujmwlES01',
+        channel: 'https://whatsapp.com/channel/0029VawxyHxLdQeX3kA96G3N',
+        email: 'mailto:cryptoboy1649@gmail.com',
+        github: 'https://github.com/Blackie254/black-super-bot',
+        developer: 'https://wa.me/254114283550'
+      };
+      const banner = 'https://files.catbox.moe/xiflcv.jpeg';
+      await client.sendPresenceUpdate('composing', m.chat);
+      const supportMessage =
+        `▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄\n` +
+        `█                             █\n` +
+        `█   🄱🄻🄰🄲🄺🅈 🅂🅄🄿🄿🄾🅁🅃   █\n` +
+        `█                             █\n` +
+        `▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀\n\n` +
+        `✧ 𝙂𝙍𝙊𝙐𝙋 » ${links.group}\n\n` +
+        `✧ 𝘾𝙃𝘼𝙉𝙉𝙀𝙇 » ${links.channel}\n\n` +
+        `✧ 𝙀𝙈𝘼𝙄𝙇 » ${links.email}\n\n` +
+        `✧ 𝙂𝙄𝙏𝙃𝙐𝘽 » ${links.github}\n\n` +
+        `✧ 𝘿𝙀𝙑𝙀𝙇𝙊𝙋𝙀𝙍 » ${links.developer}\n\n` +
+        `▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄\n` +
+        `█  24/7 PREMIUM SUPPORT  █\n` +
+        `▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀`;
+      await client.sendMessage(m.chat, {
+        image: { url: banner },
+        caption: supportMessage,
+        contextInfo: {
+          externalAdReply: {
+            title: '🅿🆁🅴🅼🅸🆄🅼 🆂🆄🅿🅿🅾🆁🆃',
+            body: 'BLACK-MD v3 | Instant Response',
+            thumbnail: { url: banner },
+            sourceUrl: links.channel
+          }
+        }
+      });
+    }
+  },
+
+  {
+       command: ['blue'],
+    aliases: ['blizzard'],
+    description: 'BlueBlizzards services info',
+    category: 'media',
+    handler: async (client, m) => {
+      const menu =
+        '*💙 BLUEBLIZZARDS — Premium Services*\n' +
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+        '🤖 *BOT SHOP*\n' +
+        '▸ Anti-ban • Auto-reply • Multi-device\n' +
+        '▸ Basic: $1 | Pro: $4 | Ultimate: $10\n' +
+        '🔗 https://bot.blueblizzards.site\n\n' +
+        '🚀 *DEPLOYMENT*\n' +
+        '▸ 5-min setup • DDoS protection\n' +
+        '▸ Quick: ksh100/mo | Custom: ksh500/mo\n' +
+        '🔗 https://bot.blueblizzards.site\n\n' +
+        '📊 *TRADING*\n' +
+        '▸ AI signals • 1:500 leverage • 0.1% fees\n' +
+        '▸ Crypto & Forex\n' +
+        '🔗 https://blueblizzards.site\n\n' +
+        '🎬 *FREE FLIX*\n' +
+        '▸ 10,000+ titles • HD/4K • Ad-free\n' +
+        '🔗 https://freeflix.blueblizzards.site\n\n' +
+        '💰 *AFFILIATE PROGRAM*\n' +
+        '▸ Earn 30% recurring commission\n' +
+        '▸ Daily payouts\n' +
+        '🔗 https://blueblizzards.site/affiliate\n\n' +
+        '📞 *SUPPORT — 24/7*\n' +
+        '🔗 https://blueblizzards.site';
+      m.reply(menu);
+    }
+  }
+
   ];
