@@ -289,7 +289,7 @@ module.exports = [
 
   {
     command: ['toimg'],
-    aliases: ['photo'],
+    aliases: ['photo', 'toimage'],
     description: 'Convert a sticker to image',
     category: 'media',
     handler: async (client, m, { reply, mime, quoted }) => {
@@ -712,37 +712,46 @@ module.exports = [
  }
 },
 
-  {
-    command: ['blue'],
-    aliases: ['blizzard'],
-    description: 'BlueBlizzards services info',
+{
+    command: ['remini2'],
+    aliases: ['upscale2', 'enhance2', 'hd2'],
+    description: 'Upscale a quoted image to HD (4x)',
     category: 'media',
-    handler: async (client, m) => {
-      const menu =
-        '*💙 BLUEBLIZZARDS — Premium Services*\n' +
-        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
-        '🤖 *BOT SHOP*\n' +
-        '▸ Anti-ban • Auto-reply • Multi-device\n' +
-        '▸ Basic: $1 | Pro: $4 | Ultimate: $10\n' +
-        '🔗 https://bot.blueblizzards.site\n\n' +
-        '🚀 *DEPLOYMENT*\n' +
-        '▸ 5-min setup • DDoS protection\n' +
-        '▸ Quick: ksh100/mo | Custom: ksh500/mo\n' +
-        '🔗 https://bot.blueblizzards.site\n\n' +
-        '📊 *TRADING*\n' +
-        '▸ AI signals • 1:500 leverage • 0.1% fees\n' +
-        '▸ Crypto & Forex\n' +
-        '🔗 https://blueblizzards.site\n\n' +
-        '🎬 *FREE FLIX*\n' +
-        '▸ 10,000+ titles • HD/4K • Ad-free\n' +
-        '🔗 https://freeflix.blueblizzards.site\n\n' +
-        '💰 *AFFILIATE PROGRAM*\n' +
-        '▸ Earn 30% recurring commission\n' +
-        '▸ Daily payouts\n' +
-        '🔗 https://blueblizzards.site/affiliate\n\n' +
-        '📞 *SUPPORT — 24/7*\n' +
-        '🔗 https://blueblizzards.site';
-      m.reply(menu);
+    handler: async (client, m, { reply, msgR }) => {
+
+      if (!msgR) return reply(`📌 Reply to an image with ${m.prefix}hd to upscale it.`);
+
+      const imageMsg = msgR.imageMessage || null;
+      if (!imageMsg) return reply('❌ Only image messages can be upscaled. Reply to a photo.');
+
+      let filePath;
+      try {
+        reply('⏳ Upscaling your image to HD... Please wait.');
+
+        filePath = await client.downloadAndSaveMediaMessage(imageMsg);
+        if (!filePath || !fs.existsSync(filePath)) throw new Error('Download failed');
+
+        const image = await Jimp.read(filePath);
+        const newW = image.getWidth() * 4;
+        const newH = image.getHeight() * 4;
+        image.resize(newW, newH, Jimp.RESIZE_BICUBIC);
+
+        const upscaledBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
+
+        await client.sendMessage(m.chat, {
+          image: upscaledBuffer,
+          caption: '🔼 *Image Upscaled to HD*\n_Powered by BLACK-MD_',
+          mimetype: 'image/jpeg',
+        }, { quoted: m });
+
+      } catch (err) {
+        console.error('HD Upscale error:', err);
+        reply('❌ Failed to upscale. Make sure you replied to a clear photo and try again.');
+      } finally {
+        if (filePath && fs.existsSync(filePath)) {
+          try { fs.unlinkSync(filePath); } catch (_) {}
+        }
+      }
     }
   },
   
