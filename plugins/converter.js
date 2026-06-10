@@ -14,13 +14,13 @@ module.exports = [
     aliases: ['pdf', 'makepdf', 'img2pdf', 'text2pdf'],
     description: 'Convert a quoted image or text to a PDF file',
     category: 'converter',
-    handler: async (client, m, { reply, text }) => {
+    handler: async (client, m, { reply, text, qmsg }) => {
       const PDFDocument = require('pdfkit');
 
       const msgR     = m.message?.extendedTextMessage?.contextInfo?.quotedMessage || null;
       const imageMsg = msgR?.imageMessage || null;
 
-      if (!imageMsg && !text) return reply(
+      if (!imageMsg && !text && !qmsg) return reply(
         '📄 *Usage:*\n• Reply to an image: *.topdf*\n• Convert text: *.topdf Your text here*'
       );
 
@@ -132,9 +132,10 @@ module.exports = [
       const { Document, Packer, Paragraph, TextRun, ImageRun, AlignmentType } = require('docx');
 
       const msgR     = m.message?.extendedTextMessage?.contextInfo?.quotedMessage || null;
+      const quotedText = msgR?.conversation || msgR?.extendedTextMessage?.text || '';
       const imageMsg = msgR?.imageMessage || null;
 
-      if (!imageMsg && !text) return reply(
+      if (!imageMsg && !text && !quotedText) return reply(
         '📝 *Usage:*\n• Reply to an image: *.toword*\n• Convert text: *.toword Your text here*'
       );
 
