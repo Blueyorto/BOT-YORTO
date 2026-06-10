@@ -4,6 +4,25 @@ const axios = global.axios || require('axios');
 const fetch = require('node-fetch');
 const { uploadToUguu, uploadToImgBB } = require('../lib/uploads');
 
+const gptSessions = new Map();
+const geminiSessions = new Map();
+const MAX_HISTORY = 10;
+function getHistory(store, jid) {
+  if (!store.has(jid)) store.set(jid, []);
+  return store.get(jid);
+}
+function pushHistory(store, jid, role, content) {
+  const history = getHistory(store, jid);
+  history.push({ role, content });
+  if (history.length > MAX_HISTORY * 2) history.splice(0, 2);
+}
+function buildPrompt(history, text) {
+  if (!history.length) return text;
+  const ctx = history.map(h => `${h.role === 'user' ? 'User' : 'Assistant'}: ${h.content}`).join('\n');
+  return `Previous conversation:\n${ctx}\n\nUser: ${text}`;
+}
+
+
 module.exports = [
 
   // ── .ai / .gemini2 — Gemini via xcasper (with quoted context) ────────────
@@ -36,43 +55,56 @@ module.exports = [
   {
     command: ['gpt'],
     aliases: ['chatgpt'],
-    description: 'Chat with GPT-4',
+    description: 'Chat with GPT-4 (remembers conversation)',
     category: 'ai',
     handler: async (client, m, { reply, text, api }) => {
-      if (!text) return reply('This is GPT-4 Ask me something!');
+      if (!text) return reply('This is GPT-4 — ask me something!\n\n💡 _Tip: Use *.gpt -clear* to reset your conversation history._');
+      const jid = m.sender || m.chat;
+      if (text.trim() === '-clear') {
+        gptSessions.delete(jid);
+        return reply('🧹 *GPT chat history cleared!* Fresh start.');
+      }
       try {
         let msg = await client.sendMessage(m.chat, { text: `🤖 Thinking...` }, { quoted: m });
-        const res = await axios.get(`${api}/ai/gpt4?q=${encodeURIComponent(text)}`);
+        const history = getHistory(gptSessions, jid);
+        const prompt = buildPrompt(history, text);
+        const res = await axios.get(`${api}/ai/gpt4?q=${encodeURIComponent(prompt)}`);
         const data = res.data;
-        
-        if (!data?.status || !data?.result) await client.sendMessage(m.chat, { text: `❌ No response from AI`, edit: msg.key }, { quoted: m });
-        
-        let replyText = data.result;     
+        if (!data?.status || !data?.result) return client.sendMessage(m.chat, { text: `❌ No response from AI`, edit: msg.key }, { quoted: m });
+        const replyText = data.result;
+        pushHistory(gptSessions, jid, 'user', text);
+        pushHistory(gptSessions, jid, 'assistant', replyText);
         await client.sendMessage(m.chat, { text: `*${replyText}*`, edit: msg.key }, { quoted: m });
-        
       } catch (err) {
         m.reply('❌ Error getting AI response.');
       }
     }
   },
-  
-  // ── .gemini — GPT via ravennsite ──────────────────────────────────────────
+
+  // ── .gemini ───────────────────────────────────────────────────────────────
   {
     command: ['gemini'],
     aliases: ['ai2'],
-    description: 'AI chat (Gemini endpoint)',
+    description: 'AI chat with Gemini (remembers conversation)',
     category: 'ai',
     handler: async (client, m, { reply, text, api }) => {
-      if (!text) return reply('Please provide a context!');
+      if (!text) return reply('Ask me something!\n\n💡 _Tip: Use *.gemini -clear* to reset your conversation history._');
+      const jid = m.sender || m.chat;
+      if (text.trim() === '-clear') {
+        geminiSessions.delete(jid);
+        return reply('🧹 *Gemini chat history cleared!* Fresh start.');
+      }
       try {
         let msg = await client.sendMessage(m.chat, { text: `🤖 Thinking...` }, { quoted: m });
-        const res = await axios.get(`${api}/ai/gpt?q=${encodeURIComponent(text)}`);
+        const history = getHistory(geminiSessions, jid);
+        const prompt = buildPrompt(history, text);
+        const res = await axios.get(`${api}/ai/gpt?q=${encodeURIComponent(prompt)}`);
         const data = res.data;
-        
-        if (!data?.status || !data?.result) await client.sendMessage(m.chat, { text: `❌ No response from AI`, edit: msg.key }, { quoted: m });
-let replyText = data.result;
-   await client.sendMessage(m.chat, { text: `*${replyText}*`, edit: msg.key }, { quoted: m });     
-        
+        if (!data?.status || !data?.result) return client.sendMessage(m.chat, { text: `❌ No response from AI`, edit: msg.key }, { quoted: m });
+        const replyText = data.result;
+        pushHistory(geminiSessions, jid, 'user', text);
+        pushHistory(geminiSessions, jid, 'assistant', replyText);
+        await client.sendMessage(m.chat, { text: `*${replyText}*`, edit: msg.key }, { quoted: m });
       } catch (err) {
         m.reply('❌ Error getting AI response.');
       }
