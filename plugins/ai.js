@@ -27,7 +27,7 @@ function buildPrompt(history, text) {
 
 module.exports = [
 
-  // ── .ai / .gemini2 — Gemini via xcasper (with quoted context) ────────────
+  // ── .ai / .gemini2 — Gemini via Bk9 (with quoted context) ────────────
   {
   command: ['ai'],
   aliases: ['llama'],
@@ -119,8 +119,41 @@ module.exports = [
  
   // ── .vision / .imgai / .analyze / .geminivision — Image analysis via ravennsite ─────────
   {
-    command: ['vision'],
-    aliases: ['imgai', 'analyze', 'geminivision'],
+  command: ['vision'],
+  aliases: ['imgai', 'analyze', 'llamavision'],
+  description: 'Analyze an image with LLaMA Vision AI (quote an image)',
+  category: 'ai',
+  handler: async (client, m, { reply, text }) => {
+    if (!m.quoted) return reply('📌 Reply to an image with a question.\nExample: *.vision2 what is this?*');
+    if (!text) return reply('❌ Provide a question about the image!\nExample: *.vision2 what is in this image?*');
+    const mime = m.quoted.mimetype || '';
+    if (!/image/.test(mime)) return reply('❌ Only image messages are supported.');
+    try {
+      await client.sendMessage(m.chat, { react: { text: '🤖', key: m.key } });
+      await reply('🔍 Analyzing your image...');
+
+      const filePath = await client.downloadAndSaveMediaMessage(m.quoted);
+      if (!filePath) return reply('❌ Failed to download image.');
+
+      const imageUrl = await uploadToUguu(filePath);
+      try { require('fs').unlinkSync(filePath); } catch (_) {}
+
+      const res = await fetch(
+        `https://api.bk9.dev/ai/vision?q=${encodeURIComponent(text)}&image_url=${encodeURIComponent(imageUrl)}&model=meta-llama/llama-4-scout-17b-16e-instruct`
+      );
+      const data = await res.json();
+      if (!data?.status || !data?.BK9) return reply('❌ No response from Vision AI. Try again.');
+
+      await reply(`🤖 *Vision Analysis*\n\n${data.BK9}`);
+    } catch (err) {
+      reply('❌ Failed to analyze image.');
+    }
+  }
+},
+ 
+  {
+    command: ['vision2'],
+    aliases: ['imgai2', 'analyze2', 'geminivision'],
     description: 'Analyze an image with AI (quote an image)',
     category: 'ai',
     handler: async (client, m, { reply, text, api }) => {
@@ -153,39 +186,7 @@ module.exports = [
     }
   },
 
-  {
-  command: ['vision2'],
-  aliases: ['imgai2', 'analyze2', 'llamavision'],
-  description: 'Analyze an image with LLaMA Vision AI (quote an image)',
-  category: 'ai',
-  handler: async (client, m, { reply, text }) => {
-    if (!m.quoted) return reply('📌 Reply to an image with a question.\nExample: *.vision2 what is this?*');
-    if (!text) return reply('❌ Provide a question about the image!\nExample: *.vision2 what is in this image?*');
-    const mime = m.quoted.mimetype || '';
-    if (!/image/.test(mime)) return reply('❌ Only image messages are supported.');
-    try {
-      await client.sendMessage(m.chat, { react: { text: '🤖', key: m.key } });
-      await reply('🔍 Analyzing your image...');
-
-      const filePath = await client.downloadAndSaveMediaMessage(m.quoted);
-      if (!filePath) return reply('❌ Failed to download image.');
-
-      const imageUrl = await uploadToUguu(filePath);
-      try { require('fs').unlinkSync(filePath); } catch (_) {}
-
-      const res = await fetch(
-        `https://api.bk9.dev/ai/vision?q=${encodeURIComponent(text)}&image_url=${encodeURIComponent(imageUrl)}&model=meta-llama/llama-4-scout-17b-16e-instruct`
-      );
-      const data = await res.json();
-      if (!data?.status || !data?.BK9) return reply('❌ No response from Vision AI. Try again.');
-
-      await reply(`🤖 *Vision Analysis*\n\n${data.BK9}`);
-    } catch (err) {
-      reply('❌ Failed to analyze image.');
-    }
-  }
-},
-
+  
   {
     command: ['define'],
     description: 'Define a word',
