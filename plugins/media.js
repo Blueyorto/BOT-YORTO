@@ -686,25 +686,20 @@ module.exports = [
   }
 },
 
-{
+  {
   command: ['imageedit'],
+  aliases: ['editimg', 'aiedit', 'editi'],
   description: 'Edit an image using AI prompt',
   category: 'media',
   handler: async (client, m, { reply, text, msgR }) => {
-    if (!msgR) return reply('📌 Reply to an image with a prompt.\n\nExample: .aiedit make the background red');
-    if (!text) return reply('📌 Provide a prompt.\n\nExample: .aiedit make the background red');
+    if (!msgR) return reply('📌 Reply to an image with a prompt.\n\nExample: .imageedit make the background red');
+    if (!text) return reply('📌 Provide a prompt.\n\nExample: .imageedit make the background red');
     if (!msgR.imageMessage) return reply('❌ Reply to an *image* only!');
     const result = await client.downloadAndSaveMediaMessage(msgR.imageMessage);
     try {
       await m.reply('🎨 _Editing your image... this may take up to 2 minutes_');
-      const FormData = require('form-data');
-      const form = new FormData();
-      form.append('file', fs.readFileSync(result), { filename: 'image.jpg', contentType: 'image/jpeg' });
-      const uploadRes = await global.axios.post('https://telegra.ph/upload', form, {
-        headers: form.getHeaders()
-      });
-      if (!uploadRes.data?.[0]?.src) return reply('❌ Failed to upload image!');
-      const imageUrl = 'https://telegra.ph' + uploadRes.data[0].src;
+      const { uploadToUguu } = require('../lib/uploads');
+      const imageUrl = await uploadToUguu(result);
       const res = await global.axios.get(
         `https://ravenn.site/ai/imageedit?url=${encodeURIComponent(imageUrl)}&q=${encodeURIComponent(text)}`,
         { timeout: 180000 }
