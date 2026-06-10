@@ -21,7 +21,7 @@ module.exports = [
      const quotedText = msgR?.conversation || msgR?.extendedTextMessage?.text || '';
       const imageMsg = msgR?.imageMessage || null;
 
-      if (!imageMsg && !text && !quotedText) return reply(
+      if (!imageMsg && !quotedText) return reply(
         '📄 *Usage:*\n• Reply to an image: *.topdf*\n• Convert text: *.topdf Your text here*'
       );
 
@@ -136,7 +136,7 @@ module.exports = [
       const quotedText = msgR?.conversation || msgR?.extendedTextMessage?.text || '';
       const imageMsg = msgR?.imageMessage || null;
 
-      if (!imageMsg && !text && !quotedText) return reply(
+      if (!imageMsg && !quotedText) return reply(
         '📝 *Usage:*\n• Reply to an image: *.toword*\n• Convert text: *.toword Your text here*'
       );
 
