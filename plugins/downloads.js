@@ -125,42 +125,6 @@ module.exports = [
     }
   },
 
-  {
-    command: ['music'],
-    aliases: ['song'],
-    description: 'Download music via xcasper API',
-    category: 'downloads',
-    handler: async (client, m, { text }) => {
-      if (!text) return m.reply('What song do you want to download?');
-      try {
-        let search = await yts(text);
-        if (!search.all.length) return m.reply('No results found for your query.');
-        let video = search.all[0];
-        let link = video.url;
-
-        const apiUrl = `https://apis.xcasper.space/api/downloader/ytmp3?url=${encodeURIComponent(link)}`;
-        let response = await fetch(apiUrl);
-        let data = await response.json();
-
-        if (!data.success || !data.url) return m.reply('Unable to fetch the song. Please try again later.');
-
-        await client.sendMessage(m.chat, {
-          document: { url: data.url },
-          mimetype: 'audio/mp3',
-          caption: 'DOWNLOADED BY 𝐁𝐋𝐀𝐂𝐊-𝐌𝐃',
-          fileName: `${data.title.replace(/[^a-zA-Z0-9 ]/g, '')}.mp3`
-        }, { quoted: m });
-
-        await client.sendMessage(m.chat, {
-          audio: { url: data.url },
-          mimetype: 'audio/mp4'
-        }, { quoted: m });
-      } catch (error) {
-        m.reply(`An error occurred: ${error.message}`);
-      }
-    }
-  },
-
   // ═══════════════════════════════════════════════════════════
   // YOUTUBE VIDEO
   // ═══════════════════════════════════════════════════════════
@@ -414,8 +378,52 @@ module.exports = [
   // ═══════════════════════════════════════════════════════════
 
   {
-    command: ['instagram'],
-    aliases: ['igdl', 'insta', 'ig'],
+  command: ['insta'],
+  aliases: ['igdl', 'instagram', 'ig'],
+  description: 'Download Instagram photo/video/reel',
+  category: 'downloads',
+  handler: async (client, m, { text }) => {
+    if (!text) return m.reply('📌 Provide an Instagram link.\nExample: .ig https://www.instagram.com/p/xxxxx');
+    if (!text.includes('instagram.com')) return m.reply('❌ That is not a valid Instagram link.');
+    try {
+      await m.reply('⏳ Please wait, fetching your media...');
+      await client.sendMessage(m.chat, { react: { text: '📥', key: m.key } });
+
+      const response = await fetch(`https://api.bk9.dev/download/instagram?url=${encodeURIComponent(text)}`);
+      const data = await response.json();
+
+      if (!data.status || !data.BK9 || typeof data.BK9 === 'string') return m.reply('❌ Failed to fetch Instagram media. Make sure the link is valid and the post is public.');
+
+      const items = Array.isArray(data.BK9) ? data.BK9 : [data.BK9];
+      if (items.length === 0) return m.reply('❌ No media found at that link.');
+
+      for (const item of items) {
+        const url = item?.url || item?.video || item?.image || (typeof item === 'string' ? item : null);
+        if (!url) continue;
+        const isVideo = item?.type === 'video' || url.includes('.mp4');
+        if (isVideo) {
+          await client.sendMessage(m.chat, {
+            video: { url },
+            mimetype: 'video/mp4',
+            caption: '📸 *Instagram*\n_Downloaded by BLACK-MD_',
+            gifPlayback: false,
+          }, { quoted: m });
+        } else {
+          await client.sendMessage(m.chat, {
+            image: { url },
+            caption: '📸 *Instagram*\n_Downloaded by BLACK-MD_',
+          }, { quoted: m });
+        }
+      }
+
+    } catch (err) {
+      m.reply('❌ Error downloading Instagram media.');
+    }
+  }
+},
+  {
+    command: ['insta2'],
+    aliases: ['igdl2', 'instagram2', 'ig2'],
     description: 'Download Instagram video',
     category: 'downloads',
     handler: async (client, m, { text }) => {
@@ -440,8 +448,58 @@ module.exports = [
   },
 
   {
-    command: ['tiktok'],
-    aliases: ['tikdl', 'tdl', 'tt'],
+  command: ['igstory'],
+  aliases: ['instastory', 'igstories', 'igs'],
+  description: 'Download Instagram stories by username',
+  category: 'downloads',
+  handler: async (client, m, { text }) => {
+    if (!text) return m.reply('📌 Provide an Instagram username.\nExample: .igstory username');
+    const username = text.trim().replace(/^@/, '');
+    try {
+      await m.reply(`⏳ Fetching stories for *@${username}*...`);
+      await client.sendMessage(m.chat, { react: { text: '📥', key: m.key } });
+
+      const response = await fetch(`https://api.bk9.dev/download/igs?username=${encodeURIComponent(username)}`);
+      const data = await response.json();
+
+      if (!data.status || !data.BK9) return m.reply(`❌ ${data.err || 'Could not fetch stories. The account may be private or have no active stories.'}`);
+
+      const stories = data.BK9?.stories;
+      if (!Array.isArray(stories) || stories.length === 0) return m.reply(`❌ No active stories found for *@${username}*.`);
+
+      await m.reply(`📖 Found *${stories.length}* stor${stories.length === 1 ? 'y' : 'ies'} for *@${username}*. Sending...`);
+
+      const album = [];
+      for (let i = 0; i < stories.length; i++) {
+        const item = stories[i];
+        const url = item?.download_url || item?.url;
+        if (!url) continue;
+        if (item.type === 'video') {
+          album.push({
+            video: { url },
+            mimetype: 'video/mp4',
+            caption: i === 0 ? `📸 *@${username}* stories\n_Downloaded by BLACK-MD_` : undefined,
+            gifPlayback: false,
+          });
+        } else {
+          album.push({
+            image: { url },
+            caption: i === 0 ? `📸 *@${username}* stories\n_Downloaded by BLACK-MD_` : undefined,
+          });
+        }
+      }
+      if (!album.length) return m.reply('❌ No media could be loaded from those stories.');
+      await client.sendMessage(m.chat, { album }, { quoted: m });
+
+    } catch (err) {
+      m.reply('❌ Error fetching Instagram stories.');
+    }
+  }
+},
+  
+  {
+    command: ['tikdl'],
+    aliases: ['tiktok', 'tdl', 'tt'],
     description: 'Download TikTok video',
     category: 'downloads',
     handler: async (client, m, { reply, text }) => {
@@ -534,8 +592,8 @@ module.exports = [
 },
 
   {
-    command: ['facebook'],
-    aliases: ['fb', 'fbdl'],
+    command: ['fbdl'],
+    aliases: ['fb', 'facebook'],
     description: 'Download Facebook video',
     category: 'downloads',
     handler: async (client, m, { text, api }) => {
@@ -565,8 +623,41 @@ module.exports = [
   },
 
   {
-    command: ['pinterest'],
-    aliases: ['pin', 'pindl'],
+  command: ['fbdl2'],
+  aliases: ['fb2', 'facebook2'],
+  description: 'Download Facebook video',
+  category: 'downloads',
+  handler: async (client, m, { text }) => {
+    if (!text || !text.startsWith('http')) return m.reply('📌 Provide a valid Facebook video link!');
+    try {
+      await m.reply('⏳ Please wait, fetching your video...');
+      await client.sendMessage(m.chat, { react: { text: '📥', key: m.key } });
+
+      const response = await fetch(`https://api.bk9.dev/download/fb?url=${encodeURIComponent(text)}`);
+      const data = await response.json();
+
+      if (!data.status || !data.BK9) return m.reply('❌ Failed to fetch Facebook video. Make sure the link is valid and the video is public.');
+
+      const videoUrl = data.BK9?.hd || data.BK9?.sd || data.BK9?.url || (typeof data.BK9 === 'string' ? data.BK9 : null);
+      if (!videoUrl) return m.reply('❌ No downloadable video found for that link.');
+
+      const title = data.BK9?.title || 'Facebook Video';
+      await client.sendMessage(m.chat, {
+        video: { url: videoUrl },
+        mimetype: 'video/mp4',
+        caption: `📘 *${title}*\n_Downloaded by BLACK-MD_`,
+        gifPlayback: false,
+      }, { quoted: m });
+
+    } catch (err) {
+      m.reply('❌ Error downloading Facebook video.');
+    }
+  }
+},
+
+  {
+    command: ['pindl'],
+    aliases: ['pin', 'pinterest'],
     description: 'Download Pinterest image or video',
     category: 'downloads',
     handler: async (client, m, { text, api }) => {

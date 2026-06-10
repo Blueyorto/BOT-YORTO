@@ -1,6 +1,8 @@
 'use strict';
 
 const fs = require('fs');
+const Jimp = require('jimp') 
+const fetch = require('node-fetch')
 const axios = global.axios || require('axios');
 const { uploadToUguu, upscaleImage } = require('../lib/uploads');
 
@@ -13,6 +15,7 @@ module.exports = [
   category: 'media',
   handler: async (client, m, { reply, msgR }) => {
     const sharp = require('sharp');
+    const { Sticker, StickerTypes } = require('wa-sticker-formatter');
     const pushname = m.pushName || 'BLACK-MD';
 
     if (!msgR) return m.reply('Quote an image or a short video.');
@@ -37,7 +40,6 @@ module.exports = [
       let stickerBuf;
 
       if (isVideo) {
-        const { Sticker, StickerTypes } = require('wa-sticker-formatter');
         const { execSync } = require('child_process');
         const os = require('os');
         const path = require('path');
@@ -89,20 +91,27 @@ module.exports = [
         } catch (videoErr) {
           return reply(`❌ Video sticker failed.\nReason: ${videoErr.message}\n\n💡 *Tip:* Send a GIF or image instead — those always work.`);
         }
+
       } else {
         const meta = await sharp(result).metadata();
         const { width = 512, height = 512 } = meta;
         const ratio = Math.max(width, height) / Math.min(width, height);
         const fitMode = ratio < 1.2 ? 'cover' : 'contain';
-        stickerBuf = await sharp(result)
+        const webpBuf = await sharp(result)
           .resize(512, 512, {
             fit: fitMode,
             background: { r: 0, g: 0, b: 0, alpha: 0 },
             position: 'centre',
-            pack: pushname,
           })
           .webp({ quality: 85 })
           .toBuffer();
+        const sticker = new Sticker(webpBuf, {
+          pack: pushname,
+          author: 'BLACK-MD',
+          type: StickerTypes.DEFAULT,
+          quality: 85,
+        });
+        stickerBuf = await sticker.toBuffer();
       }
 
       await client.sendMessage(m.chat, { sticker: stickerBuf }, { quoted: m });
@@ -677,9 +686,46 @@ module.exports = [
   }
 },
 
+  {
+  command: ['remini'],
+  aliases: ['upscale', 'enhance', 'hd'],
+  description: 'Enhance a quoted image using AI (Remini)',
+  category: 'media',
+  handler: async (client, m, { reply, mime }) => {
+    if (!m.quoted) return reply('📌 Reply to an image with the command to enhance it.');
+    if (!/image/.test(m.quoted.mimetype || mime || '')) return reply('❌ Only image messages can be enhanced. Reply to a photo.');
+
+    try {
+      reply('⏳ Enhancing your image with AI... Please wait.');
+
+      const filePath = await client.downloadAndSaveMediaMessage(m.quoted);
+      if (!filePath || !fs.existsSync(filePath)) return reply('❌ Failed to download image.');
+
+      const imageUrl = await uploadToUguu(filePath);
+      try { fs.unlinkSync(filePath); } catch (_) {}
+
+      const res = await fetch(`https://apis.davidcyril.name.ng/remini?url=${encodeURIComponent(imageUrl)}`);
+      if (!res.ok) return reply('❌ Failed to enhance image. Try again.');
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('image')) return reply('❌ API did not return an image. Try again.');
+      const arrayBuf = await res.arrayBuffer();
+      const buffer = Buffer.from(arrayBuf);
+
+      await client.sendMessage(m.chat, {
+        image: buffer,
+        mimetype: 'image/png',
+        caption: '✨ *Image Upscaled To HD*\n_Powered by BLACK-MD_',
+      }, { quoted: m });
+
+    } catch (err) {
+      reply('❌ Failed to enhance image. Make sure you replied to a clear photo and try again.');
+    }
+  }
+},
+
 {
-    command: ['remini'],
-    aliases: ['upscale', 'enhance', 'hd'],
+    command: ['remini2'],
+    aliases: ['upscale2', 'enhance2', 'hd2'],
     description: 'Upscale a quoted image to HD (4x)',
     category: 'media',
     handler: async (client, m, { reply, msgR }) => {
@@ -711,49 +757,6 @@ module.exports = [
   }
  }
 },
-
-{
-    command: ['remini2'],
-    aliases: ['upscale2', 'enhance2', 'hd2'],
-    description: 'Upscale a quoted image to HD (4x)',
-    category: 'media',
-    handler: async (client, m, { reply, msgR }) => {
-
-      if (!msgR) return reply(`📌 Reply to an image with ${m.prefix}hd to upscale it.`);
-
-      const imageMsg = msgR.imageMessage || null;
-      if (!imageMsg) return reply('❌ Only image messages can be upscaled. Reply to a photo.');
-
-      let filePath;
-      try {
-        reply('⏳ Upscaling your image to HD... Please wait.');
-
-        filePath = await client.downloadAndSaveMediaMessage(imageMsg);
-        if (!filePath || !fs.existsSync(filePath)) throw new Error('Download failed');
-
-        const image = await Jimp.read(filePath);
-        const newW = image.getWidth() * 4;
-        const newH = image.getHeight() * 4;
-        image.resize(newW, newH, Jimp.RESIZE_BICUBIC);
-
-        const upscaledBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
-
-        await client.sendMessage(m.chat, {
-          image: upscaledBuffer,
-          caption: '🔼 *Image Upscaled to HD*\n_Powered by BLACK-MD_',
-          mimetype: 'image/jpeg',
-        }, { quoted: m });
-
-      } catch (err) {
-        console.error('HD Upscale error:', err);
-        reply('❌ Failed to upscale. Make sure you replied to a clear photo and try again.');
-      } finally {
-        if (filePath && fs.existsSync(filePath)) {
-          try { fs.unlinkSync(filePath); } catch (_) {}
-        }
-      }
-    }
-  },
   
   {
     command: ['save'],
