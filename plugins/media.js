@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const Jimp = require('jimp') 
+const fetch = require('node-fetch')
 const axios = global.axios || require('axios');
 const { uploadToUguu, upscaleImage } = require('../lib/uploads');
 
@@ -685,9 +686,46 @@ module.exports = [
   }
 },
 
+  {
+  command: ['remini'],
+  aliases: ['upscale', 'enhance', 'hd'],
+  description: 'Enhance a quoted image using AI (Remini)',
+  category: 'media',
+  handler: async (client, m, { reply, mime }) => {
+    if (!m.quoted) return reply('📌 Reply to an image with the command to enhance it.');
+    if (!/image/.test(m.quoted.mimetype || mime || '')) return reply('❌ Only image messages can be enhanced. Reply to a photo.');
+
+    try {
+      reply('⏳ Enhancing your image with AI... Please wait.');
+
+      const filePath = await client.downloadAndSaveMediaMessage(m.quoted);
+      if (!filePath || !fs.existsSync(filePath)) return reply('❌ Failed to download image.');
+
+      const imageUrl = await uploadToUguu(filePath);
+      try { fs.unlinkSync(filePath); } catch (_) {}
+
+      const res = await fetch(`https://apis.davidcyril.name.ng/remini?url=${encodeURIComponent(imageUrl)}`);
+      if (!res.ok) return reply('❌ Failed to enhance image. Try again.');
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('image')) return reply('❌ API did not return an image. Try again.');
+      const arrayBuf = await res.arrayBuffer();
+      const buffer = Buffer.from(arrayBuf);
+
+      await client.sendMessage(m.chat, {
+        image: buffer,
+        mimetype: 'image/png',
+        caption: '✨ *Image Upscaled To HD*\n_Powered by BLACK-MD_',
+      }, { quoted: m });
+
+    } catch (err) {
+      reply('❌ Failed to enhance image. Make sure you replied to a clear photo and try again.');
+    }
+  }
+},
+
 {
-    command: ['remini'],
-    aliases: ['upscale', 'enhance', 'hd'],
+    command: ['remini2'],
+    aliases: ['upscale2', 'enhance2', 'hd2'],
     description: 'Upscale a quoted image to HD (4x)',
     category: 'media',
     handler: async (client, m, { reply, msgR }) => {
@@ -718,40 +756,6 @@ module.exports = [
     }
   }
  }
-},
-
-  {
-  command: ['remini2'],
-  aliases: ['upscale2', 'enhance2', 'hd2'],
-  description: 'Enhance a quoted image using AI (Remini)',
-  category: 'media',
-  handler: async (client, m, { reply, mime }) => {
-    if (!m.quoted) return reply('📌 Reply to an image with the command to enhance it.');
-    if (!/image/.test(m.quoted.mimetype || mime || '')) return reply('❌ Only image messages can be enhanced. Reply to a photo.');
-
-    try {
-      reply('⏳ Enhancing your image with AI... Please wait.');
-
-      const filePath = await client.downloadAndSaveMediaMessage(m.quoted);
-      if (!filePath || !fs.existsSync(filePath)) return reply('❌ Failed to download image.');
-
-      const imageUrl = await uploadToUguu(filePath);
-      try { fs.unlinkSync(filePath); } catch (_) {}
-
-      const res = await axios.get(`https://apis.davidcyriltech.my.id/remini?url=${encodeURIComponent(imageUrl)}`, { timeout: 30000 });
-      const d = res.data;
-      const result = d?.result || d?.image || d?.image_url || d?.url || d?.data?.url || d?.data?.image;
-      if (!result) return reply('❌ Failed to enhance image. Try again.');
-
-      await client.sendMessage(m.chat, {
-        image: { url: result },
-        caption: '✨ *Image Enhanced with AI*\n_Powered by BLACK-MD_',
-      }, { quoted: m });
-
-    } catch (err) {
-      reply('❌ Failed to enhance image. Make sure you replied to a clear photo and try again.');
-    }
-  }
 },
   
   {
