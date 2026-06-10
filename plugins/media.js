@@ -687,6 +687,40 @@ module.exports = [
 },
 
   {
+  command: ['imageedit'],
+  aliases: ['editimg', 'aiedit', 'editi'],
+  description: 'Edit an image using AI prompt',
+  category: 'media',
+  handler: async (client, m, { reply, text, msgR }) => {
+    if (!msgR) return reply('📌 Reply to an image with a prompt.\n\nExample: .imageedit make the background red');
+    if (!text) return reply('📌 Provide a prompt.\n\nExample: .imageedit make the background red');
+    if (!msgR.imageMessage) return reply('❌ Reply to an *image* only!');
+    const result = await client.downloadAndSaveMediaMessage(msgR.imageMessage);
+    try {
+      await m.reply('🎨 _Editing your image... this may take up to 2 minutes_');
+      const { uploadToUguu } = require('../lib/uploads');
+      const imageUrl = await uploadToUguu(result);
+      const res = await global.axios.get(
+        `https://ravenn.site/ai/imageedit?url=${encodeURIComponent(imageUrl)}&q=${encodeURIComponent(text)}`,
+        { timeout: 180000 }
+      );
+      const data = res.data;
+      if (!data?.status) return reply('❌ Failed: ' + (data?.error || 'Unknown error'));
+      const resultUrl = data?.result || data?.url || data?.image || data?.data;
+      if (!resultUrl) return reply('❌ No result returned: ' + JSON.stringify(data));
+      await client.sendMessage(m.chat, {
+        image: { url: resultUrl },
+        caption: `🎨 *Image Edited*\n📝 *Prompt:* ${text}`
+      }, { quoted: m });
+    } catch (err) {
+      reply('❌ Error: ' + err.message);
+    } finally {
+      try { fs.unlinkSync(result); } catch {}
+    }
+  }
+},
+
+  {
   command: ['remini'],
   aliases: ['upscale', 'enhance', 'hd'],
   description: 'Enhance a quoted image using AI (Remini)',

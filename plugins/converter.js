@@ -17,10 +17,12 @@ module.exports = [
     handler: async (client, m, { reply, text }) => {
       const PDFDocument = require('pdfkit');
 
-      const msgR     = m.message?.extendedTextMessage?.contextInfo?.quotedMessage || null;
-      const imageMsg = msgR?.imageMessage || null;
+     const msgR     = m.message?.extendedTextMessage?.contextInfo?.quotedMessage || null;
+     const quotedText = msgR?.conversation || msgR?.extendedTextMessage?.text || '';
+     const inputText  = text || quotedText;
+     const imageMsg = msgR?.imageMessage || null;
 
-      if (!imageMsg && !text) return reply(
+      if (!imageMsg && !inputText) return reply(
         '📄 *Usage:*\n• Reply to an image: *.topdf*\n• Convert text: *.topdf Your text here*'
       );
 
@@ -132,9 +134,11 @@ module.exports = [
       const { Document, Packer, Paragraph, TextRun, ImageRun, AlignmentType } = require('docx');
 
       const msgR     = m.message?.extendedTextMessage?.contextInfo?.quotedMessage || null;
+      const quotedText = msgR?.conversation || msgR?.extendedTextMessage?.text || '';
+      const inputText  = text || quotedText;
       const imageMsg = msgR?.imageMessage || null;
 
-      if (!imageMsg && !text) return reply(
+      if (!imageMsg && !inputText) return reply(
         '📝 *Usage:*\n• Reply to an image: *.toword*\n• Convert text: *.toword Your text here*'
       );
 

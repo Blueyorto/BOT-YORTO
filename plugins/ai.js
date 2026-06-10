@@ -4,75 +4,113 @@ const axios = global.axios || require('axios');
 const fetch = require('node-fetch');
 const { uploadToUguu, uploadToImgBB } = require('../lib/uploads');
 
+const gptSessions = new Map();
+const geminiSessions = new Map();
+const llamaSessions = new Map();
+
+const MAX_HISTORY = 10;
+function getHistory(store, jid) {
+  if (!store.has(jid)) store.set(jid, []);
+  return store.get(jid);
+}
+function pushHistory(store, jid, role, content) {
+  const history = getHistory(store, jid);
+  history.push({ role, content });
+  if (history.length > MAX_HISTORY * 2) history.splice(0, 2);
+}
+function buildPrompt(history, text) {
+  if (!history.length) return text;
+  const ctx = history.map(h => `${h.role === 'user' ? 'User' : 'Assistant'}: ${h.content}`).join('\n');
+  return `Previous conversation:\n${ctx}\n\nUser: ${text}`;
+}
+
+
 module.exports = [
 
-  // ── .ai / .gemini2 — Gemini via xcasper (with quoted context) ────────────
+  // ── .ai / .gemini2 — Gemini via Bk9 (with quoted context) ────────────
   {
-    command: ['ai'],
-    aliases: ['gemini2'],
-    description: 'Chat with Gemini AI',
-    category: 'ai',
-    handler: async (client, m, { reply, text }) => {
-      if (!text) return reply(`✳️ Example: .ai What is the capital of Kenya?`);
-      try {
-        let msg = await client.sendMessage(m.chat, { text: `🤖 Thinking...` }, { quoted: m });
-        const quotedContext = m.quoted && m.quoted.text
-          ? `Context: "${m.quoted.text}"\nQuestion: ${text}`
-          : text;
-        const apiRes = await fetch(
-          `https://apis.xcasper.space/api/ai/gemini?prompt=${encodeURIComponent(quotedContext)}`
-        );
-        const data = await apiRes.json();
-        if (!data || !data.success || !data.reply) await client.sendMessage(m.chat, { text: `❌ No response from AI`, edit: msg.key }, { quoted: m });
-        let replyText = data.reply;
-        await client.sendMessage(m.chat, { text: `*${replyText}*`, edit: msg.key }, { quoted: m });
-      } catch (err) {
-        m.reply('❌ Error connecting to APIs. Try again later.');
-      }
+  command: ['ai'],
+  aliases: ['llama'],
+  description: 'Chat with LLaMA AI (remembers conversation)',
+  category: 'ai',
+  handler: async (client, m, { reply, text }) => {
+    if (!text) return reply('Ask me anything!\n\n💡: Use *.ai -clear* to reset your conversation history.');
+    const jid = m.sender || m.chat;
+    if (text.trim() === '-clear') {
+      llamaSessions.delete(jid);
+      return reply('🧹 *AI chat history cleared!* Fresh start.');
     }
-  },
+    try {
+      let msg = await client.sendMessage(m.chat, { text: `🤖 Thinking...` }, { quoted: m });
+      const history = getHistory(llamaSessions, jid);
+      const prompt = buildPrompt(history, text);
+      const res = await fetch(`https://api.bk9.dev/ai/llama?q=${encodeURIComponent(prompt)}`);
+      const data = await res.json();
+      if (!data?.status || !data?.BK9) return client.sendMessage(m.chat, { text: `❌ No response from AI`, edit: msg.key }, { quoted: m });
+      const replyText = data.BK9;
+      pushHistory(llamaSessions, jid, 'user', text);
+      pushHistory(llamaSessions, jid, 'assistant', replyText);
+      await client.sendMessage(m.chat, { text: `*${replyText}*`, edit: msg.key }, { quoted: m });
+    } catch (err) {
+      m.reply('❌ Error connecting to AI. Try again later.');
+    }
+  }
+},
 
   // ── .gpt / .chatgpt — GPT-4 via ravennsite ────────────────────────────────
   {
     command: ['gpt'],
     aliases: ['chatgpt'],
-    description: 'Chat with GPT-4',
+    description: 'Chat with GPT-4 (remembers conversation)',
     category: 'ai',
     handler: async (client, m, { reply, text, api }) => {
-      if (!text) return reply('This is GPT-4 Ask me something!');
+      if (!text) return reply('This is GPT-4 — ask me something!\n\n💡: Use *.gpt -clear* to reset your conversation history.');
+      const jid = m.sender || m.chat;
+      if (text.trim() === '-clear') {
+        gptSessions.delete(jid);
+        return reply('🧹 *GPT chat history cleared!* Fresh start.');
+      }
       try {
         let msg = await client.sendMessage(m.chat, { text: `🤖 Thinking...` }, { quoted: m });
-        const res = await axios.get(`${api}/ai/gpt4?q=${encodeURIComponent(text)}`);
+        const history = getHistory(gptSessions, jid);
+        const prompt = buildPrompt(history, text);
+        const res = await axios.get(`${api}/ai/gpt4?q=${encodeURIComponent(prompt)}`);
         const data = res.data;
-        
-        if (!data?.status || !data?.result) await client.sendMessage(m.chat, { text: `❌ No response from AI`, edit: msg.key }, { quoted: m });
-        
-        let replyText = data.result;     
+        if (!data?.status || !data?.result) return client.sendMessage(m.chat, { text: `❌ No response from AI`, edit: msg.key }, { quoted: m });
+        const replyText = data.result;
+        pushHistory(gptSessions, jid, 'user', text);
+        pushHistory(gptSessions, jid, 'assistant', replyText);
         await client.sendMessage(m.chat, { text: `*${replyText}*`, edit: msg.key }, { quoted: m });
-        
       } catch (err) {
         m.reply('❌ Error getting AI response.');
       }
     }
   },
-  
-  // ── .gemini — GPT via ravennsite ──────────────────────────────────────────
+
+  // ── .gemini ───────────────────────────────────────────────────────────────
   {
     command: ['gemini'],
     aliases: ['ai2'],
-    description: 'AI chat (Gemini endpoint)',
+    description: 'AI chat with Gemini (remembers conversation)',
     category: 'ai',
     handler: async (client, m, { reply, text, api }) => {
-      if (!text) return reply('Please provide a context!');
+      if (!text) return reply('Ask me something!\n\n💡: Use *.gemini -clear* to reset your conversation history.');
+      const jid = m.sender || m.chat;
+      if (text.trim() === '-clear') {
+        geminiSessions.delete(jid);
+        return reply('🧹 *Gemini chat history cleared!* Fresh start.');
+      }
       try {
         let msg = await client.sendMessage(m.chat, { text: `🤖 Thinking...` }, { quoted: m });
-        const res = await axios.get(`${api}/ai/gpt?q=${encodeURIComponent(text)}`);
+        const history = getHistory(geminiSessions, jid);
+        const prompt = buildPrompt(history, text);
+        const res = await axios.get(`${api}/ai/gpt?q=${encodeURIComponent(prompt)}`);
         const data = res.data;
-        
-        if (!data?.status || !data?.result) await client.sendMessage(m.chat, { text: `❌ No response from AI`, edit: msg.key }, { quoted: m });
-let replyText = data.result;
-   await client.sendMessage(m.chat, { text: `*${replyText}*`, edit: msg.key }, { quoted: m });     
-        
+        if (!data?.status || !data?.result) return client.sendMessage(m.chat, { text: `❌ No response from AI`, edit: msg.key }, { quoted: m });
+        const replyText = data.result;
+        pushHistory(geminiSessions, jid, 'user', text);
+        pushHistory(geminiSessions, jid, 'assistant', replyText);
+        await client.sendMessage(m.chat, { text: `*${replyText}*`, edit: msg.key }, { quoted: m });
       } catch (err) {
         m.reply('❌ Error getting AI response.');
       }
@@ -81,8 +119,41 @@ let replyText = data.result;
  
   // ── .vision / .imgai / .analyze / .geminivision — Image analysis via ravennsite ─────────
   {
-    command: ['vision'],
-    aliases: ['imgai', 'analyze', 'geminivision'],
+  command: ['vision'],
+  aliases: ['imgai', 'analyze', 'llamavision'],
+  description: 'Analyze an image with LLaMA Vision AI (quote an image)',
+  category: 'ai',
+  handler: async (client, m, { reply, text }) => {
+    if (!m.quoted) return reply('📌 Reply to an image with a question.\nExample: *.vision2 what is this?*');
+    if (!text) return reply('❌ Provide a question about the image!\nExample: *.vision2 what is in this image?*');
+    const mime = m.quoted.mimetype || '';
+    if (!/image/.test(mime)) return reply('❌ Only image messages are supported.');
+    try {
+      await client.sendMessage(m.chat, { react: { text: '🤖', key: m.key } });
+      await reply('🔍 Analyzing your image...');
+
+      const filePath = await client.downloadAndSaveMediaMessage(m.quoted);
+      if (!filePath) return reply('❌ Failed to download image.');
+
+      const imageUrl = await uploadToUguu(filePath);
+      try { require('fs').unlinkSync(filePath); } catch (_) {}
+
+      const res = await fetch(
+        `https://api.bk9.dev/ai/vision?q=${encodeURIComponent(text)}&image_url=${encodeURIComponent(imageUrl)}&model=meta-llama/llama-4-scout-17b-16e-instruct`
+      );
+      const data = await res.json();
+      if (!data?.status || !data?.BK9) return reply('❌ No response from Vision AI. Try again.');
+
+      await reply(`🤖 *Vision Analysis*\n\n${data.BK9}`);
+    } catch (err) {
+      reply('❌ Failed to analyze image.');
+    }
+  }
+},
+ 
+  {
+    command: ['vision2'],
+    aliases: ['imgai2', 'analyze2', 'geminivision'],
     description: 'Analyze an image with AI (quote an image)',
     category: 'ai',
     handler: async (client, m, { reply, text, api }) => {
@@ -115,6 +186,7 @@ let replyText = data.result;
     }
   },
 
+  
   {
     command: ['define'],
     description: 'Define a word',
