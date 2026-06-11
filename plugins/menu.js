@@ -25,8 +25,6 @@ module.exports = [
     category: 'menu',
     handler: async (client, m, { prefix, mode, menutype, pushname, Rspeed }) => {
       
-
-      // Group by category
       const byCategory = {};
       const fs = require('fs');
       const path = require('path');
@@ -62,20 +60,20 @@ const totalCommands = Object.values(byCategory).reduce((sum, arr) => sum + arr.l
         misc: '📦',
       };
       const categorySymbols = {
-  downloads: '✦',
-  media:     '❃',
-  converter: '✫',
-  owner:     '✥',
-  football:  '❅',
-  ai:        '◈',
-  group:     '✧',
-  coding:    '◎',
-  utility:   '▣',
-  effects:   '●',
-  stalk:     '✪',
-  others:    '✬',
-  misc:      '✦',
-};
+        downloads: '✦',
+        media:     '❃',
+        converter: '◈',
+        owner:     '✥',
+        football:  '❅',
+        ai:        '✫',
+        group:     '✧',
+        coding:    '◎',
+        utility:   '○',
+        effects:   '●',
+        stalk:     '✪',
+        others:    '✬',
+        misc:      '✠',
+      };
 
       let menu = `╔═════════════════╗\n`;
       menu += `║    ☆  𝐁𝐋𝐀𝐂𝐊-𝐌𝐃  ☆ \n`;
@@ -89,14 +87,14 @@ const totalCommands = Object.values(byCategory).reduce((sum, arr) => sum + arr.l
 
       for (const [cat, plugins] of Object.entries(byCategory)) {
         const icon = categoryIcons[cat] || '📌';
-const symbol = categorySymbols[cat] || '✦';
-menu += `> ${icon} *${cat.toUpperCase()}*\n`;
-menu += `╔══════════════════╗\n`;
+        const symbol = categorySymbols[cat] || '✠';
+      menu += `> ${icon}  *${cat.toUpperCase()}*\n`;
+      menu += `╔══════════════════╗\n`;
 for (const p of plugins) {
-  menu += `║ ${symbol}┃ ${formatCmd(p.commands[0])}\n`;
-}
-        menu += `╚══════════════════╝\n`;
-        menu += '\n';
+      menu += `║${symbol}┃ ${formatCmd(p.commands[0])}\n`;
+       }
+      menu += `╚══════════════════╝\n`;
+      menu += '\n';
       }
       menu += `━━━━━━━━━━━━━━━━━━━━\n`;
       menu += `𝗠𝗮𝗱𝗲 𝗼𝗻 𝗲𝗮𝗿𝘁𝗵 𝗯𝘆 𝗛𝘂𝗺𝗮𝗻𝘀🔥!\n`;
