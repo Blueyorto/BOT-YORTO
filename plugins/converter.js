@@ -42,7 +42,7 @@ module.exports = [
           const pageH = doc.page.height - 80;
           doc.image(imgFilePath, 40, 40, { fit: [pageW, pageH], align: 'center', valign: 'center' });
         } else {
-          doc.font('Helvetica').fontSize(12).text(text, { align: 'left', lineGap: 4 });
+          doc.font('Helvetica').fontSize(12).text(inputText, { align: 'left', lineGap: 4 });
         }
 
         doc.end();
@@ -159,7 +159,7 @@ module.exports = [
             })
           );
         } else {
-          for (const line of text.split('\n')) {
+          for (const line of inputText.split('\n')) {
             children.push(
               line.trim()
                 ? new Paragraph({ children: [new TextRun({ text: line.trim(), size: 24, font: 'Calibri' })], spacing: { after: 120 } })
