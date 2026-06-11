@@ -88,10 +88,10 @@ const totalCommands = Object.values(byCategory).reduce((sum, arr) => sum + arr.l
       for (const [cat, plugins] of Object.entries(byCategory)) {
         const icon = categoryIcons[cat] || '📌';
         const symbol = categorySymbols[cat] || '✠';
-      menu += `> ${icon}  *${cat.toUpperCase()}*\n`;
+      menu += `> ${icon}  *${toBold(cat.toUpperCase())}*\n`;
       menu += `╔══════════════════╗\n`;
 for (const p of plugins) {
-      menu += `║${symbol}┃ ${formatCmd(p.commands[0])}\n`;
+      menu += `║${symbol}┃ _${formatCmd(p.commands[0])}_\n`;
        }
       menu += `╚══════════════════╝\n`;
       menu += '\n';
