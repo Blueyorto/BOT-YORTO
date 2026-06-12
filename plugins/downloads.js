@@ -315,8 +315,8 @@ module.exports = [
   // ═══════════════════════════════════════════════════════════
 
   {
-    command: ['whatsong'],
-    aliases: ['shazam'],
+    command: ['shazam'],
+    aliases: ['whatsong'],
     description: 'Identify a song from quoted audio/video',
     category: 'downloads',
     handler: async (client, m, { reply, api }) => {
@@ -462,8 +462,12 @@ module.exports = [
       const response = await fetch(`https://api.bk9.dev/download/igs?username=${encodeURIComponent(username)}`);
       const data = await response.json();
 
-      if (!data.status || !data.BK9) return m.reply(`❌ ${data.err || 'Could not fetch stories. The account may be private or have no active stories.'}`);
-
+      if (!data.status || !data.BK9) {
+  const rawErr = (data.err || '').replace(/<[^>]*>/g, '').trim().toLowerCase();
+  if (rawErr.includes('private')) return m.reply(`🔒 *@${username}* has a private account. Stories can only be downloaded from public accounts.`);
+  return m.reply(`❌ No active stories found for *@${username}*. The account may have no stories right now.`);
+          }
+      
       const stories = data.BK9?.stories;
       if (!Array.isArray(stories) || stories.length === 0) return m.reply(`❌ No active stories found for *@${username}*.`);
 
