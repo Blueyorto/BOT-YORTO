@@ -345,75 +345,60 @@ if (gptdm === 'on' && !m.isGroup && !mek.key.fromMe && !cmd && body && body.trim
     if (!global.gptDMSessions) global.gptDMSessions = new Map();
     const userJid = m.sender;
 
-    if (!global.gptDMSessions.has(userJid)) {
-      global.gptDMSessions.set(userJid, [
-        {
-          role: 'system',
-          content: `You are BLACK-MD, a warm and emotionally intelligent WhatsApp assistant. Your job is to chat naturally with users in private messages.
+    if (!global.gptDMSessions.has(userJid)) global.gptDMSessions.set(userJid, []);
+    const history = global.gptDMSessions.get(userJid);
 
-Key rules:
-- Read the user's mood from their message tone and words. If they seem sad, be comforting and empathetic. If they're happy or excited, match their energy. If they're angry or frustrated, stay calm and understanding. If they're flirty, be playful but respectful. If they're confused, be patient and clear.
-- Always respond in the same language the user writes in.
-- Keep replies short and natural — like a real friend texting back, not an essay.
-- Use emojis where they feel natural, but don't overdo it.
-- Never say you are ChatGPT, OpenAI, or any other AI brand. You are BLACK-MD.
-- Be warm, positive, and never rude or dismissive.
-- Today's date is ${new Date().toDateString()}.`
-        }
-      ]);
+    let prompt = '';
+    if (history.length) {
+      const ctx = history.map(h => `${h.role === 'user' ? 'User' : 'BLACK-MD'}: ${h.content}`).join('\n');
+      prompt += `Previous conversation:\n${ctx}\n\n`;
     }
 
-    const history = global.gptDMSessions.get(userJid);
-    history.push({ role: 'user', content: body.trim() });
-
-    const system  = history[0];
-    const convo   = history.slice(1);
-    const trimmed = convo.length > 20 ? convo.slice(convo.length - 20) : convo;
+    prompt +=
+      `You are BLACK-MD, a friendly and emotionally intelligent WhatsApp assistant. ` +
+      `Read the user's mood from their message — if sad be comforting, if happy match their energy, ` +
+      `if angry stay calm, if confused be clear and patient, if flirty be playful but respectful. ` +
+      `Reply naturally like a friend texting back. Keep it short. Use emojis where natural. ` +
+      `Always reply in the same language the user uses. Never say you are ChatGPT or any other AI.\n\n` +
+      `User: ${body.trim()}`;
 
     await client.sendPresenceUpdate('composing', m.chat);
 
     let replyText = '';
+    const aiCalls = [
+      async () => {
+        const r = await fetch(`https://ravenn.site/keithai?q=${encodeURIComponent(prompt)}`);
+        const d = await r.json();
+        return (d?.reply || d?.result || d?.response || d?.message || d?.answer)?.trim();
+      },
+      async () => {
+        const r = await fetch(`https://api.bk9.dev/ai/llama?q=${encodeURIComponent(prompt)}`);
+        const d = await r.json();
+        return d?.BK9?.trim();
+      },
+    ];
 
-    const models = ['openai', 'openai-large', 'mistral'];
-    for (const model of models) {
+    for (const call of aiCalls) {
       try {
-        const aiRes = await fetch('https://text.pollinations.ai/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model,
-            messages: [system, ...trimmed],
-            seed: Math.floor(Math.random() * 9999),
-            private: true,
-          }),
-        });
-        if (!aiRes.ok) continue;
-        const raw = (await aiRes.text()).trim();
-        if (raw && !raw.startsWith('<') && raw.length > 2) {
-          replyText = raw;
-          break;
-        }
+        const result = await call();
+        if (result) { replyText = result; break; }
       } catch { continue; }
     }
 
-    if (!replyText) {
-      replyText = "Hey! I'm having a little trouble right now 😅 Try again in a moment?";
-    }
+    if (!replyText) throw new Error('All AI APIs failed');
 
+    history.push({ role: 'user', content: body.trim() });
     history.push({ role: 'assistant', content: replyText });
-    if (history.length > 22) {
-      global.gptDMSessions.set(userJid, [system, ...history.slice(history.length - 20)]);
-    }
+    if (history.length > 20) history.splice(0, 2);
 
     await client.sendPresenceUpdate('paused', m.chat);
     await client.sendMessage(m.chat, { text: replyText }, { quoted: m });
 
-  } catch (gptErr) {
+  } catch (err) {
     await client.sendPresenceUpdate('paused', m.chat).catch(() => {});
   }
 }
     
-
   } catch (err) {
     console.log(util.format(err));
   }
