@@ -54,14 +54,15 @@ const totalCommands = Object.values(byCategory).reduce((sum, arr) => sum + arr.l
         coding: '🎭',
         utility: '🔧',
         owner: '👑',
-        effects: '✨️',
+        effects: '❄️',
         football: '⚽️',
+        stalk: '☸️',
         others: '☣️',
         misc: '📦',
       };
       const categorySymbols = {
         downloads: '✦',
-        media:     '❃',
+        media:     '◇',
         converter: '◈',
         owner:     '✥',
         football:  '❅',
@@ -69,8 +70,8 @@ const totalCommands = Object.values(byCategory).reduce((sum, arr) => sum + arr.l
         group:     '✧',
         coding:    '◎',
         utility:   '○',
-        effects:   '●',
-        stalk:     '✪',
+        effects:   '✪',
+        stalk:     '☆',
         others:    '✬',
         misc:      '✠',
       };
@@ -91,7 +92,7 @@ const totalCommands = Object.values(byCategory).reduce((sum, arr) => sum + arr.l
       menu += `> ${icon}  *${toBold(cat.toUpperCase())}*\n`;
       menu += `╔══════════════════╗\n`;
 for (const p of plugins) {
-      menu += `║${symbol}┃ _${formatCmd(p.commands[0])}_\n`;
+      menu += `║${symbol}┃ ${formatCmd(p.commands[0])}\n`;
        }
       menu += `╚══════════════════╝\n`;
       menu += '\n';
