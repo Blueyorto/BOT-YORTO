@@ -336,64 +336,69 @@ const Owner = finalSuperUsers.includes(standardizeJid(senderForOwner)) || isSudo
         Rspeed, date, convertTimestamp, generateProfilePicture
       };
       await handler.dispatchNoPrefix(body.trim(), client, m, ctx);
+      
+    }
+    
+// ── GPTDM — AI auto-reply in private chats only ──────────────────────────────
+if (gptdm === 'on' && !m.isGroup && !mek.key.fromMe && !cmd && body && body.trim()) {
+  try {
+    if (!global.gptDMSessions) global.gptDMSessions = new Map();
+    const userJid = m.sender;
+
+    if (!global.gptDMSessions.has(userJid)) global.gptDMSessions.set(userJid, []);
+    const history = global.gptDMSessions.get(userJid);
+
+    let prompt = '';
+    if (history.length) {
+      const ctx = history.map(h => `${h.role === 'user' ? 'User' : 'BLACK-MD'}: ${h.content}`).join('\n');
+      prompt += `Previous conversation:\n${ctx}\n\n`;
     }
 
-    // ── GPTDM — AI auto-reply in private chats only ───────────────────────────────
-    if (gptdm === 'on' && !m.isGroup && !mek.key.fromMe && !cmd && body && body.trim()) {
+    prompt +=
+      `You are BLACK-MD, a friendly and emotionally intelligent WhatsApp assistant. ` +
+      `Read the user's mood from their message — if sad be comforting, if happy match their energy, ` +
+      `if angry stay calm, if confused be clear and patient, if flirty be playful but respectful. ` +
+      `Reply naturally like a friend texting back. Keep it short. Use emojis where natural. ` +
+      `Always reply in the same language the user uses. Never say you are ChatGPT or any other AI.\n\n` +
+      `User: ${body.trim()}`;
+
+    await client.sendPresenceUpdate('composing', m.chat);
+
+    let replyText = '';
+    const aiCalls = [
+      async () => {
+        const r = await fetch(`https://ravenn.site/keithai?q=${encodeURIComponent(prompt)}`);
+        const d = await r.json();
+        return (d?.reply || d?.result || d?.response || d?.message || d?.answer)?.trim();
+      },
+      async () => {
+        const r = await fetch(`https://api.bk9.dev/ai/llama?q=${encodeURIComponent(prompt)}`);
+        const d = await r.json();
+        return d?.BK9?.trim();
+      },
+    ];
+
+    for (const call of aiCalls) {
       try {
-        if (!global.gptConversations) global.gptConversations = new Map();
-        const userJid = m.sender;
+        const result = await call();
+        if (result) { replyText = result; break; }
+      } catch { continue; }
+    }
 
-        if (!global.gptConversations.has(userJid)) {
-          global.gptConversations.set(userJid, [
-            {
-              role: 'system',
-              content: `You are a helpful, friendly AI assistant in a WhatsApp bot called BLACK-MD. Be concise and natural in your replies. Today is ${new Date().toDateString()}.`
-            }
-          ]);
-        }
+    if (!replyText) throw new Error('All AI APIs failed');
 
-        const history = global.gptConversations.get(userJid);
+    history.push({ role: 'user', content: body.trim() });
+    history.push({ role: 'assistant', content: replyText });
+    if (history.length > 20) history.splice(0, 2);
 
-        history.push({ role: 'user', content: body.trim() });
+    await client.sendPresenceUpdate('paused', m.chat);
+    await client.sendMessage(m.chat, { text: replyText }, { quoted: m });
 
-        const system  = history[0];
-        const convo   = history.slice(1);
-        const trimmed = convo.length > 20 ? convo.slice(convo.length - 20) : convo;
-        const messages = [system, ...trimmed];
-
-        await client.sendPresenceUpdate('composing', m.chat);
-
-        const res = await fetch('https://text.pollinations.ai/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'openai',
-            messages,
-            seed: Math.floor(Math.random() * 9999),
-            private: true,
-          }),
-        });
-
-        if (!res.ok) throw new Error(`Pollinations returned ${res.status}`);
-
-        const replyText = (await res.text()).trim();
-        if (!replyText) throw new Error('Empty response from AI');
-
-        history.push({ role: 'assistant', content: replyText });
-        if (history.length > 22) {
-          global.gptConversations.set(userJid, [system, ...history.slice(history.length - 20)]);
-        }
-
-        await client.sendPresenceUpdate('paused', m.chat);
-        await client.sendMessage(m.chat, { text: replyText }, { quoted: m });
-
-      } catch (gptErr) {
-        console.error('gptdm error:', gptErr.message);
-        await client.sendPresenceUpdate('paused', m.chat).catch(() => {});
-      }
-                                                              }
-
+  } catch (err) {
+    await client.sendPresenceUpdate('paused', m.chat).catch(() => {});
+  }
+}
+    
   } catch (err) {
     console.log(util.format(err));
   }

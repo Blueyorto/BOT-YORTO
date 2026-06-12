@@ -3,6 +3,20 @@
 const handler = require('../lib/handler');
 const { runtime } = require('../lib/ravenfunc');
 
+function toBold(str) {
+  return str.split('').map(c => {
+    const code = c.charCodeAt(0);
+    if (code >= 65 && code <= 90) return String.fromCodePoint(0x1D5D4 + code - 65);
+    if (code >= 97 && code <= 122) return String.fromCodePoint(0x1D5EE + code - 97);
+    if (code >= 48 && code <= 57) return String.fromCodePoint(0x1D7EC + code - 48);
+    return c;
+  }).join('');
+}
+function formatCmd(name) {
+  if (!name) return '';
+  return toBold(name.charAt(0).toUpperCase() + name.slice(1));
+}
+
 module.exports = [
 
   {
@@ -11,8 +25,6 @@ module.exports = [
     category: 'menu',
     handler: async (client, m, { prefix, mode, menutype, pushname, Rspeed }) => {
       
-
-      // Group by category
       const byCategory = {};
       const fs = require('fs');
       const path = require('path');
@@ -42,10 +54,26 @@ const totalCommands = Object.values(byCategory).reduce((sum, arr) => sum + arr.l
         coding: '🎭',
         utility: '🔧',
         owner: '👑',
-        effects: '✨️',
+        effects: '❄️',
         football: '⚽️',
+        stalk: '☸️',
         others: '☣️',
         misc: '📦',
+      };
+      const categorySymbols = {
+        downloads: '✦',
+        media:     '◇',
+        converter: '◈',
+        owner:     '✥',
+        football:  '❅',
+        ai:        '✫',
+        group:     '✧',
+        coding:    '◎',
+        utility:   '○',
+        effects:   '✪',
+        stalk:     '☆',
+        others:    '✬',
+        misc:      '✠',
       };
 
       let menu = `╔═════════════════╗\n`;
@@ -60,14 +88,14 @@ const totalCommands = Object.values(byCategory).reduce((sum, arr) => sum + arr.l
 
       for (const [cat, plugins] of Object.entries(byCategory)) {
         const icon = categoryIcons[cat] || '📌';
-        menu += `> ${icon} *${cat.toUpperCase()}*\n`;
-        menu += `╔══════════════════╗\n`;
-        for (const p of plugins) {
-          menu += `║ ● ${p.commands[0]}`;
-          menu += '\n';
-        }
-        menu += `╚══════════════════╝\n`;
-        menu += '\n';
+        const symbol = categorySymbols[cat] || '✠';
+      menu += `> ${icon}  *${toBold(cat.toUpperCase())}*\n`;
+      menu += `╔══════════════════╗\n`;
+for (const p of plugins) {
+      menu += `║${symbol}┃ ${formatCmd(p.commands[0])}\n`;
+       }
+      menu += `╚══════════════════╝\n`;
+      menu += '\n';
       }
       menu += `━━━━━━━━━━━━━━━━━━━━\n`;
       menu += `𝗠𝗮𝗱𝗲 𝗼𝗻 𝗲𝗮𝗿𝘁𝗵 𝗯𝘆 𝗛𝘂𝗺𝗮𝗻𝘀🔥!\n`;
