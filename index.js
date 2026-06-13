@@ -28,6 +28,7 @@ const makeInMemoryStore = require('./store/store.js');
 const { initializeDatabase } = require('./database/config');
 const fetchSettings = require('./database/fetchSettings');
 const { startPeriodicCleanup } = require('./lib/antidelete');
+const { fetchPlugins } = require('./lib/fetchPlugins');
 const store = makeInMemoryStore({ logger: logger.child({ stream: 'store' }) });
 const color = (text, color) => {
   return !color ? chalk.green(text) : chalk.keyword(color)(text);
@@ -98,6 +99,7 @@ try {
   return;
 }
   const { state, saveCreds } = await useMultiFileAuthState('session');
+  await fetchPlugins();
   const { version, isLatest } = await fetchLatestBaileysVersion();
   console.log(`using WA v${version.join(".")}, isLatest: ${isLatest}`);
   console.log(
