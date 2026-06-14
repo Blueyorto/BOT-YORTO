@@ -145,7 +145,7 @@ module.exports = raven = async (client, m, chatUpdate, store) => {
         })();
     
     const command = body.slice(prefix.length).trim().split(/ +/).shift().toLowerCase();
-    const args = body.trim().split(/ +/).slice(1);
+    const args = body.slice(prefix.length).trim().split(/ +/).slice(1);
     const pushname = m.pushName || 'No Name';
     const botNumber = jidNormalizedUser(client.user.id);
     const itsMe = m.sender == botNumber;
