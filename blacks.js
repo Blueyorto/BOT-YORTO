@@ -18,7 +18,26 @@ const { smsg, sleep, generateProfilePicture, fetchJson, getBuffer, } = require('
 const handler = require('./lib/handler');
 const pluginsDir = path.join(__dirname, 'plugins');
 handler.loadPlugins(pluginsDir);
-handler.watchPlugins(pluginsDir); // hot-reload on file change
+handler.watchPlugins(pluginsDir);
+// ─────────────────────────────────────────────────────────────────────────────
+// ─── Active User Tracking ─────────────────────────────────────────────────────
+if (!global.activeUserStore) global.activeUserStore = new Map();
+
+global.trackMessage = function (groupJid, userJid) {
+  if (!groupJid || !userJid) return;
+  if (!global.activeUserStore.has(groupJid)) global.activeUserStore.set(groupJid, new Map());
+  const group = global.activeUserStore.get(groupJid);
+  group.set(userJid, (group.get(userJid) || 0) + 1);
+};
+
+global.getActiveUsers = function (groupJid, limit = 15) {
+  const group = global.activeUserStore.get(groupJid);
+  if (!group || group.size === 0) return [];
+  return [...group.entries()]
+    .map(([jid, count]) => ({ jid, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
+};
 // ─────────────────────────────────────────────────────────────────────────────
 
 const color = (text, color) => (!color ? chalk.green(text) : chalk.keyword(color)(text));
@@ -156,7 +175,10 @@ module.exports = raven = async (client, m, chatUpdate, store) => {
     const reply = m.reply;
     const sender = sendr;
 
-    // ── Owner check ──────────────────────────────────────────────────────────
+  // Track message activity for listonline command
+if (m.isGroup && sender) global.trackMessage(from, sender);
+    
+  // ── Owner check ──────────────────────────────────────────────────────────
     const botLid = getBotLid(client);
     const superUser = [botLid, standardizeJid(botNumber), ...owner.map(num => `${num}@s.whatsapp.net`)]
       .map(jid => standardizeJid(jid)).filter(Boolean);
