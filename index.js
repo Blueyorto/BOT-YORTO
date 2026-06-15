@@ -158,7 +158,7 @@ client.ev.on('connection.update', async (update) => {
 
     try {
       initializeDatabase();
-  console.log("✅ PostgreSQL database initialized successfully.");
+  console.log("✅ Database initialized successfully.");
 } catch (err) {
   console.error("❌ Failed to initialize database:", err.message || err);
     }
