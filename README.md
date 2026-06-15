@@ -63,15 +63,7 @@ Linking/Pairing:
       </a>
     </p>
     
- _Follow the steps below to Get your PostgreSQL database url for free (2 minutes)_
- 
-- Go to [HERE](https://neon.com) and sign up free
-- Click New Project
-- Name it anything e.g. black-md-bot
-- Select a region closest to you
-- Click Create Project
-- You'll see a Connection String — copy it
-- Fill the the required variables in .Env
+- Fill the SESSION part Only in .Env
 
 <!-- Glowing Footer -->
 <p align="center">
