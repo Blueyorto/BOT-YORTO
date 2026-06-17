@@ -77,19 +77,20 @@ Linking/Pairing:
   </a>
 </p>
 
+- Fill All required variables 
+
 <!-- Glowing Footer -->
 <p align="center">
   <img src="https://i.imgur.com/dBaSKWF.gif" height="40" width="100%">
 </p>
 
-- Need deployment??? follow here👇
   
 ###  GET BLACK-MD:
 
-
  ***[![Tap to deploy on heroku](https://www.herokucdn.com/deploy/button.svg)](https://bot.blueblizzards.site)***
  
-
+- Need deployement???? follow above link
+  
  </h2>
 
 <!-- Glowing Footer -->
