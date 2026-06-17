@@ -390,11 +390,11 @@ if (gptdm === 'on' && !m.isGroup && !mek.key.fromMe && !cmd && body && body.trim
     let replyText = '';
     const aiCalls = [
       async () => {
-        async () => {
         const r = await fetch(`https://api.bk9.dev/ai/llama?q=${encodeURIComponent(prompt)}`);
         const d = await r.json();
         return d?.BK9?.trim();
         },
+      async () => {
         const r = await fetch(`https://ravenn.site/keithai?q=${encodeURIComponent(prompt)}`);
         const d = await r.json();
         return (d?.reply || d?.result || d?.response || d?.message || d?.answer)?.trim();
