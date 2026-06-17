@@ -19,7 +19,7 @@ const handler = require('./lib/handler');
 const pluginsDir = path.join(__dirname, 'plugins');
 handler.loadPlugins(pluginsDir);
 handler.watchPlugins(pluginsDir);
-// ─────────────────────────────────────────────────────────────────────────────
+
 // ─── Active User Tracking ─────────────────────────────────────────────────────
 if (!global.activeUserStore) global.activeUserStore = new Map();
 
@@ -175,7 +175,7 @@ module.exports = raven = async (client, m, chatUpdate, store) => {
     const reply = m.reply;
     const sender = sendr;
 
-  // Track message activity for listonline command
+  // Track message activity
 if (m.isGroup && sender) global.trackMessage(from, sender);
     
   // ── Owner check ──────────────────────────────────────────────────────────
@@ -192,6 +192,7 @@ const sudoList = await getSudos();
 const isSudoUser = sudoList.map(j => j.toLowerCase()).includes(senderForOwner.toLowerCase());
     
 const Owner = finalSuperUsers.includes(standardizeJid(senderForOwner)) || isSudoUser;
+    
     // ── Quoted message ───────────────────────────────────────────────────────
     const nicki = (m.quoted || m);
     const quoted = (nicki.mtype == 'buttonsMessage') ? nicki[Object.keys(nicki)[1]]
@@ -389,14 +390,14 @@ if (gptdm === 'on' && !m.isGroup && !mek.key.fromMe && !cmd && body && body.trim
     let replyText = '';
     const aiCalls = [
       async () => {
-        const r = await fetch(`https://ravenn.site/keithai?q=${encodeURIComponent(prompt)}`);
-        const d = await r.json();
-        return (d?.reply || d?.result || d?.response || d?.message || d?.answer)?.trim();
-      },
-      async () => {
+        async () => {
         const r = await fetch(`https://api.bk9.dev/ai/llama?q=${encodeURIComponent(prompt)}`);
         const d = await r.json();
         return d?.BK9?.trim();
+        },
+        const r = await fetch(`https://ravenn.site/keithai?q=${encodeURIComponent(prompt)}`);
+        const d = await r.json();
+        return (d?.reply || d?.result || d?.response || d?.message || d?.answer)?.trim();
       },
     ];
 
