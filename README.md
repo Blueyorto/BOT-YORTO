@@ -72,12 +72,13 @@ Linking/Pairing:
      
 ## HEROKU DEPLOYMENT 
 
-<a href="https://dashboard.heroku.com/new?template=https://github.com/Blackie254/black-super-bot" target="_blank" style="margin-right: 10px;">
+<a href="https://black-md-nine.vercel.app" target="_blank" style="margin-right: 10px;">
     <img alt="Deploy to Heroku" src="https://www.herokucdn.com/deploy/button.svg"/>
   </a>
 </p>
 
-- Fill All required variables 
+- Make sure your fork is synced with the latest changes.
+- Fill All the required variables. 
 
 <!-- Glowing Footer -->
 <p align="center">
