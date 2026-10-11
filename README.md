@@ -1,4 +1,4 @@
-# 𝐁𝐋𝐀𝐂𝐊-𝐌𝐃
+# 𝐁OT-YORTO
 <!-- Glowing Footer -->
 <p align="center">
   <img src="https://i.imgur.com/dBaSKWF.gif" height="40" width="100%">
@@ -14,17 +14,17 @@
   
 <p align="center">
   
-[![Black Merchant](https://github.com/Blackie254.png?lenght=50width=50)](https://github.com/Blackie254)
+[![Blueyorto](https://github.com/Blackie254.png?lenght=50width=50)](https://github.com/Blackie254)
 </p>
 <p align="center">
   <a href="#"><img src="http://readme-typing-svg.herokuapp.com?color=green&center=true&vCenter=true&multiline=false&lines=𝐁𝐋𝐀𝐂𝐊-𝐌𝐃" alt="">
 </p>
 <p align="center">
-<a href="#"><img title="Creator" src="https://img.shields.io/badge/Creator- 𝐁𝐋𝐀𝐂𝐊𝐌𝐄𝐑𝐂𝐇𝐀𝐍𝐓-blue.svg?style=for-the-badge&logo=github"></a>
+<a href="#"><img title="Creator" src="https://img.shields.io/badge/Creator- 𝐁𝐋UEYORTO-blue.svg?style=for-the-badge&logo=github"></a>
 </p>
 <p align="center">
 <a href="https://github.com/Blackie254?tab=followers"><img title="Followers" src="https://img.shields.io/github/followers/Blackie254?label=Followers&style=social"></a>
-<a href="https://github.com/Blackie254/black-super-bot/stargazers/"><img title="Stars" src="https://img.shields.io/github/stars/Blackie254/black-super-bot?&style=social"></a>
+<a href="https://github.com/Blackie254/black-super-bot/stargazers/"><img title="Stars" src="https://img.shields.io/github/stars/Blueyorto-super-bot?&style=social"></a>
 <a href="https://github.com/Blackie254/black-super-bot/network/members"><img title="Fork" src="https://img.shields.io/github/forks/Blackie254/black-super-bot?style=social"></a>
 <a href="https://github.com/Blackie254/black-super-bot/watchers"><img title="Watching" src="https://img.shields.io/github/watchers/Blackie254/black-super-bot?label=Watching&style=social"></a>
 </p>
