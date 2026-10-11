@@ -17,7 +17,7 @@
 [![Blueyorto](https://github.com/Blackie254.png?lenght=50width=50)](https://github.com/Blackie254)
 </p>
 <p align="center">
-  <a href="#"><img src="http://readme-typing-svg.herokuapp.com?color=green&center=true&vCenter=true&multiline=false&lines=𝐁𝐋𝐀𝐂𝐊-𝐌𝐃" alt="">
+  <a href="#"><img src="http://readme-typing-svg.herokuapp.com?color=green&center=true&vCenter=true&multiline=false&lines=𝐁OT-YORTO" alt="">
 </p>
 <p align="center">
 <a href="#"><img title="Creator" src="https://img.shields.io/badge/Creator- 𝐁𝐋UEYORTO-blue.svg?style=for-the-badge&logo=github"></a>
@@ -86,7 +86,7 @@ Linking/Pairing:
 </p>
 
   
-###  GET BLACK-MD:
+###  GET BOT-YORTO:
 
  ***[![Tap to deploy on heroku](https://www.herokucdn.com/deploy/button.svg)](https://bot.blueblizzards.site)***
  
