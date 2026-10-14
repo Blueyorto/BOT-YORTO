@@ -39,18 +39,18 @@ async function authentication() {
 
     const delimiterIndex = session.indexOf(':~');
     if (delimiterIndex === -1) {
-      throw new Error('Invalid session format. Expected: BLACK-MD:~<key>');
+      throw new Error('Invalid session format. Expected: BLUEYORTO:~<key>');
     }
 
     const header = session.slice(0, delimiterIndex);
     const payload = session.slice(delimiterIndex + 2).trim();
 
-    if (header !== 'BLACK-MD') {
-      throw new Error(`Invalid session header "${header}". Expected "BLACK-MD".`);
+    if (header !== 'BOT-YORTO') {
+      throw new Error(`Invalid session header "${header}". Expected "BLUEYORTO".`);
     }
 
     if (!payload) {
-      throw new Error('Session payload is empty after the BLACK-MD:~ prefix.');
+      throw new Error('Session payload is empty after the BLUEYORTO:~ prefix.');
     }
 
     let credsJson;
@@ -135,7 +135,7 @@ async function startRaven() {
   console.log(`using WA v${version.join(".")}, isLatest: ${isLatest}`);
   console.log(
     color(
-      figlet.textSync("BLACK-MD", {
+      figlet.textSync("BLUEYORTO", {
         font: "Standard",
         horizontalLayout: "default",
         verticalLayout: "default",
@@ -200,10 +200,10 @@ setInterval(() => {
       } catch (_) {}
 
       startPeriodicCleanup();
-      console.log(color("Congrats, BLACK MD has successfully connected to this server", "green"));
+      console.log(color("Congrats, BOT-YORTO has successfully connected to this server", "green"));
       console.log(color("Follow me on github as Blackie254", "red"));
       console.log(color("Text the bot number with menu to check my command list"));
-      const Texxt = `✅ 𝗖𝗼𝗻𝗻𝗲𝗰𝘁𝗲𝗱 » »【BLACK MD】\n` +
+      const Texxt = `✅ 𝗖𝗼𝗻𝗻𝗲𝗰𝘁𝗲𝗱 » »【BOT-YORTO】\n` +
                     `👥 𝗠𝗼𝗱𝗲 »» ${mode}\n` +
                     `👤 𝗣𝗿𝗲𝗳𝗶𝘅 »» ${prefix}`;
       client.sendMessage(client.user.id, { text: Texxt });
