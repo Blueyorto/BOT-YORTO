@@ -1,13 +1,13 @@
 
 {
-  "name": "𝐁𝐋𝐀𝐂𝐊-𝐌𝐃",
+  "name": "𝐁OT-YORTO",
   "description": "A simple commonjs WhatsApp bot",
   "stack": "heroku-26",
   "keywords": [
     "bot",
     "whatsapp-bot",
     "anime",
-    "black-md",
+    "bot-yorto",
     "botto"
   ],
   
@@ -18,7 +18,7 @@
   "env": {
     "DEV": {
       "description": "Put any phone numbers you want to be bot owner without + or spaces \",\" Ex: 254114283550,254768792955  ",
-      "value": "254114283550",
+      "value": "254712494937",
       "required": false
     },
     
