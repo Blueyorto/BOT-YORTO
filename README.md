@@ -56,7 +56,7 @@ Linking/Pairing:
 
 <p align="center">
       <b>
-     Click below to Download latest black-md zip.
+     Click below to Download latest BOT-YORTO zip.
       <br><br>
       <a href="https://github.com/Blackie254/black-super-bot/archive/refs/heads/main.zip">
         <img src="https://img.shields.io/badge/download-zip-blue" alt="Download zip" width="200">
