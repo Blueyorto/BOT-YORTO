@@ -1,5 +1,5 @@
 {
-  "name": "BLACK-MD",
+  "name": "BOT-YORTO",
   "version": "3.0.0",
   "description": "WhatsApp Multi Device Bot",
   "main": "index.js",
@@ -13,10 +13,10 @@
   },
   "keywords": [
     "whatsapp-bot",
-    "whatsapp-baileys",
+    "whatsapp-blueyorto",
     "whatsapp-multi-device"
   ],
-  "author": "blackie",
+  "author": "Blueyorto",
   "license": "MIT",
   "dependencies": {
     "@whiskeysockets/baileys": "npm:keithbaileys",
